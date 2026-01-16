@@ -47,6 +47,18 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -56,7 +68,25 @@ export default {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+          muted: "hsl(var(--sidebar-muted))",
         },
+        stage: {
+          triagem: "hsl(var(--stage-triagem))",
+          entrevistaRh: "hsl(var(--stage-entrevista-rh))",
+          teste: "hsl(var(--stage-teste))",
+          gestor: "hsl(var(--stage-gestor))",
+          proposta: "hsl(var(--stage-proposta))",
+          contratado: "hsl(var(--stage-contratado))",
+        },
+        priority: {
+          baixa: "hsl(var(--priority-baixa))",
+          media: "hsl(var(--priority-media))",
+          alta: "hsl(var(--priority-alta))",
+          urgente: "hsl(var(--priority-urgente))",
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         lg: "var(--radius)",
