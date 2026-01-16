@@ -24,6 +24,10 @@ export type LostReason =
   | 'reprovado_entrevista'
   | 'outros';
 
+export type FormFieldType = 'short_text' | 'long_text' | 'multiple_choice' | 'yes_no' | 'file_upload';
+
+export type EmailTemplateType = 'confirmation' | 'rejection' | 'interview_invite' | 'offer' | 'custom';
+
 // Entidades principais
 
 export interface Area {
@@ -46,6 +50,7 @@ export interface Candidate {
   resumeUrl?: string;
   notes?: string;
   tags: string[];
+  sourceId?: string;
   status: CandidateStatus;
   isArchived: boolean;
   createdAt: Date;
@@ -67,6 +72,7 @@ export interface Job {
   status: JobStatus;
   priority: 'baixa' | 'media' | 'alta' | 'urgente';
   deadline?: Date;
+  formTemplateId?: string;
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -113,11 +119,12 @@ export interface Tag {
   createdAt: Date;
 }
 
-export interface Form {
+export interface FormTemplate {
   id: string;
   name: string;
-  jobId?: string;
+  description?: string;
   fields: FormField[];
+  isDefault: boolean;
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -126,10 +133,39 @@ export interface Form {
 export interface FormField {
   id: string;
   label: string;
-  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'file' | 'date';
+  type: FormFieldType;
   required: boolean;
   options?: string[];
+  placeholder?: string;
   order: number;
+}
+
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  type: EmailTemplateType;
+  subject: string;
+  body: string;
+  isDefault: boolean;
+  isArchived: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IncompatibilityReason {
+  id: string;
+  name: string;
+  description?: string;
+  isArchived: boolean;
+  createdAt: Date;
+}
+
+export interface CandidateSource {
+  id: string;
+  name: string;
+  icon?: string;
+  isArchived: boolean;
+  createdAt: Date;
 }
 
 export interface LostCandidate {
@@ -138,6 +174,7 @@ export interface LostCandidate {
   jobId: string;
   cardId: string;
   reason: LostReason;
+  incompatibilityReasonId?: string;
   reasonDetails?: string;
   canReapply: boolean;
   reapplyAfter?: Date;

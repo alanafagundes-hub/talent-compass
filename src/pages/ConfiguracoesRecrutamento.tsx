@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -13,7 +12,15 @@ import {
   GripVertical,
   MoreHorizontal,
   Archive,
+  Mail,
+  AlertCircle,
+  Link2,
 } from "lucide-react";
+import TagsSettings from "@/components/settings/TagsSettings";
+import FormTemplatesSettings from "@/components/settings/FormTemplatesSettings";
+import EmailTemplatesSettings from "@/components/settings/EmailTemplatesSettings";
+import IncompatibilityReasonsSettings from "@/components/settings/IncompatibilityReasonsSettings";
+import CandidateSourcesSettings from "@/components/settings/CandidateSourcesSettings";
 
 // Mock data for areas
 const mockAreas = [
@@ -34,39 +41,20 @@ const mockFunnelStages = [
   { id: "6", name: "Contratado", order: 6, color: "bg-stage-contratado" },
 ];
 
-// Mock data for tags
-const mockTags = [
-  { id: "1", name: "Senior", color: "#3B82F6" },
-  { id: "2", name: "Pleno", color: "#8B5CF6" },
-  { id: "3", name: "Junior", color: "#22C55E" },
-  { id: "4", name: "React", color: "#06B6D4" },
-  { id: "5", name: "Node.js", color: "#84CC16" },
-  { id: "6", name: "Design", color: "#F43F5E" },
-  { id: "7", name: "Remoto", color: "#F59E0B" },
-];
-
 export default function ConfiguracoesRecrutamento() {
-  const [activeTab, setActiveTab] = useState("areas");
+  const [activeTab, setActiveTab] = useState("etiquetas");
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Recrutamento</h1>
         <p className="text-muted-foreground">
-          Configure áreas, funil de seleção, etiquetas e formulários
+          Configure etiquetas, formulários, e-mails e muito mais
         </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="areas" className="gap-2">
-            <Building2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Áreas</span>
-          </TabsTrigger>
-          <TabsTrigger value="funil" className="gap-2">
-            <GitBranch className="h-4 w-4" />
-            <span className="hidden sm:inline">Funil</span>
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 lg:w-auto lg:inline-grid">
           <TabsTrigger value="etiquetas" className="gap-2">
             <Tags className="h-4 w-4" />
             <span className="hidden sm:inline">Etiquetas</span>
@@ -75,7 +63,52 @@ export default function ConfiguracoesRecrutamento() {
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Formulários</span>
           </TabsTrigger>
+          <TabsTrigger value="emails" className="gap-2">
+            <Mail className="h-4 w-4" />
+            <span className="hidden sm:inline">E-mails</span>
+          </TabsTrigger>
+          <TabsTrigger value="incompatibilidade" className="gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">Motivos</span>
+          </TabsTrigger>
+          <TabsTrigger value="fontes" className="gap-2">
+            <Link2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Fontes</span>
+          </TabsTrigger>
+          <TabsTrigger value="areas" className="gap-2">
+            <Building2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Áreas</span>
+          </TabsTrigger>
+          <TabsTrigger value="funil" className="gap-2">
+            <GitBranch className="h-4 w-4" />
+            <span className="hidden sm:inline">Funil</span>
+          </TabsTrigger>
         </TabsList>
+
+        {/* Etiquetas Tab */}
+        <TabsContent value="etiquetas">
+          <TagsSettings />
+        </TabsContent>
+
+        {/* Formulários Tab */}
+        <TabsContent value="formularios">
+          <FormTemplatesSettings />
+        </TabsContent>
+
+        {/* E-mails Tab */}
+        <TabsContent value="emails">
+          <EmailTemplatesSettings />
+        </TabsContent>
+
+        {/* Motivos de Incompatibilidade Tab */}
+        <TabsContent value="incompatibilidade">
+          <IncompatibilityReasonsSettings />
+        </TabsContent>
+
+        {/* Fontes Tab */}
+        <TabsContent value="fontes">
+          <CandidateSourcesSettings />
+        </TabsContent>
 
         {/* Áreas Tab */}
         <TabsContent value="areas" className="space-y-4">
@@ -162,76 +195,6 @@ export default function ConfiguracoesRecrutamento() {
                     </div>
                   </div>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Etiquetas Tab */}
-        <TabsContent value="etiquetas" className="space-y-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Etiquetas</CardTitle>
-                <CardDescription>
-                  Crie etiquetas para categorizar candidatos
-                </CardDescription>
-              </div>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Nova Etiqueta
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {mockTags.map((tag) => (
-                  <Badge
-                    key={tag.id}
-                    variant="outline"
-                    className="gap-2 py-2 px-3 cursor-pointer transition-colors hover:bg-muted"
-                    style={{ borderColor: tag.color }}
-                  >
-                    <div
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: tag.color }}
-                    />
-                    {tag.name}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Formulários Tab */}
-        <TabsContent value="formularios" className="space-y-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Formulários de Aplicação</CardTitle>
-                <CardDescription>
-                  Configure formulários personalizados para cada vaga
-                </CardDescription>
-              </div>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Novo Formulário
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
-                <FileText className="h-12 w-12 text-muted-foreground/50" />
-                <h3 className="mt-4 text-lg font-semibold">
-                  Nenhum formulário criado
-                </h3>
-                <p className="text-muted-foreground text-center max-w-sm">
-                  Crie formulários personalizados para coletar informações específicas
-                  dos candidatos durante a aplicação.
-                </p>
-                <Button className="mt-4 gap-2">
-                  <Plus className="h-4 w-4" />
-                  Criar Primeiro Formulário
-                </Button>
               </div>
             </CardContent>
           </Card>
