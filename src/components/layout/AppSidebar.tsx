@@ -176,6 +176,66 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              {/* Configurações */}
+              <Collapsible
+                open={settingsOpen}
+                onOpenChange={setSettingsOpen}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton
+                      tooltip="Configurações"
+                      isActive={isActive("/configuracoes")}
+                      className={cn(
+                        "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-all w-full",
+                        isActive("/configuracoes")
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Settings className="h-5 w-5 shrink-0" />
+                        {!isCollapsed && <span>Configurações</span>}
+                      </div>
+                      {!isCollapsed && (
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 transition-transform duration-200",
+                            settingsOpen && "rotate-180"
+                          )}
+                        />
+                      )}
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {settingsSubItems.map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={isActive(subItem.url)}
+                          >
+                            <NavLink
+                              to={subItem.url}
+                              className={cn(
+                                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
+                                isActive(subItem.url)
+                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                  : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                              )}
+                            >
+                              <subItem.icon className="h-4 w-4 shrink-0" />
+                              <span>{subItem.title}</span>
+                            </NavLink>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -279,73 +339,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-4">
-          <SidebarGroupLabel className="text-sidebar-muted text-xs uppercase tracking-wider mb-2">
-            Sistema
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <Collapsible
-                open={settingsOpen}
-                onOpenChange={setSettingsOpen}
-                className="group/collapsible"
-              >
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton
-                      tooltip="Configurações"
-                      isActive={isActive("/configuracoes")}
-                      className={cn(
-                        "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-all w-full",
-                        isActive("/configuracoes")
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Settings className="h-5 w-5 shrink-0" />
-                        {!isCollapsed && <span>Configurações</span>}
-                      </div>
-                      {!isCollapsed && (
-                        <ChevronDown
-                          className={cn(
-                            "h-4 w-4 transition-transform duration-200",
-                            settingsOpen && "rotate-180"
-                          )}
-                        />
-                      )}
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {settingsSubItems.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={isActive(subItem.url)}
-                          >
-                            <NavLink
-                              to={subItem.url}
-                              className={cn(
-                                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
-                                isActive(subItem.url)
-                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                                  : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
-                              )}
-                            >
-                              <subItem.icon className="h-4 w-4 shrink-0" />
-                              <span>{subItem.title}</span>
-                            </NavLink>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );
