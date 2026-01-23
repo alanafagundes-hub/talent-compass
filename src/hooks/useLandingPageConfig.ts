@@ -115,32 +115,43 @@ export function getIconComponent(iconName: string): LucideIcon {
 }
 
 export function useLandingPageConfig() {
-  const [config, setConfig] = useState<LandingPageConfig>(defaultLandingPageConfig);
-  const [isLoading, setIsLoading] = useState(true);
+  const [config, setConfig] = useState<LandingPageConfig>(() => {
+    // Initialize from localStorage synchronously to avoid flash
+    try {
+      const saved = localStorage.getItem("landingPageConfig");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return mergeConfig(parsed);
+      }
+    } catch (error) {
+      console.error("Error loading landing page config:", error);
+    }
+    return defaultLandingPageConfig;
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Deep merge function to properly merge nested objects and arrays
+  function mergeConfig(saved: Partial<LandingPageConfig>): LandingPageConfig {
+    return {
+      ...defaultLandingPageConfig,
+      ...saved,
+      stats: {
+        ...defaultLandingPageConfig.stats,
+        ...(saved.stats || {}),
+      },
+      // Preserve arrays as-is from saved config (don't merge with defaults)
+      values: saved.values ?? defaultLandingPageConfig.values,
+      statistics: saved.statistics ?? defaultLandingPageConfig.statistics,
+    };
+  }
 
   useEffect(() => {
-    const loadConfig = () => {
-      try {
-        const saved = localStorage.getItem("landingPageConfig");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setConfig({ ...defaultLandingPageConfig, ...parsed });
-        }
-      } catch (error) {
-        console.error("Error loading landing page config:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadConfig();
-
-    // Listen for storage changes (when config is updated in settings)
+    // Listen for storage changes from other tabs/windows
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "landingPageConfig" && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
-          setConfig({ ...defaultLandingPageConfig, ...parsed });
+          setConfig(mergeConfig(parsed));
         } catch (error) {
           console.error("Error parsing landing page config:", error);
         }
@@ -154,6 +165,8 @@ export function useLandingPageConfig() {
   const saveConfig = (newConfig: LandingPageConfig) => {
     setConfig(newConfig);
     localStorage.setItem("landingPageConfig", JSON.stringify(newConfig));
+    // Dispatch custom event for same-tab updates
+    window.dispatchEvent(new CustomEvent("landingPageConfigUpdated", { detail: newConfig }));
   };
 
   return { config, saveConfig, isLoading };
