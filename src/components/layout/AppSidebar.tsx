@@ -9,6 +9,14 @@ import {
   ChevronDown,
   ClipboardList,
   Building2,
+  UsersRound,
+  UserCircle,
+  Target,
+  MessageSquare,
+  TrendingUp,
+  MessagesSquare,
+  FileText,
+  SmilePlus,
 } from "lucide-react";
 import {
   Sidebar,
@@ -63,12 +71,55 @@ const settingsSubItems = [
   },
 ];
 
+// HCM Menu Items (roadmap - placeholder)
+const hcmMenuItems = [
+  {
+    title: "Colaboradores",
+    url: "/hcm/colaboradores",
+    icon: UserCircle,
+  },
+  {
+    title: "CSAT Interno",
+    url: "/hcm/csat",
+    icon: SmilePlus,
+  },
+];
+
+const gestaoSubItems = [
+  {
+    title: "1:1s",
+    url: "/hcm/gestao/1-1s",
+    icon: MessageSquare,
+  },
+  {
+    title: "PDIs",
+    url: "/hcm/gestao/pdis",
+    icon: TrendingUp,
+  },
+  {
+    title: "Conversas",
+    url: "/hcm/gestao/conversas",
+    icon: MessagesSquare,
+  },
+  {
+    title: "Documentos",
+    url: "/hcm/gestao/documentos",
+    icon: FileText,
+  },
+];
+
 export function AppSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const [settingsOpen, setSettingsOpen] = useState(
     location.pathname.startsWith("/configuracoes")
+  );
+  const [hcmOpen, setHcmOpen] = useState(
+    location.pathname.startsWith("/hcm")
+  );
+  const [gestaoOpen, setGestaoOpen] = useState(
+    location.pathname.startsWith("/hcm/gestao")
   );
 
   const isActive = (path: string) => {
@@ -125,6 +176,105 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* HCM Section - Roadmap Placeholder */}
+        <SidebarGroup className="mt-4">
+          <SidebarGroupLabel className="text-sidebar-muted text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
+            <UsersRound className="h-3.5 w-3.5" />
+            HCM
+            {!isCollapsed && (
+              <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                Em breve
+              </span>
+            )}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {hcmMenuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.url)}
+                    tooltip={item.title}
+                  >
+                    <NavLink
+                      to={item.url}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all",
+                        isActive(item.url)
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5 shrink-0" />
+                      {!isCollapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+
+              {/* Gestão Submenu */}
+              <Collapsible
+                open={gestaoOpen}
+                onOpenChange={setGestaoOpen}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton
+                      tooltip="Gestão"
+                      isActive={isActive("/hcm/gestao")}
+                      className={cn(
+                        "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-all w-full",
+                        isActive("/hcm/gestao")
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Target className="h-5 w-5 shrink-0" />
+                        {!isCollapsed && <span>Gestão</span>}
+                      </div>
+                      {!isCollapsed && (
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 transition-transform duration-200",
+                            gestaoOpen && "rotate-180"
+                          )}
+                        />
+                      )}
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {gestaoSubItems.map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={isActive(subItem.url)}
+                          >
+                            <NavLink
+                              to={subItem.url}
+                              className={cn(
+                                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
+                                isActive(subItem.url)
+                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                  : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                              )}
+                            >
+                              <subItem.icon className="h-4 w-4 shrink-0" />
+                              <span>{subItem.title}</span>
+                            </NavLink>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

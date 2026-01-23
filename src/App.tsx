@@ -14,7 +14,9 @@ import Configuracoes from "./pages/Configuracoes";
 import ConfiguracoesRecrutamento from "./pages/ConfiguracoesRecrutamento";
 import VagasPublicas from "./pages/VagasPublicas";
 import VagaPublica from "./pages/VagaPublica";
+import PlaceholderPage from "./pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
+import { Users, Target, MessageSquare, TrendingUp, MessagesSquare, FileText, SmilePlus } from "lucide-react";
 
 
 const queryClient = new QueryClient();
@@ -39,6 +41,15 @@ const App = () => (
           <Route path="/perdidos" element={<AppLayout><Perdidos /></AppLayout>} />
           <Route path="/configuracoes" element={<AppLayout><Configuracoes /></AppLayout>} />
           <Route path="/configuracoes/recrutamento" element={<AppLayout><ConfiguracoesRecrutamento /></AppLayout>} />
+          
+          {/* HCM Routes - Placeholder (roadmap) */}
+          <Route path="/hcm/colaboradores" element={<AppLayout><PlaceholderPage title="Colaboradores" description="Gestão completa do quadro de colaboradores da empresa." icon={Users} /></AppLayout>} />
+          <Route path="/hcm/gestao" element={<AppLayout><PlaceholderPage title="Gestão de Pessoas" description="Hub central para gestão e desenvolvimento de pessoas." icon={Target} /></AppLayout>} />
+          <Route path="/hcm/gestao/1-1s" element={<AppLayout><PlaceholderPage title="1:1s" description="Reuniões one-on-one entre gestores e colaboradores." icon={MessageSquare} /></AppLayout>} />
+          <Route path="/hcm/gestao/pdis" element={<AppLayout><PlaceholderPage title="PDIs" description="Planos de Desenvolvimento Individual dos colaboradores." icon={TrendingUp} /></AppLayout>} />
+          <Route path="/hcm/gestao/conversas" element={<AppLayout><PlaceholderPage title="Conversas" description="Histórico de conversas e feedbacks registrados." icon={MessagesSquare} /></AppLayout>} />
+          <Route path="/hcm/gestao/documentos" element={<AppLayout><PlaceholderPage title="Documentos" description="Gestão de documentos e arquivos dos colaboradores." icon={FileText} /></AppLayout>} />
+          <Route path="/hcm/csat" element={<AppLayout><PlaceholderPage title="CSAT Interno" description="Pesquisas de satisfação e clima organizacional." icon={SmilePlus} /></AppLayout>} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

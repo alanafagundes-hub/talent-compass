@@ -22,6 +22,15 @@ const routeLabels: Record<string, string> = {
   "/perdidos": "Perdidos",
   "/configuracoes": "Configurações",
   "/configuracoes/recrutamento": "Recrutamento",
+  // HCM Routes
+  "/hcm": "HCM",
+  "/hcm/colaboradores": "Colaboradores",
+  "/hcm/gestao": "Gestão",
+  "/hcm/gestao/1-1s": "1:1s",
+  "/hcm/gestao/pdis": "PDIs",
+  "/hcm/gestao/conversas": "Conversas",
+  "/hcm/gestao/documentos": "Documentos",
+  "/hcm/csat": "CSAT Interno",
 };
 
 export function AppLayout({ children }: AppLayoutProps) {
