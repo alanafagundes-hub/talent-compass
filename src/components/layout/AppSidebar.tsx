@@ -150,7 +150,7 @@ export function AppSidebar() {
       <SidebarContent className="px-2 py-4">
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-muted text-xs uppercase tracking-wider mb-2">
-            Menu Principal
+            Recrutamento e Seleção
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
