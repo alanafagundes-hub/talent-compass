@@ -10,7 +10,7 @@ import VagaFunil from "./pages/VagaFunil";
 import CandidatoDetalhe from "./pages/CandidatoDetalhe";
 import Talentos from "./pages/Talentos";
 import Perdidos from "./pages/Perdidos";
-import Configuracoes from "./pages/Configuracoes";
+
 import ConfiguracoesRecrutamento from "./pages/ConfiguracoesRecrutamento";
 import VagasPublicas from "./pages/VagasPublicas";
 import VagaPublica from "./pages/VagaPublica";
@@ -39,8 +39,7 @@ const App = () => (
           <Route path="/vagas/:jobId/candidato/:cardId" element={<AppLayout><CandidatoDetalhe /></AppLayout>} />
           <Route path="/talentos" element={<AppLayout><Talentos /></AppLayout>} />
           <Route path="/perdidos" element={<AppLayout><Perdidos /></AppLayout>} />
-          <Route path="/configuracoes" element={<AppLayout><Configuracoes /></AppLayout>} />
-          <Route path="/configuracoes/recrutamento" element={<AppLayout><ConfiguracoesRecrutamento /></AppLayout>} />
+          <Route path="/configuracoes" element={<AppLayout><ConfiguracoesRecrutamento /></AppLayout>} />
           
           {/* HCM Routes - Placeholder (roadmap) */}
           <Route path="/hcm/dashboard" element={<AppLayout><PlaceholderPage title="Dashboard" description="Visão geral de métricas e indicadores de People e Performance." icon={LayoutDashboard} /></AppLayout>} />
