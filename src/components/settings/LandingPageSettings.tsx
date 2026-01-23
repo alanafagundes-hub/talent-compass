@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,92 +13,29 @@ import {
   Palette, 
   Type, 
   Building2,
-  Sparkles,
-  Users,
-  Heart,
-  TrendingUp,
   Plus,
   Trash2,
   GripVertical
 } from "lucide-react";
 import { toast } from "sonner";
+import { 
+  useLandingPageConfig, 
+  defaultLandingPageConfig,
+  iconMap,
+  type LandingPageConfig,
+  type ValueCard 
+} from "@/hooks/useLandingPageConfig";
 
-interface ValueCard {
-  id: string;
-  icon: string;
-  title: string;
-  description: string;
-}
-
-interface LandingPageConfig {
-  // Hero Section
-  heroHeadline: string;
-  heroSubheadline: string;
-  heroCta: string;
-  showStats: boolean;
-  stats: {
-    jobs: string;
-    hired: string;
-    areas: string;
-  };
-  
-  // About Section
-  aboutTitle: string;
-  aboutSubtitle: string;
-  values: ValueCard[];
-  
-  // Jobs Section
-  jobsSectionTitle: string;
-  jobsSectionSubtitle: string;
-  
-  // CTA Final
-  ctaTitle: string;
-  ctaSubtitle: string;
-  ctaButtonText: string;
-  showTalentPoolCta: boolean;
-  
-  // Design
-  primaryColor: string;
-  logoUrl: string;
-  companyName: string;
-}
-
-const iconOptions = [
-  { value: "Sparkles", label: "Inovação", icon: Sparkles },
-  { value: "Users", label: "Pessoas", icon: Users },
-  { value: "Heart", label: "Coração", icon: Heart },
-  { value: "TrendingUp", label: "Crescimento", icon: TrendingUp },
-  { value: "Building2", label: "Empresa", icon: Building2 },
-];
-
-const defaultConfig: LandingPageConfig = {
-  heroHeadline: "Construa sua carreira com a gente",
-  heroSubheadline: "Junte-se a uma equipe apaixonada por inovação e faça parte de projetos que transformam o mercado.",
-  heroCta: "Ver vagas abertas",
-  showStats: true,
-  stats: {
-    jobs: "12",
-    hired: "150+",
-    areas: "8",
-  },
-  aboutTitle: "Por que trabalhar conosco?",
-  aboutSubtitle: "Descubra o que faz da nossa empresa um ótimo lugar para crescer profissionalmente",
-  values: [
-    { id: "1", icon: "Sparkles", title: "Inovação Constante", description: "Trabalhamos com as tecnologias mais modernas do mercado e incentivamos a experimentação." },
-    { id: "2", icon: "Users", title: "Cultura Colaborativa", description: "Valorizamos o trabalho em equipe e a troca de conhecimentos entre todos." },
-    { id: "3", icon: "Heart", title: "Bem-estar em Primeiro Lugar", description: "Oferecemos benefícios que cuidam de você e da sua família." },
-    { id: "4", icon: "TrendingUp", title: "Crescimento Acelerado", description: "Plano de carreira estruturado com oportunidades reais de evolução." },
-  ],
-  jobsSectionTitle: "Vagas Abertas",
-  jobsSectionSubtitle: "Encontre a oportunidade perfeita para o próximo passo da sua carreira",
-  ctaTitle: "Não encontrou a vaga ideal?",
-  ctaSubtitle: "Cadastre-se em nosso banco de talentos e seja o primeiro a saber quando surgirem novas oportunidades na sua área.",
-  ctaButtonText: "Cadastrar no Banco de Talentos",
-  showTalentPoolCta: true,
-  primaryColor: "#8B5CF6",
-  logoUrl: "",
-  companyName: "Sua Empresa",
-};
+const iconOptions = Object.keys(iconMap).map(key => ({
+  value: key,
+  label: key === "Sparkles" ? "Inovação" : 
+         key === "Users" ? "Pessoas" :
+         key === "Heart" ? "Coração" :
+         key === "TrendingUp" ? "Crescimento" :
+         key === "Rocket" ? "Foguete" :
+         key === "Target" ? "Alvo" :
+         key === "Building2" ? "Empresa" : key,
+}));
 
 const colorPresets = [
   { name: "Roxo", value: "#8B5CF6" },
@@ -112,8 +49,15 @@ const colorPresets = [
 ];
 
 export default function LandingPageSettings() {
-  const [config, setConfig] = useState<LandingPageConfig>(defaultConfig);
+  const { config: savedConfig, saveConfig, isLoading } = useLandingPageConfig();
+  const [config, setConfig] = useState<LandingPageConfig>(defaultLandingPageConfig);
   const [hasChanges, setHasChanges] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setConfig(savedConfig);
+    }
+  }, [savedConfig, isLoading]);
 
   const updateConfig = <K extends keyof LandingPageConfig>(
     key: K,
@@ -164,19 +108,22 @@ export default function LandingPageSettings() {
   };
 
   const handleSave = () => {
-    // TODO: Salvar no backend/localStorage
-    localStorage.setItem("landingPageConfig", JSON.stringify(config));
+    saveConfig(config);
     setHasChanges(false);
     toast.success("Configurações da Landing Page salvas!");
   };
 
   const handlePreview = () => {
+    // Save before preview so changes are visible
+    if (hasChanges) {
+      saveConfig(config);
+      setHasChanges(false);
+    }
     window.open("/carreiras", "_blank");
   };
 
   const getIconComponent = (iconName: string) => {
-    const found = iconOptions.find(i => i.value === iconName);
-    return found ? found.icon : Sparkles;
+    return iconMap[iconName] || iconMap.Sparkles;
   };
 
   return (
