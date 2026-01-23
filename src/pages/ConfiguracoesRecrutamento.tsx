@@ -77,7 +77,7 @@ export default function ConfiguracoesRecrutamento() {
           </TabsTrigger>
           <TabsTrigger value="landing" className="gap-2">
             <LayoutTemplate className="h-4 w-4" />
-            <span className="hidden sm:inline">Landing Page</span>
+            <span className="hidden sm:inline">Carreiras</span>
           </TabsTrigger>
         </TabsList>
 
