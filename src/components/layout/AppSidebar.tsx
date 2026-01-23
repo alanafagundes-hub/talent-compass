@@ -244,7 +244,7 @@ export function AppSidebar() {
         <SidebarGroup className="mt-4">
           <SidebarGroupLabel className="text-sidebar-muted text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
             <UsersRound className="h-3.5 w-3.5" />
-            HCM
+            People e Performance
             {!isCollapsed && (
               <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
                 Em breve
