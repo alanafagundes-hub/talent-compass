@@ -176,13 +176,14 @@ export default function LandingPageSettings() {
   };
 
   const handlePreview = () => {
-    // Always save current config before preview to ensure latest changes are visible
+    // Always save current config before preview
     saveConfig(config);
     setHasChanges(false);
-    // Small delay to ensure localStorage is updated before new tab reads it
+    // Encode config in URL for cross-origin/iframe preview
+    const configParam = encodeURIComponent(JSON.stringify(config));
     setTimeout(() => {
-      window.open("/carreiras", "_blank");
-    }, 100);
+      window.open(`/carreiras?preview=${configParam}`, "_blank");
+    }, 50);
   };
 
   const getIconComponent = (iconName: string) => {
