@@ -18,16 +18,13 @@ import {
   Search,
   ArrowRight,
   Loader2,
-  Users,
-  Rocket,
-  Heart,
-  Target,
   Sparkles,
   ChevronDown,
 } from "lucide-react";
 import type { Job, Area } from "@/types/ats";
 import { jobLevelLabels, contractTypeLabels } from "@/types/ats";
 import logoDot from "@/assets/logo-dot.png";
+import { useLandingPageConfig, getIconComponent } from "@/hooks/useLandingPageConfig";
 
 // Mock data
 const mockJobs: Job[] = [
@@ -86,31 +83,8 @@ const mockAreas: Area[] = [
   { id: "3", name: "Criação", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
 ];
 
-// Company values/differentials
-const companyValues = [
-  {
-    icon: Rocket,
-    title: "Inovação Constante",
-    description: "Trabalhamos com tecnologias de ponta e incentivamos a experimentação.",
-  },
-  {
-    icon: Users,
-    title: "Cultura Colaborativa",
-    description: "Valorizamos o trabalho em equipe e a troca de conhecimentos.",
-  },
-  {
-    icon: Heart,
-    title: "Bem-estar",
-    description: "Benefícios completos e ambiente que prioriza sua qualidade de vida.",
-  },
-  {
-    icon: Target,
-    title: "Crescimento",
-    description: "Plano de carreira estruturado e investimento em desenvolvimento.",
-  },
-];
-
 export default function VagasPublicas() {
+  const { config, isLoading: configLoading } = useLandingPageConfig();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -139,7 +113,14 @@ export default function VagasPublicas() {
 
   const getAreaById = (areaId: string) => mockAreas.find(a => a.id === areaId);
 
-  if (isLoading) {
+  // Generate dynamic primary color styles
+  const primaryColorStyle = {
+    "--lp-primary": config.primaryColor,
+    "--lp-primary-light": `${config.primaryColor}20`,
+    "--lp-primary-medium": `${config.primaryColor}40`,
+  } as React.CSSProperties;
+
+  if (isLoading || configLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -150,13 +131,20 @@ export default function VagasPublicas() {
     );
   }
 
+  const logoSrc = config.logoUrl || logoDot;
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={primaryColorStyle}>
       {/* Header/Navigation */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <img src={logoDot} alt="DOT" className="h-8 w-auto" />
-          <Button onClick={scrollToJobs} size="sm">
+          <div className="flex items-center gap-3">
+            <img src={logoSrc} alt={config.companyName} className="h-8 w-auto" />
+            {config.companyName && config.logoUrl && (
+              <span className="font-semibold text-lg">{config.companyName}</span>
+            )}
+          </div>
+          <Button onClick={scrollToJobs} size="sm" style={{ backgroundColor: config.primaryColor }}>
             Ver Vagas
           </Button>
         </div>
@@ -164,13 +152,29 @@ export default function VagasPublicas() {
 
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-16">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/5" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
+        {/* Background gradient with dynamic color */}
+        <div 
+          className="absolute inset-0" 
+          style={{ 
+            background: `linear-gradient(to bottom right, ${config.primaryColor}15, transparent, transparent)` 
+          }} 
+        />
+        <div 
+          className="absolute inset-0" 
+          style={{ 
+            background: `radial-gradient(ellipse at top right, ${config.primaryColor}25, transparent 50%)` 
+          }} 
+        />
         
         {/* Decorative elements */}
-        <div className="absolute top-1/4 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse" />
+        <div 
+          className="absolute top-1/4 left-10 w-72 h-72 rounded-full blur-3xl animate-pulse" 
+          style={{ backgroundColor: `${config.primaryColor}15` }}
+        />
+        <div 
+          className="absolute bottom-1/4 right-10 w-96 h-96 rounded-full blur-3xl animate-pulse" 
+          style={{ backgroundColor: `${config.primaryColor}10` }}
+        />
         
         <div className="container max-w-5xl mx-auto px-4 py-20 text-center relative z-10">
           <Badge variant="secondary" className="mb-6 px-4 py-2 text-sm font-medium">
@@ -179,41 +183,55 @@ export default function VagasPublicas() {
           </Badge>
           
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
-            Construa o futuro
+            {config.heroHeadline.split(" ").slice(0, -2).join(" ")}
             <br />
-            <span className="text-primary">com a gente</span>
+            <span style={{ color: config.primaryColor }}>
+              {config.heroHeadline.split(" ").slice(-2).join(" ")}
+            </span>
           </h1>
           
           <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Junte-se a uma equipe apaixonada por transformar ideias em soluções 
-            que impactam milhares de pessoas. Sua próxima grande oportunidade começa aqui.
+            {config.heroSubheadline}
           </p>
           
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" onClick={scrollToJobs} className="text-lg px-8 py-6 h-auto">
-              Ver vagas abertas
+            <Button 
+              size="lg" 
+              onClick={scrollToJobs} 
+              className="text-lg px-8 py-6 h-auto"
+              style={{ backgroundColor: config.primaryColor }}
+            >
+              {config.heroCta}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button size="lg" variant="outline" className="text-lg px-8 py-6 h-auto" asChild>
-              <a href="#about">Conheça a DOT</a>
+              <a href="#about">Conheça a {config.companyName}</a>
             </Button>
           </div>
           
           {/* Stats */}
-          <div className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto">
-            <div className="text-center">
-              <p className="text-3xl sm:text-4xl font-bold text-primary">50+</p>
-              <p className="text-sm text-muted-foreground mt-1">Colaboradores</p>
+          {config.showStats && (
+            <div className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto">
+              <div className="text-center">
+                <p className="text-3xl sm:text-4xl font-bold" style={{ color: config.primaryColor }}>
+                  {config.stats.jobs}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">Vagas Abertas</p>
+              </div>
+              <div className="text-center">
+                <p className="text-3xl sm:text-4xl font-bold" style={{ color: config.primaryColor }}>
+                  {config.stats.hired}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">Contratados</p>
+              </div>
+              <div className="text-center">
+                <p className="text-3xl sm:text-4xl font-bold" style={{ color: config.primaryColor }}>
+                  {config.stats.areas}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">Áreas</p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-3xl sm:text-4xl font-bold text-primary">100+</p>
-              <p className="text-sm text-muted-foreground mt-1">Projetos</p>
-            </div>
-            <div className="text-center">
-              <p className="text-3xl sm:text-4xl font-bold text-primary">8+</p>
-              <p className="text-sm text-muted-foreground mt-1">Anos</p>
-            </div>
-          </div>
+          )}
           
           {/* Scroll indicator */}
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
@@ -228,31 +246,39 @@ export default function VagasPublicas() {
           <div className="text-center mb-16">
             <Badge variant="outline" className="mb-4">Sobre nós</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold">
-              Por que trabalhar na <span className="text-primary">DOT</span>?
+              {config.aboutTitle}
             </h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Somos uma empresa que valoriza pessoas. Aqui, você encontra um ambiente 
-              que incentiva seu crescimento profissional e pessoal.
+              {config.aboutSubtitle}
             </p>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {companyValues.map((value, index) => (
-              <Card 
-                key={index} 
-                className="group relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
-              >
-                <CardContent className="p-6">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                    <value.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">{value.title}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    {value.description}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+            {config.values.map((value) => {
+              const IconComponent = getIconComponent(value.icon);
+              return (
+                <Card 
+                  key={value.id} 
+                  className="group relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300"
+                  style={{ 
+                    ["--hover-border-color" as string]: `${config.primaryColor}50`,
+                  }}
+                >
+                  <CardContent className="p-6">
+                    <div 
+                      className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 transition-colors"
+                      style={{ backgroundColor: `${config.primaryColor}15` }}
+                    >
+                      <IconComponent className="h-6 w-6" style={{ color: config.primaryColor }} />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">{value.title}</h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      {value.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -263,10 +289,10 @@ export default function VagasPublicas() {
           <div className="text-center mb-12">
             <Badge variant="outline" className="mb-4">Oportunidades</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold">
-              Vagas <span className="text-primary">abertas</span>
+              {config.jobsSectionTitle}
             </h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto">
-              Encontre a posição ideal para você e faça parte do nosso time.
+              {config.jobsSectionSubtitle}
             </p>
           </div>
 
@@ -323,7 +349,10 @@ export default function VagasPublicas() {
                 return (
                   <Card 
                     key={job.id} 
-                    className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 hover:-translate-y-1"
+                    className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                    style={{
+                      ["--hover-shadow-color" as string]: `${config.primaryColor}10`,
+                    }}
                   >
                     <CardContent className="p-6">
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -359,7 +388,12 @@ export default function VagasPublicas() {
                           </div>
                         </div>
                         
-                        <Button asChild size="lg" className="shrink-0">
+                        <Button 
+                          asChild 
+                          size="lg" 
+                          className="shrink-0"
+                          style={{ backgroundColor: config.primaryColor }}
+                        >
                           <Link to={`/carreiras/${job.id}`}>
                             Candidatar-se
                             <ArrowRight className="ml-2 h-4 w-4" />
@@ -376,41 +410,61 @@ export default function VagasPublicas() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-gradient-to-br from-primary/10 via-background to-accent/5 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-primary/15 via-transparent to-transparent" />
-        
-        <div className="container max-w-4xl mx-auto px-4 text-center relative z-10">
-          <h2 className="text-3xl sm:text-4xl font-bold">
-            Não encontrou a vaga ideal?
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto">
-            Cadastre seu currículo em nosso banco de talentos e seja considerado 
-            para futuras oportunidades alinhadas ao seu perfil.
-          </p>
-          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="outline" className="text-lg px-8 py-6 h-auto">
-              Cadastrar currículo
-            </Button>
-            <Button size="lg" onClick={scrollToJobs} className="text-lg px-8 py-6 h-auto">
-              Ver todas as vagas
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+      {config.showTalentPoolCta && (
+        <section 
+          className="py-24 relative overflow-hidden"
+          style={{ 
+            background: `linear-gradient(to bottom right, ${config.primaryColor}15, transparent, ${config.primaryColor}08)` 
+          }}
+        >
+          <div 
+            className="absolute inset-0" 
+            style={{ 
+              background: `radial-gradient(ellipse at bottom left, ${config.primaryColor}20, transparent 50%)` 
+            }} 
+          />
+          
+          <div className="container max-w-4xl mx-auto px-4 text-center relative z-10">
+            <h2 className="text-3xl sm:text-4xl font-bold">
+              {config.ctaTitle}
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto">
+              {config.ctaSubtitle}
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="text-lg px-8 py-6 h-auto"
+              >
+                {config.ctaButtonText}
+              </Button>
+              <Button 
+                size="lg" 
+                onClick={scrollToJobs} 
+                className="text-lg px-8 py-6 h-auto"
+                style={{ backgroundColor: config.primaryColor }}
+              >
+                Ver todas as vagas
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="border-t bg-muted/20">
         <div className="container max-w-6xl mx-auto px-4 py-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <img src={logoDot} alt="DOT" className="h-8 w-auto" />
+              <img src={logoSrc} alt={config.companyName} className="h-8 w-auto" />
               <span className="text-muted-foreground">
                 Transformando ideias em realidade.
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} DOT. Todos os direitos reservados.
+              © {new Date().getFullYear()} {config.companyName}. Todos os direitos reservados.
             </p>
           </div>
         </div>
