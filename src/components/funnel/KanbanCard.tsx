@@ -77,6 +77,14 @@ export default function KanbanCard({ card, onViewDetails, onMarkAsLost, onRate }
     return "Agora";
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Only navigate if not clicking on dropdown menu
+    if ((e.target as HTMLElement).closest('[data-radix-popper-content-wrapper]')) return;
+    if ((e.target as HTMLElement).closest('[role="menu"]')) return;
+    if ((e.target as HTMLElement).closest('button')) return;
+    onViewDetails?.(card);
+  };
+
   return (
     <Card
       ref={setNodeRef}
@@ -84,6 +92,7 @@ export default function KanbanCard({ card, onViewDetails, onMarkAsLost, onRate }
       className={`p-3 cursor-grab active:cursor-grabbing transition-all hover:shadow-md ${
         isDragging ? "opacity-50 shadow-lg rotate-2" : ""
       }`}
+      onClick={handleCardClick}
       {...attributes}
       {...listeners}
     >

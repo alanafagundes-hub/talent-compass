@@ -283,8 +283,7 @@ export default function VagaFunil() {
   };
 
   const handleViewDetails = (card: any) => {
-    toast.info(`Abrindo detalhes de ${card.candidate.name}`);
-    // TODO: Open candidate details modal/page
+    navigate(`/vagas/${jobId}/candidato/${card.id}`);
   };
 
   const handleMarkAsLost = (card: any) => {
