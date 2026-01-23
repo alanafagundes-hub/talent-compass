@@ -7,8 +7,6 @@ import {
   UserX,
   Settings,
   ChevronDown,
-  Building2,
-  UsersRound,
   UserCircle,
   Target,
   MessageSquare,
@@ -38,6 +36,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import logoDot from "@/assets/logo-dot.png";
 
 const mainMenuItems = [
   {
@@ -123,18 +122,20 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="border-b border-sidebar-border px-4 py-5">
-        <div className="flex items-center gap-3">
+      <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
+        <div className="flex items-center justify-center">
           {!isCollapsed ? (
-            <div className="flex items-center gap-1">
-              <span className="text-xl font-light tracking-widest text-sidebar-foreground">D</span>
-              <span className="text-xl font-light tracking-widest text-primary">O</span>
-              <span className="text-xl font-light tracking-widest text-sidebar-foreground">T</span>
-            </div>
+            <img 
+              src={logoDot} 
+              alt="DOT" 
+              className="h-7 w-auto object-contain"
+            />
           ) : (
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
-              <span className="text-sm font-semibold text-primary">D</span>
-            </div>
+            <img 
+              src={logoDot} 
+              alt="DOT" 
+              className="h-6 w-auto object-contain"
+            />
           )}
         </div>
       </SidebarHeader>
