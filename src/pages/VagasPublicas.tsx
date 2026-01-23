@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +24,7 @@ import {
 import type { Job, Area } from "@/types/ats";
 import { jobLevelLabels, contractTypeLabels } from "@/types/ats";
 import logoDot from "@/assets/logo-dot.png";
-import { useLandingPageConfig, getIconComponent } from "@/hooks/useLandingPageConfig";
+import { useLandingPageConfig, getIconComponent, defaultLandingPageConfig, type LandingPageConfig } from "@/hooks/useLandingPageConfig";
 
 // Mock data
 const mockJobs: Job[] = [
@@ -84,7 +84,15 @@ const mockAreas: Area[] = [
 ];
 
 export default function VagasPublicas() {
-  const { config, isLoading: configLoading } = useLandingPageConfig();
+  const [searchParams] = useSearchParams();
+  const { config: savedConfig, isLoading: configLoading } = useLandingPageConfig();
+  
+  // Check for preview config in URL (used when previewing from settings)
+  const previewConfig = searchParams.get("preview");
+  const config: LandingPageConfig = previewConfig 
+    ? { ...defaultLandingPageConfig, ...JSON.parse(decodeURIComponent(previewConfig)) }
+    : savedConfig;
+  
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
