@@ -3,15 +3,19 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import KanbanCard from "./KanbanCard";
-import type { Candidate, Tag, FunnelStep } from "@/types/ats";
+import type { Candidate, Tag, FunnelStep, CardStageRating } from "@/types/ats";
 
 interface KanbanCardData {
   id: string;
   candidate: Candidate;
+  stepId: string;
+  sourceId?: string;
+  sourceName?: string;
   rating?: number;
   notes?: string;
   tags?: Tag[];
   enteredAt: Date;
+  stageRatings?: CardStageRating[];
 }
 
 interface KanbanColumnProps {
@@ -19,13 +23,15 @@ interface KanbanColumnProps {
   cards: KanbanCardData[];
   onViewDetails?: (card: KanbanCardData) => void;
   onMarkAsLost?: (card: KanbanCardData) => void;
+  onRate?: (card: KanbanCardData) => void;
 }
 
 export default function KanbanColumn({ 
   step, 
   cards, 
   onViewDetails, 
-  onMarkAsLost 
+  onMarkAsLost,
+  onRate 
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: step.id,
@@ -69,6 +75,7 @@ export default function KanbanColumn({
                   card={card}
                   onViewDetails={onViewDetails}
                   onMarkAsLost={onMarkAsLost}
+                  onRate={onRate}
                 />
               ))}
               

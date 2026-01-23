@@ -100,8 +100,11 @@ export interface Card {
   candidateId: string;
   jobId: string;
   currentStepId: string;
-  rating?: number;
+  sourceId?: string; // Fonte da candidatura (LinkedIn, Indicação, Site, etc.)
+  sourceName?: string;
+  rating?: number; // Rating geral do candidato
   notes?: string;
+  appliedAt: Date; // Data/hora da candidatura
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -111,8 +114,10 @@ export interface CardHistory {
   id: string;
   cardId: string;
   fromStepId?: string;
+  fromStepName?: string;
   toStepId: string;
-  action: string;
+  toStepName?: string;
+  action: 'applied' | 'moved' | 'marked_as_lost' | 'hired' | 'note_added' | 'rating_changed';
   notes?: string;
   createdBy: string;
   createdAt: Date;
@@ -122,9 +127,37 @@ export interface CardStageHistory {
   id: string;
   cardId: string;
   stepId: string;
+  stepName: string;
+  stepOrder: number;
   enteredAt: Date;
   exitedAt?: Date;
   duration?: number; // em minutos
+  exitReason?: 'advanced' | 'lost' | 'hired' | 'moved_back'; // Por que saiu da etapa
+}
+
+// Avaliação por etapa - permite múltiplas notas em diferentes etapas
+export interface CardStageRating {
+  id: string;
+  cardId: string;
+  stepId: string;
+  stepName: string;
+  rating: number; // 1-5
+  notes?: string;
+  evaluatedBy: string;
+  evaluatedAt: Date;
+}
+
+// Métricas agregadas por vaga (para cálculos futuros)
+export interface JobMetrics {
+  jobId: string;
+  totalApplications: number;
+  applicationsBySource: Record<string, number>;
+  conversionByStage: Record<string, { entered: number; advanced: number; rate: number }>;
+  averageTimeByStage: Record<string, number>; // em minutos
+  totalHired: number;
+  totalLost: number;
+  averageTimeToHire?: number; // em dias
+  lastUpdated: Date;
 }
 
 // Etapas padrão do funil

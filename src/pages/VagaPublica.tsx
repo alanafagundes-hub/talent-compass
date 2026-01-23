@@ -219,18 +219,62 @@ export default function VagaPublica() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Here we would:
-      // 1. Create or find candidate by email
-      // 2. Create card in the job funnel
-      // 3. Insert card in "Inscritos" stage
-      // 4. Upload resume
-      // 5. Send confirmation email
+      // Capture source from URL params (utm_source) or referrer
+      const urlParams = new URLSearchParams(window.location.search);
+      const utmSource = urlParams.get('utm_source');
+      const referrer = document.referrer;
+      
+      // Determine source for metrics
+      let sourceId = '3'; // Default: Site Carreiras
+      let sourceName = 'Site Carreiras';
+      
+      if (utmSource) {
+        if (utmSource.toLowerCase().includes('linkedin')) {
+          sourceId = '1';
+          sourceName = 'LinkedIn';
+        } else if (utmSource.toLowerCase().includes('indicacao')) {
+          sourceId = '2';
+          sourceName = 'Indicação Interna';
+        } else {
+          sourceName = utmSource;
+        }
+      } else if (referrer.includes('linkedin.com')) {
+        sourceId = '1';
+        sourceName = 'LinkedIn';
+      }
 
-      console.log("Form submitted:", {
-        ...formData,
-        jobId: job?.id,
-        resumeFileName: formData.resumeFile?.name,
-      });
+      // Data to be persisted (for future database integration):
+      const applicationData = {
+        // Candidate data
+        candidate: {
+          name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          phone: formData.phone.trim(),
+          linkedinUrl: formData.linkedin.trim(),
+        },
+        // Card data with metrics
+        card: {
+          jobId: job?.id,
+          sourceId,
+          sourceName,
+          appliedAt: new Date(),
+          customFields: formData.customFields,
+        },
+        // Initial stage history for metrics
+        stageHistory: {
+          stepName: 'Inscritos',
+          stepOrder: 1,
+          enteredAt: new Date(),
+        },
+        // Application history for metrics
+        history: {
+          action: 'applied',
+          notes: `Candidatura recebida via ${sourceName}`,
+          createdAt: new Date(),
+        },
+      };
+
+      console.log("Application data with metrics:", applicationData);
 
       setIsSubmitted(true);
       toast.success("Candidatura enviada com sucesso!");
