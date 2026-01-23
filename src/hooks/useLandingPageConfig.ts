@@ -158,8 +158,18 @@ export function useLandingPageConfig() {
       }
     };
 
+    // Listen for same-tab config updates
+    const handleCustomEvent = (e: CustomEvent<LandingPageConfig>) => {
+      setConfig(e.detail);
+    };
+
     window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    window.addEventListener("landingPageConfigUpdated", handleCustomEvent as EventListener);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("landingPageConfigUpdated", handleCustomEvent as EventListener);
+    };
   }, []);
 
   const saveConfig = (newConfig: LandingPageConfig) => {
