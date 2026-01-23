@@ -15,12 +15,13 @@ import {
   MoreHorizontal,
   Pencil,
   Archive,
-  Eye,
   GitBranch,
-  Briefcase,
+  Link2,
+  ExternalLink,
 } from "lucide-react";
 import type { Job, Area, JobStatus } from "@/types/ats";
 import { jobLevelLabels, contractTypeLabels, jobStatusLabels } from "@/types/ats";
+import { toast } from "sonner";
 
 const statusColors: Record<JobStatus, string> = {
   rascunho: "bg-muted text-muted-foreground border-muted",
@@ -53,6 +54,17 @@ export default function JobCard({
   onArchive,
   onViewFunnel,
 }: JobCardProps) {
+  const publicUrl = `${window.location.origin}/carreiras/${job.id}`;
+
+  const copyPublicLink = () => {
+    navigator.clipboard.writeText(publicUrl);
+    toast.success("Link copiado!");
+  };
+
+  const openPublicPage = () => {
+    window.open(publicUrl, "_blank");
+  };
+
   return (
     <Card className="transition-all hover:shadow-md hover:border-primary/30">
       <CardHeader className="pb-3">
@@ -101,6 +113,19 @@ export default function JobCard({
                   Editar
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                {job.status === "publicada" && (
+                  <>
+                    <DropdownMenuItem onClick={openPublicPage}>
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Ver Página Pública
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={copyPublicLink}>
+                      <Link2 className="mr-2 h-4 w-4" />
+                      Copiar Link
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem onClick={() => onArchive(job)}>
                   <Archive className="mr-2 h-4 w-4" />
                   Arquivar
@@ -134,17 +159,28 @@ export default function JobCard({
           </div>
         </div>
         
-        {/* Quick action to access funnel */}
-        <div className="mt-4 pt-3 border-t">
+        {/* Quick actions */}
+        <div className="mt-4 pt-3 border-t flex gap-2">
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full gap-2"
+            className="flex-1 gap-2"
             onClick={() => onViewFunnel(job)}
           >
             <GitBranch className="h-4 w-4" />
-            Acessar Funil de Candidatos
+            Acessar Funil
           </Button>
+          {job.status === "publicada" && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2"
+              onClick={copyPublicLink}
+            >
+              <Link2 className="h-4 w-4" />
+              Copiar Link
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
