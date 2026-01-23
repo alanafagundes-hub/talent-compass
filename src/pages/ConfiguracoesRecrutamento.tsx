@@ -13,6 +13,7 @@ import {
   Mail,
   AlertCircle,
   Link2,
+  LayoutTemplate,
 } from "lucide-react";
 import TagsSettings from "@/components/settings/TagsSettings";
 import FormTemplatesSettings from "@/components/settings/FormTemplatesSettings";
@@ -20,6 +21,7 @@ import EmailTemplatesSettings from "@/components/settings/EmailTemplatesSettings
 import IncompatibilityReasonsSettings from "@/components/settings/IncompatibilityReasonsSettings";
 import CandidateSourcesSettings from "@/components/settings/CandidateSourcesSettings";
 import AreasSettings from "@/components/settings/AreasSettings";
+import LandingPageSettings from "@/components/settings/LandingPageSettings";
 
 // Mock data for funnel stages
 const mockFunnelStages = [
@@ -44,7 +46,7 @@ export default function ConfiguracoesRecrutamento() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 lg:w-auto lg:inline-grid">
           <TabsTrigger value="etiquetas" className="gap-2">
             <Tags className="h-4 w-4" />
             <span className="hidden sm:inline">Etiquetas</span>
@@ -72,6 +74,10 @@ export default function ConfiguracoesRecrutamento() {
           <TabsTrigger value="funil" className="gap-2">
             <GitBranch className="h-4 w-4" />
             <span className="hidden sm:inline">Funil</span>
+          </TabsTrigger>
+          <TabsTrigger value="landing" className="gap-2">
+            <LayoutTemplate className="h-4 w-4" />
+            <span className="hidden sm:inline">Landing Page</span>
           </TabsTrigger>
         </TabsList>
 
@@ -147,6 +153,11 @@ export default function ConfiguracoesRecrutamento() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Landing Page Tab */}
+        <TabsContent value="landing">
+          <LandingPageSettings />
         </TabsContent>
       </Tabs>
     </div>
