@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -20,21 +19,15 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import type { Job, JobStatus, Area, CandidateSource, FormTemplate } from "@/types/ats";
+import type { Job, JobStatus, CandidateSource, FormTemplate } from "@/types/ats";
 import { jobStatusLabels } from "@/types/ats";
 import JobCard from "@/components/jobs/JobCard";
 import JobFormDialog from "@/components/jobs/JobFormDialog";
 import { toast } from "sonner";
+import { useJobs } from "@/hooks/useJobs";
+import { useAreas } from "@/hooks/useAreas";
 
-// Mock data
-const mockAreas: Area[] = [
-  { id: "1", name: "Tech", description: "Desenvolvimento e infraestrutura", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "2", name: "Comercial", description: "Vendas e relacionamento", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "3", name: "Criação", description: "Design e produção visual", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "4", name: "Marketing", description: "Comunicação e growth", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "5", name: "RH", description: "Pessoas e cultura", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-];
-
+// Mock data for sources and form templates (will be moved to hooks later)
 const mockSources: CandidateSource[] = [
   { id: "1", name: "LinkedIn", icon: "linkedin", isArchived: false, createdAt: new Date() },
   { id: "2", name: "Indicação Interna", icon: "users", isArchived: false, createdAt: new Date() },
@@ -44,99 +37,6 @@ const mockSources: CandidateSource[] = [
 const mockFormTemplates: FormTemplate[] = [
   { id: "1", name: "Formulário Padrão", fields: [], isDefault: true, isArchived: false, createdAt: new Date(), updatedAt: new Date() },
   { id: "2", name: "Formulário Tech", fields: [], isDefault: false, isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-];
-
-const initialJobs: Job[] = [
-  {
-    id: "1",
-    title: "Desenvolvedor Frontend Senior",
-    areaId: "1",
-    level: "senior",
-    contractType: "clt",
-    location: "São Paulo, SP",
-    isRemote: true,
-    description: "Buscamos um desenvolvedor frontend senior para liderar projetos.",
-    status: "publicada",
-    priority: "alta",
-    isArchived: false,
-    createdAt: new Date("2024-01-10"),
-    updatedAt: new Date("2024-01-10"),
-  },
-  {
-    id: "2",
-    title: "Designer UX/UI",
-    areaId: "3",
-    level: "pleno",
-    contractType: "clt",
-    location: "Rio de Janeiro, RJ",
-    isRemote: true,
-    description: "Designer para criar experiências incríveis.",
-    status: "publicada",
-    priority: "media",
-    isArchived: false,
-    createdAt: new Date("2024-01-08"),
-    updatedAt: new Date("2024-01-08"),
-  },
-  {
-    id: "3",
-    title: "Gerente Comercial",
-    areaId: "2",
-    level: "gerente",
-    contractType: "clt",
-    location: "São Paulo, SP",
-    isRemote: false,
-    description: "Gerente para liderar equipe comercial.",
-    status: "publicada",
-    priority: "urgente",
-    isArchived: false,
-    createdAt: new Date("2024-01-05"),
-    updatedAt: new Date("2024-01-05"),
-  },
-  {
-    id: "4",
-    title: "Analista de Marketing Digital",
-    areaId: "4",
-    level: "pleno",
-    contractType: "pj",
-    location: "Remoto",
-    isRemote: true,
-    description: "Analista para campanhas digitais.",
-    status: "pausada",
-    priority: "baixa",
-    isArchived: false,
-    createdAt: new Date("2024-01-02"),
-    updatedAt: new Date("2024-01-02"),
-  },
-  {
-    id: "5",
-    title: "Desenvolvedor Backend Pleno",
-    areaId: "1",
-    level: "pleno",
-    contractType: "clt",
-    location: "São Paulo, SP",
-    isRemote: true,
-    description: "Desenvolvedor backend para APIs.",
-    status: "encerrada",
-    priority: "media",
-    isArchived: false,
-    createdAt: new Date("2023-12-20"),
-    updatedAt: new Date("2023-12-20"),
-  },
-  {
-    id: "6",
-    title: "Estagiário de RH",
-    areaId: "5",
-    level: "estagio",
-    contractType: "estagio",
-    location: "São Paulo, SP",
-    isRemote: false,
-    description: "Estágio em recrutamento e seleção.",
-    status: "rascunho",
-    priority: "baixa",
-    isArchived: false,
-    createdAt: new Date("2024-01-12"),
-    updatedAt: new Date("2024-01-12"),
-  },
 ];
 
 // Mock candidates count per job
@@ -151,7 +51,9 @@ const mockCandidatesCount: Record<string, number> = {
 
 export default function Vagas() {
   const navigate = useNavigate();
-  const [jobs, setJobs] = useState<Job[]>(initialJobs);
+  const { jobs, saveJob, updateJobStatus } = useJobs();
+  const { areas, getAreaById } = useAreas();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [areaFilter, setAreaFilter] = useState<string>("all");
@@ -171,7 +73,7 @@ export default function Vagas() {
   });
 
   // Group jobs by area
-  const jobsByArea = mockAreas.reduce((acc, area) => {
+  const jobsByArea = areas.reduce((acc, area) => {
     acc[area.id] = filteredJobs.filter(job => job.areaId === area.id);
     return acc;
   }, {} as Record<string, Job[]>);
@@ -194,9 +96,7 @@ export default function Vagas() {
       encerrada: "Vaga encerrada",
     };
 
-    setJobs(jobs.map(j => 
-      j.id === job.id ? { ...j, status: newStatus, updatedAt: new Date() } : j
-    ));
+    updateJobStatus(job.id, newStatus);
     toast.success(statusMessages[newStatus]);
   };
 
@@ -211,28 +111,9 @@ export default function Vagas() {
   };
 
   const handleSaveJob = (jobData: Omit<Job, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
-    if (jobData.id) {
-      // Update
-      setJobs(jobs.map(j => 
-        j.id === jobData.id 
-          ? { ...j, ...jobData, updatedAt: new Date() } as Job
-          : j
-      ));
-      toast.success("Vaga atualizada!");
-    } else {
-      // Create
-      const newJob: Job = {
-        ...jobData,
-        id: Date.now().toString(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as Job;
-      setJobs([newJob, ...jobs]);
-      toast.success("Vaga criada!");
-    }
+    saveJob(jobData);
+    toast.success(jobData.id ? "Vaga atualizada!" : "Vaga criada!");
   };
-
-  const getAreaById = (areaId: string) => mockAreas.find(a => a.id === areaId);
 
   const closedCount = jobs.filter(j => j.status === "encerrada" && !j.isArchived).length;
 
@@ -272,7 +153,7 @@ export default function Vagas() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as áreas</SelectItem>
-                {mockAreas.map((area) => (
+                {areas.map((area) => (
                   <SelectItem key={area.id} value={area.id}>
                     {area.name}
                   </SelectItem>
@@ -347,7 +228,7 @@ export default function Vagas() {
 
         {/* Jobs by Area View */}
         <TabsContent value="by-area" className="mt-6 space-y-8">
-          {mockAreas.map((area) => {
+          {areas.map((area) => {
             const areaJobs = jobsByArea[area.id] || [];
             if (areaJobs.length === 0 && areaFilter !== "all" && areaFilter !== area.id) return null;
             
@@ -398,7 +279,7 @@ export default function Vagas() {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         job={editingJob}
-        areas={mockAreas}
+        areas={areas}
         sources={mockSources}
         formTemplates={mockFormTemplates}
         onSave={handleSaveJob}

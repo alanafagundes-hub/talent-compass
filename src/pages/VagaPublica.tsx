@@ -13,9 +13,7 @@ import {
   MapPin,
   Briefcase,
   Building2,
-  Clock,
   FileText,
-  Upload,
   CheckCircle2,
   ArrowLeft,
   Loader2,
@@ -23,73 +21,10 @@ import {
 import type { Job, FormTemplate, FormField, Area } from "@/types/ats";
 import { jobLevelLabels, contractTypeLabels } from "@/types/ats";
 import { toast } from "sonner";
+import { useJobs } from "@/hooks/useJobs";
+import { useAreas } from "@/hooks/useAreas";
 
-// Mock data - would come from API/database
-const mockJobs: Record<string, Job> = {
-  "1": {
-    id: "1",
-    title: "Desenvolvedor Frontend Senior",
-    areaId: "1",
-    level: "senior",
-    contractType: "clt",
-    location: "São Paulo, SP",
-    isRemote: true,
-    description: `Estamos buscando um Desenvolvedor Frontend Senior para liderar projetos de alta complexidade e contribuir com a evolução técnica do time.
-
-**Responsabilidades:**
-- Desenvolver interfaces web modernas e responsivas
-- Liderar tecnicamente projetos e mentorear desenvolvedores mais junior
-- Participar ativamente de decisões de arquitetura
-- Garantir qualidade de código através de code reviews
-- Colaborar com designers e product managers
-
-**Benefícios:**
-- Plano de saúde e odontológico
-- Vale refeição e alimentação
-- Gympass
-- Home office flexível
-- PLR`,
-    requirements: `- 5+ anos de experiência com desenvolvimento frontend
-- Domínio de React, TypeScript e ferramentas modernas
-- Experiência com testes automatizados
-- Conhecimento de padrões de design e arquitetura
-- Inglês intermediário/avançado`,
-    status: "publicada",
-    priority: "alta",
-    formTemplateId: "1",
-    isArchived: false,
-    createdAt: new Date("2024-01-10"),
-    updatedAt: new Date("2024-01-10"),
-  },
-  "2": {
-    id: "2",
-    title: "Designer UX/UI",
-    areaId: "3",
-    level: "pleno",
-    contractType: "clt",
-    location: "Rio de Janeiro, RJ",
-    isRemote: true,
-    description: `Buscamos um Designer UX/UI apaixonado por criar experiências incríveis para nossos usuários.
-
-**O que você vai fazer:**
-- Criar wireframes, protótipos e interfaces finais
-- Conduzir pesquisas com usuários
-- Colaborar com times de produto e desenvolvimento
-- Manter e evoluir nosso design system`,
-    status: "publicada",
-    priority: "media",
-    formTemplateId: "1",
-    isArchived: false,
-    createdAt: new Date("2024-01-08"),
-    updatedAt: new Date("2024-01-08"),
-  },
-};
-
-const mockAreas: Record<string, Area> = {
-  "1": { id: "1", name: "Tech", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  "3": { id: "3", name: "Criação", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-};
-
+// Mock form templates (will be moved to a hook later)
 const mockFormTemplates: Record<string, FormTemplate> = {
   "1": {
     id: "1",
@@ -120,6 +55,9 @@ interface ApplicationFormData {
 
 export default function VagaPublica() {
   const { id } = useParams<{ id: string }>();
+  const { getJobById, isLoading: jobsLoading } = useJobs();
+  const { getAreaById, isLoading: areasLoading } = useAreas();
+  
   const [job, setJob] = useState<Job | null>(null);
   const [area, setArea] = useState<Area | null>(null);
   const [formTemplate, setFormTemplate] = useState<FormTemplate | null>(null);
@@ -140,25 +78,28 @@ export default function VagaPublica() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // Simulate API call
     const loadData = async () => {
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Small delay to simulate loading
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      if (id && mockJobs[id]) {
-        const jobData = mockJobs[id];
-        setJob(jobData);
-        setArea(mockAreas[jobData.areaId] || null);
-        
-        if (jobData.formTemplateId && mockFormTemplates[jobData.formTemplateId]) {
-          setFormTemplate(mockFormTemplates[jobData.formTemplateId]);
+      if (id) {
+        const jobData = getJobById(id);
+        if (jobData) {
+          setJob(jobData);
+          const areaData = getAreaById(jobData.areaId);
+          setArea(areaData || null);
+          
+          if (jobData.formTemplateId && mockFormTemplates[jobData.formTemplateId]) {
+            setFormTemplate(mockFormTemplates[jobData.formTemplateId]);
+          }
         }
       }
       setIsLoading(false);
     };
     
     loadData();
-  }, [id]);
+  }, [id, getJobById, getAreaById]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -419,7 +360,7 @@ export default function VagaPublica() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || jobsLoading || areasLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -489,7 +430,7 @@ export default function VagaPublica() {
               Analisaremos seu perfil e entraremos em contato em breve.
             </p>
             <Button asChild className="mt-6">
-              <Link to="/">Voltar para o início</Link>
+              <Link to="/carreiras">Voltar para vagas</Link>
             </Button>
           </CardContent>
         </Card>
@@ -502,7 +443,7 @@ export default function VagaPublica() {
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container max-w-4xl mx-auto px-4 py-4">
-          <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <Link to="/carreiras" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />
             Voltar para vagas
           </Link>
@@ -663,7 +604,7 @@ export default function VagaPublica() {
                         <a href="/politica-privacidade" target="_blank" className="text-primary underline">
                           Política de Privacidade
                         </a>{" "}
-                        e autorizo a DOT a armazenar e processar meus dados pessoais para fins de 
+                        e autorizo o armazenamento e processamento dos meus dados pessoais para fins de 
                         recrutamento e seleção, conforme a LGPD. <span className="text-destructive">*</span>
                       </Label>
                     </div>
@@ -690,7 +631,7 @@ export default function VagaPublica() {
       {/* Footer */}
       <footer className="border-t mt-16">
         <div className="container max-w-4xl mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} DOT. Todos os direitos reservados.</p>
+          <p>© {new Date().getFullYear()} Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>

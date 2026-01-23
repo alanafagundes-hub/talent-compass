@@ -21,71 +21,18 @@ import {
   Sparkles,
   ChevronDown,
 } from "lucide-react";
-import type { Job, Area } from "@/types/ats";
+import type { Job } from "@/types/ats";
 import { jobLevelLabels, contractTypeLabels } from "@/types/ats";
 import logoDot from "@/assets/logo-dot.png";
 import { useLandingPageConfig, getIconComponent, defaultLandingPageConfig, type LandingPageConfig } from "@/hooks/useLandingPageConfig";
-
-// Mock data
-const mockJobs: Job[] = [
-  {
-    id: "1",
-    title: "Desenvolvedor Frontend Senior",
-    areaId: "1",
-    level: "senior",
-    contractType: "clt",
-    location: "São Paulo, SP",
-    isRemote: true,
-    description: "Buscamos um desenvolvedor frontend senior para liderar projetos.",
-    status: "publicada",
-    priority: "alta",
-    formTemplateId: "1",
-    isArchived: false,
-    createdAt: new Date("2024-01-10"),
-    updatedAt: new Date("2024-01-10"),
-  },
-  {
-    id: "2",
-    title: "Designer UX/UI",
-    areaId: "3",
-    level: "pleno",
-    contractType: "clt",
-    location: "Rio de Janeiro, RJ",
-    isRemote: true,
-    description: "Designer para criar experiências incríveis.",
-    status: "publicada",
-    priority: "media",
-    formTemplateId: "1",
-    isArchived: false,
-    createdAt: new Date("2024-01-08"),
-    updatedAt: new Date("2024-01-08"),
-  },
-  {
-    id: "3",
-    title: "Gerente Comercial",
-    areaId: "2",
-    level: "gerente",
-    contractType: "clt",
-    location: "São Paulo, SP",
-    isRemote: false,
-    description: "Gerente para liderar equipe comercial.",
-    status: "publicada",
-    priority: "urgente",
-    isArchived: false,
-    createdAt: new Date("2024-01-05"),
-    updatedAt: new Date("2024-01-05"),
-  },
-];
-
-const mockAreas: Area[] = [
-  { id: "1", name: "Tech", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "2", name: "Comercial", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "3", name: "Criação", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-];
+import { useJobs } from "@/hooks/useJobs";
+import { useAreas } from "@/hooks/useAreas";
 
 export default function VagasPublicas() {
   const [searchParams] = useSearchParams();
   const { config: savedConfig, isLoading: configLoading } = useLandingPageConfig();
+  const { getPublishedJobs, isLoading: jobsLoading } = useJobs();
+  const { areas, getAreaById, isLoading: areasLoading } = useAreas();
   
   // Check for preview config in URL (used when previewing from settings)
   const previewConfig = searchParams.get("preview");
@@ -100,14 +47,17 @@ export default function VagasPublicas() {
   const jobsSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Load published jobs from the centralized hook
     const loadJobs = async () => {
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setJobs(mockJobs.filter(j => j.status === "publicada" && !j.isArchived));
+      // Small delay to simulate loading (can be removed when using real API)
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const publishedJobs = getPublishedJobs();
+      setJobs(publishedJobs);
       setIsLoading(false);
     };
     loadJobs();
-  }, []);
+  }, [getPublishedJobs]);
 
   const scrollToJobs = () => {
     jobsSectionRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -119,8 +69,6 @@ export default function VagasPublicas() {
     return matchesSearch && matchesArea;
   });
 
-  const getAreaById = (areaId: string) => mockAreas.find(a => a.id === areaId);
-
   // Generate dynamic primary color styles
   const primaryColorStyle = {
     "--lp-primary": config.primaryColor,
@@ -128,7 +76,7 @@ export default function VagasPublicas() {
     "--lp-primary-medium": `${config.primaryColor}40`,
   } as React.CSSProperties;
 
-  if (isLoading || configLoading) {
+  if (isLoading || configLoading || areasLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -386,7 +334,7 @@ export default function VagasPublicas() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as áreas</SelectItem>
-                {mockAreas.map((area) => (
+                {areas.filter(a => !a.isArchived).map((area) => (
                   <SelectItem key={area.id} value={area.id}>
                     {area.name}
                   </SelectItem>
@@ -447,30 +395,39 @@ export default function VagasPublicas() {
                           </h3>
                           
                           <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1.5">
-                              <Briefcase className="h-4 w-4" />
-                              <span>{jobLevelLabels[job.level]}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
+                            <span className="flex items-center gap-1">
                               <MapPin className="h-4 w-4" />
-                              <span>{job.location}</span>
-                            </div>
-                            <span className="text-muted-foreground/50">•</span>
-                            <span>{contractTypeLabels[job.contractType]}</span>
+                              {job.location}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Briefcase className="h-4 w-4" />
+                              {jobLevelLabels[job.level]}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Building2 className="h-4 w-4" />
+                              {contractTypeLabels[job.contractType]}
+                            </span>
                           </div>
+                          
+                          {job.description && (
+                            <p className="mt-3 text-sm text-muted-foreground line-clamp-2">
+                              {job.description.substring(0, 150)}...
+                            </p>
+                          )}
                         </div>
                         
-                        <Button 
-                          asChild 
-                          size="lg" 
-                          className="shrink-0"
-                          style={{ backgroundColor: config.primaryColor }}
-                        >
-                          <Link to={`/carreiras/${job.id}`}>
-                            Candidatar-se
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                          </Link>
-                        </Button>
+                        <div className="flex-shrink-0">
+                          <Button 
+                            asChild 
+                            className="w-full lg:w-auto"
+                            style={{ backgroundColor: config.primaryColor }}
+                          >
+                            <Link to={`/carreiras/${job.id}`}>
+                              Candidatar-se
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -482,58 +439,42 @@ export default function VagasPublicas() {
       </section>
 
       {/* CTA Section */}
-      {config.showTalentPoolCta && (
-        <section 
-          className="py-24 relative overflow-hidden"
+      <section className="py-24 relative overflow-hidden">
+        <div 
+          className="absolute inset-0"
           style={{ 
-            background: `linear-gradient(to bottom right, ${config.primaryColor}15, transparent, ${config.primaryColor}08)` 
+            background: `linear-gradient(135deg, ${config.primaryColor}15, ${config.primaryColor}05)` 
           }}
-        >
-          <div 
-            className="absolute inset-0" 
-            style={{ 
-              background: `radial-gradient(ellipse at bottom left, ${config.primaryColor}20, transparent 50%)` 
-            }} 
-          />
-          
-          <div className="container max-w-4xl mx-auto px-4 text-center relative z-10">
-            <h2 className="text-3xl sm:text-4xl font-bold">
-              {config.ctaTitle}
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto">
-              {config.ctaSubtitle}
-            </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="text-lg px-8 py-6 h-auto"
-              >
-                {config.ctaButtonText}
-              </Button>
-              <Button 
-                size="lg" 
-                onClick={scrollToJobs} 
-                className="text-lg px-8 py-6 h-auto"
-                style={{ backgroundColor: config.primaryColor }}
-              >
-                Ver todas as vagas
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        </section>
-      )}
+        />
+        
+        <div className="container max-w-4xl mx-auto px-4 text-center relative z-10">
+          <h2 className="text-3xl sm:text-4xl font-bold">
+            {config.ctaTitle}
+          </h2>
+          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+            {config.ctaSubtitle}
+          </p>
+          <Button 
+            size="lg" 
+            className="mt-8 text-lg px-8 py-6 h-auto"
+            style={{ backgroundColor: config.primaryColor }}
+            onClick={scrollToJobs}
+          >
+            {config.ctaButtonText}
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
+        </div>
+      </section>
 
       {/* Footer */}
-      <footer className="border-t bg-muted/20">
-        <div className="container max-w-6xl mx-auto px-4 py-12">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <img src={logoSrc} alt={config.companyName} className="h-8 w-auto" />
-              <span className="text-muted-foreground">
-                Transformando ideias em realidade.
-              </span>
+      <footer className="py-12 border-t border-border bg-muted/20">
+        <div className="container max-w-6xl mx-auto px-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <img src={logoSrc} alt={config.companyName} className="h-6 w-auto opacity-70" />
+              {config.companyName && (
+                <span className="text-sm text-muted-foreground">{config.companyName}</span>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} {config.companyName}. Todos os direitos reservados.
