@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Sparkles, Users, Heart, TrendingUp, Rocket, Target, Building2 } from "lucide-react";
+import { Sparkles, Users, Heart, TrendingUp, Rocket, Target, Building2, Award, Star, Clock, Globe, Zap, CheckCircle, Trophy } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export interface ValueCard {
@@ -7,6 +7,13 @@ export interface ValueCard {
   icon: string;
   title: string;
   description: string;
+}
+
+export interface StatisticItem {
+  id: string;
+  title: string;
+  value: string;
+  description?: string;
 }
 
 export interface LandingPageConfig {
@@ -20,6 +27,12 @@ export interface LandingPageConfig {
     hired: string;
     areas: string;
   };
+  
+  // Statistics Section (Employer Branding)
+  showStatisticsSection: boolean;
+  statisticsSectionTitle: string;
+  statisticsSectionSubtitle: string;
+  statistics: StatisticItem[];
   
   // About Section
   aboutTitle: string;
@@ -52,6 +65,15 @@ export const defaultLandingPageConfig: LandingPageConfig = {
     hired: "150+",
     areas: "8",
   },
+  showStatisticsSection: true,
+  statisticsSectionTitle: "Nossos Números",
+  statisticsSectionSubtitle: "Resultados que refletem nossa dedicação e crescimento contínuo",
+  statistics: [
+    { id: "1", title: "Colaboradores", value: "+120", description: "em crescimento constante" },
+    { id: "2", title: "Anos de Mercado", value: "8", description: "de experiência consolidada" },
+    { id: "3", title: "Projetos Entregues", value: "500+", description: "com excelência" },
+    { id: "4", title: "Satisfação", value: "95%", description: "dos nossos clientes" },
+  ],
   aboutTitle: "Por que trabalhar conosco?",
   aboutSubtitle: "Descubra o que faz da nossa empresa um ótimo lugar para crescer profissionalmente",
   values: [
@@ -79,6 +101,13 @@ export const iconMap: Record<string, LucideIcon> = {
   Rocket,
   Target,
   Building2,
+  Award,
+  Star,
+  Clock,
+  Globe,
+  Zap,
+  CheckCircle,
+  Trophy,
 };
 
 export function getIconComponent(iconName: string): LucideIcon {

@@ -240,6 +240,70 @@ export default function VagasPublicas() {
         </div>
       </section>
 
+      {/* Statistics Section (Employer Branding) */}
+      {config.showStatisticsSection && config.statistics.length > 0 && (
+        <section className="py-20 relative overflow-hidden">
+          {/* Background */}
+          <div 
+            className="absolute inset-0"
+            style={{ 
+              background: `linear-gradient(135deg, ${config.primaryColor}08, transparent 50%, ${config.primaryColor}05)` 
+            }}
+          />
+          
+          <div className="container max-w-6xl mx-auto px-4 relative z-10">
+            <div className="text-center mb-12">
+              <Badge variant="outline" className="mb-4">Nosso Impacto</Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold">
+                {config.statisticsSectionTitle}
+              </h2>
+              {config.statisticsSectionSubtitle && (
+                <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+                  {config.statisticsSectionSubtitle}
+                </p>
+              )}
+            </div>
+            
+            <div className={`grid gap-6 ${
+              config.statistics.length === 1 ? 'grid-cols-1 max-w-md mx-auto' :
+              config.statistics.length === 2 ? 'grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto' :
+              config.statistics.length === 3 ? 'grid-cols-1 sm:grid-cols-3' :
+              'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+            }`}>
+              {config.statistics.map((stat) => (
+                <Card 
+                  key={stat.id}
+                  className="relative overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm text-center group hover:shadow-xl transition-all duration-300"
+                >
+                  {/* Accent line */}
+                  <div 
+                    className="absolute top-0 left-0 right-0 h-1"
+                    style={{ backgroundColor: config.primaryColor }}
+                  />
+                  
+                  <CardContent className="p-8">
+                    <p 
+                      className="text-4xl sm:text-5xl font-bold tracking-tight mb-2"
+                      style={{ color: config.primaryColor }}
+                    >
+                      {stat.value}
+                    </p>
+                    <h3 className="text-lg font-semibold text-foreground mb-1">
+                      {stat.title}
+                    </h3>
+                    {stat.description && (
+                      <p className="text-sm text-muted-foreground">
+                        {stat.description}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* About/Culture Section */}
       <section id="about" className="py-24 bg-muted/30">
         <div className="container max-w-6xl mx-auto px-4">
