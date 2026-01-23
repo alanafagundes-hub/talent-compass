@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus,
@@ -11,7 +10,6 @@ import {
   FileText,
   GripVertical,
   MoreHorizontal,
-  Archive,
   Mail,
   AlertCircle,
   Link2,
@@ -21,15 +19,7 @@ import FormTemplatesSettings from "@/components/settings/FormTemplatesSettings";
 import EmailTemplatesSettings from "@/components/settings/EmailTemplatesSettings";
 import IncompatibilityReasonsSettings from "@/components/settings/IncompatibilityReasonsSettings";
 import CandidateSourcesSettings from "@/components/settings/CandidateSourcesSettings";
-
-// Mock data for areas
-const mockAreas = [
-  { id: "1", name: "Tech", type: "tech", jobsCount: 5, isArchived: false },
-  { id: "2", name: "Comercial", type: "comercial", jobsCount: 3, isArchived: false },
-  { id: "3", name: "Criação", type: "criacao", jobsCount: 2, isArchived: false },
-  { id: "4", name: "Marketing", type: "marketing", jobsCount: 4, isArchived: false },
-  { id: "5", name: "RH", type: "rh", jobsCount: 1, isArchived: false },
-];
+import AreasSettings from "@/components/settings/AreasSettings";
 
 // Mock data for funnel stages
 const mockFunnelStages = [
@@ -111,49 +101,8 @@ export default function ConfiguracoesRecrutamento() {
         </TabsContent>
 
         {/* Áreas Tab */}
-        <TabsContent value="areas" className="space-y-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Áreas da Empresa</CardTitle>
-                <CardDescription>
-                  Organize as vagas por áreas ou departamentos
-                </CardDescription>
-              </div>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Nova Área
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {mockAreas.map((area) => (
-                  <div
-                    key={area.id}
-                    className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                      <div>
-                        <p className="font-medium">{area.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {area.jobsCount} vaga(s) ativa(s)
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Archive className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="areas">
+          <AreasSettings />
         </TabsContent>
 
         {/* Funil Tab */}
