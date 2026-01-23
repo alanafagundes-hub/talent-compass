@@ -12,7 +12,11 @@ export type FunnelStage =
 
 export type CandidateStatus = 'ativo' | 'arquivado' | 'perdido';
 
-export type JobStatus = 'aberta' | 'pausada' | 'fechada' | 'arquivada';
+export type JobStatus = 'rascunho' | 'publicada' | 'pausada' | 'encerrada';
+
+export type JobLevel = 'estagio' | 'junior' | 'pleno' | 'senior' | 'especialista' | 'coordenador' | 'gerente' | 'diretor';
+
+export type ContractType = 'clt' | 'pj' | 'estagio' | 'temporario' | 'freelancer';
 
 export type LostReason = 
   | 'salario' 
@@ -33,7 +37,6 @@ export type EmailTemplateType = 'confirmation' | 'rejection' | 'interview_invite
 export interface Area {
   id: string;
   name: string;
-  type: AreaType;
   description?: string;
   isArchived: boolean;
   createdAt: Date;
@@ -61,14 +64,17 @@ export interface Job {
   id: string;
   title: string;
   areaId: string;
+  level: JobLevel;
+  contractType: ContractType;
+  location: string;
+  isRemote: boolean;
   description: string;
   requirements?: string;
   salary?: {
     min: number;
     max: number;
   };
-  location?: string;
-  isRemote: boolean;
+  sourceId?: string;
   status: JobStatus;
   priority: 'baixa' | 'media' | 'alta' | 'urgente';
   deadline?: Date;
@@ -197,3 +203,30 @@ export interface JobWithStats extends Job {
   totalCandidates: number;
   candidatesByStage: Record<FunnelStage, number>;
 }
+
+// Labels para exibição
+export const jobLevelLabels: Record<JobLevel, string> = {
+  estagio: 'Estágio',
+  junior: 'Júnior',
+  pleno: 'Pleno',
+  senior: 'Sênior',
+  especialista: 'Especialista',
+  coordenador: 'Coordenador',
+  gerente: 'Gerente',
+  diretor: 'Diretor',
+};
+
+export const contractTypeLabels: Record<ContractType, string> = {
+  clt: 'CLT',
+  pj: 'PJ',
+  estagio: 'Estágio',
+  temporario: 'Temporário',
+  freelancer: 'Freelancer',
+};
+
+export const jobStatusLabels: Record<JobStatus, string> = {
+  rascunho: 'Rascunho',
+  publicada: 'Publicada',
+  pausada: 'Pausada',
+  encerrada: 'Encerrada',
+};
