@@ -122,19 +122,19 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
+      <SidebarHeader className="border-b border-sidebar-border px-4 py-5">
         <div className="flex items-center justify-center">
           {!isCollapsed ? (
             <img 
               src={logoDot} 
               alt="DOT" 
-              className="h-7 w-auto object-contain"
+              className="h-10 w-auto object-contain"
             />
           ) : (
             <img 
               src={logoDot} 
               alt="DOT" 
-              className="h-6 w-auto object-contain"
+              className="h-8 w-auto object-contain"
             />
           )}
         </div>
