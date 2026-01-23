@@ -10,6 +10,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useLocation } from "react-router-dom";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -66,7 +67,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-card px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
+            <Breadcrumb className="flex-1">
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbLink href="/">Início</BreadcrumbLink>
@@ -87,6 +88,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 ))}
               </BreadcrumbList>
             </Breadcrumb>
+            <ThemeToggle />
           </header>
           <main className="flex-1 overflow-auto bg-background p-6">
             {children}
