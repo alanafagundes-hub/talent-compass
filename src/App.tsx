@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Vagas from "./pages/Vagas";
+import VagaFunil from "./pages/VagaFunil";
 import Talentos from "./pages/Talentos";
 import Perdidos from "./pages/Perdidos";
 import Configuracoes from "./pages/Configuracoes";
@@ -13,6 +14,7 @@ import ConfiguracoesRecrutamento from "./pages/ConfiguracoesRecrutamento";
 import VagasPublicas from "./pages/VagasPublicas";
 import VagaPublica from "./pages/VagaPublica";
 import NotFound from "./pages/NotFound";
+
 
 const queryClient = new QueryClient();
 
@@ -30,6 +32,7 @@ const App = () => (
           {/* Admin Routes - With Layout */}
           <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
           <Route path="/vagas" element={<AppLayout><Vagas /></AppLayout>} />
+          <Route path="/vagas/:jobId/funil" element={<AppLayout><VagaFunil /></AppLayout>} />
           <Route path="/talentos" element={<AppLayout><Talentos /></AppLayout>} />
           <Route path="/perdidos" element={<AppLayout><Perdidos /></AppLayout>} />
           <Route path="/configuracoes" element={<AppLayout><Configuracoes /></AppLayout>} />

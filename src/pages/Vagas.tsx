@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -149,6 +150,7 @@ const mockCandidatesCount: Record<string, number> = {
 };
 
 export default function Vagas() {
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -192,8 +194,7 @@ export default function Vagas() {
   };
 
   const handleViewFunnel = (job: Job) => {
-    toast.info(`Abrindo funil da vaga: ${job.title}`);
-    // TODO: Navigate to funnel page
+    navigate(`/vagas/${job.id}/funil`);
   };
 
   const handleSaveJob = (jobData: Omit<Job, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {

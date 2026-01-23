@@ -90,6 +90,7 @@ export interface FunnelStep {
   name: string;
   stage: FunnelStage;
   order: number;
+  color?: string;
   isArchived: boolean;
   createdAt: Date;
 }
@@ -116,6 +117,26 @@ export interface CardHistory {
   createdBy: string;
   createdAt: Date;
 }
+
+export interface CardStageHistory {
+  id: string;
+  cardId: string;
+  stepId: string;
+  enteredAt: Date;
+  exitedAt?: Date;
+  duration?: number; // em minutos
+}
+
+// Etapas padrão do funil
+export const defaultFunnelStages = [
+  { name: 'Inscritos', order: 1, color: '#6366f1' },
+  { name: 'Triagem RH', order: 2, color: '#8b5cf6' },
+  { name: 'Entrevista RH', order: 3, color: '#a855f7' },
+  { name: 'Entrevista Técnica', order: 4, color: '#d946ef' },
+  { name: 'Entrevista Final', order: 5, color: '#ec4899' },
+  { name: 'Oferta', order: 6, color: '#f97316' },
+  { name: 'Contratado', order: 7, color: '#22c55e' },
+] as const;
 
 export interface Tag {
   id: string;
