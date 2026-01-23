@@ -14,14 +14,15 @@ import {
   Calendar,
   MoreHorizontal,
   Pencil,
-  Archive,
   GitBranch,
   Link2,
   ExternalLink,
+  Play,
+  Pause,
+  XCircle,
 } from "lucide-react";
 import type { Job, Area, JobStatus } from "@/types/ats";
 import { jobLevelLabels, contractTypeLabels, jobStatusLabels } from "@/types/ats";
-import { toast } from "sonner";
 
 const statusColors: Record<JobStatus, string> = {
   rascunho: "bg-muted text-muted-foreground border-muted",
@@ -42,8 +43,9 @@ interface JobCardProps {
   area?: Area;
   candidatesCount?: number;
   onEdit: (job: Job) => void;
-  onArchive: (job: Job) => void;
+  onChangeStatus: (job: Job, newStatus: JobStatus) => void;
   onViewFunnel: (job: Job) => void;
+  onCopyLink: (job: Job) => void;
 }
 
 export default function JobCard({
@@ -51,22 +53,16 @@ export default function JobCard({
   area,
   candidatesCount = 0,
   onEdit,
-  onArchive,
+  onChangeStatus,
   onViewFunnel,
+  onCopyLink,
 }: JobCardProps) {
-  const publicUrl = `${window.location.origin}/carreiras/${job.id}`;
-
-  const copyPublicLink = () => {
-    navigator.clipboard.writeText(publicUrl);
-    toast.success("Link copiado!");
-  };
-
-  const openPublicPage = () => {
-    window.open(publicUrl, "_blank");
-  };
+  const isEditable = job.status !== "encerrada";
 
   return (
-    <Card className="transition-all hover:shadow-md hover:border-primary/30">
+    <Card className={`transition-all hover:shadow-md hover:border-primary/30 ${
+      job.status === "encerrada" ? "opacity-75" : ""
+    }`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
@@ -108,28 +104,62 @@ export default function JobCard({
                   <GitBranch className="mr-2 h-4 w-4" />
                   Ver Funil
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onEdit(job)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Editar
-                </DropdownMenuItem>
+                
+                {isEditable && (
+                  <DropdownMenuItem onClick={() => onEdit(job)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Editar
+                  </DropdownMenuItem>
+                )}
+                
                 <DropdownMenuSeparator />
+                
+                {/* Status actions based on current status */}
+                {job.status === "rascunho" && (
+                  <DropdownMenuItem onClick={() => onChangeStatus(job, "publicada")}>
+                    <Play className="mr-2 h-4 w-4" />
+                    Publicar Vaga
+                  </DropdownMenuItem>
+                )}
+                
                 {job.status === "publicada" && (
                   <>
-                    <DropdownMenuItem onClick={openPublicPage}>
+                    <DropdownMenuItem onClick={() => window.open(`/carreiras/${job.id}`, "_blank")}>
                       <ExternalLink className="mr-2 h-4 w-4" />
                       Ver Página Pública
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={copyPublicLink}>
+                    <DropdownMenuItem onClick={() => onCopyLink(job)}>
                       <Link2 className="mr-2 h-4 w-4" />
                       Copiar Link
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => onChangeStatus(job, "pausada")}>
+                      <Pause className="mr-2 h-4 w-4" />
+                      Pausar Vaga
+                    </DropdownMenuItem>
                   </>
                 )}
-                <DropdownMenuItem onClick={() => onArchive(job)}>
-                  <Archive className="mr-2 h-4 w-4" />
-                  Arquivar
-                </DropdownMenuItem>
+                
+                {job.status === "pausada" && (
+                  <DropdownMenuItem onClick={() => onChangeStatus(job, "publicada")}>
+                    <Play className="mr-2 h-4 w-4" />
+                    Reativar Vaga
+                  </DropdownMenuItem>
+                )}
+                
+                {/* Encerrar vaga - available for all except already closed */}
+                {job.status !== "encerrada" && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => onChangeStatus(job, "encerrada")}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Encerrar Vaga
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -175,7 +205,7 @@ export default function JobCard({
               variant="outline" 
               size="sm" 
               className="gap-2"
-              onClick={copyPublicLink}
+              onClick={() => onCopyLink(job)}
             >
               <Link2 className="h-4 w-4" />
               Copiar Link

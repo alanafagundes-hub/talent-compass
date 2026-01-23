@@ -430,7 +430,7 @@ export default function VagaPublica() {
     );
   }
 
-  if (!job || job.status !== "publicada") {
+  if (!job) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
@@ -438,10 +438,36 @@ export default function VagaPublica() {
             <Briefcase className="h-12 w-12 mx-auto text-muted-foreground/50" />
             <h2 className="mt-4 text-xl font-semibold">Vaga não encontrada</h2>
             <p className="mt-2 text-muted-foreground">
-              Esta vaga não existe ou não está mais disponível.
+              Esta vaga não existe.
             </p>
             <Button asChild className="mt-4">
-              <Link to="/">Voltar para o início</Link>
+              <Link to="/carreiras">Ver outras vagas</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Block applications for non-published jobs
+  if (job.status !== "publicada") {
+    const statusMessages = {
+      rascunho: "Esta vaga ainda está em preparação.",
+      pausada: "Esta vaga está temporariamente pausada e não está aceitando novas candidaturas.",
+      encerrada: "Esta vaga foi encerrada e não está mais aceitando candidaturas.",
+    };
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <Briefcase className="h-12 w-12 mx-auto text-muted-foreground/50" />
+            <h2 className="mt-4 text-xl font-semibold">Vaga indisponível</h2>
+            <p className="mt-2 text-muted-foreground">
+              {statusMessages[job.status as keyof typeof statusMessages]}
+            </p>
+            <Button asChild className="mt-4">
+              <Link to="/carreiras">Ver outras vagas disponíveis</Link>
             </Button>
           </CardContent>
         </Card>
