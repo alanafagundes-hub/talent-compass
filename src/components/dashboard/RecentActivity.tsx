@@ -55,26 +55,26 @@ const mockActivities: ActivityItem[] = [
 ];
 
 const typeColors = {
-  move: "bg-info/10 text-info",
-  new: "bg-primary/10 text-primary",
-  hired: "bg-success/10 text-success",
-  lost: "bg-destructive/10 text-destructive",
+  move: "bg-info/20 text-info border-info/30",
+  new: "bg-strategic/20 text-strategic border-strategic/30",
+  hired: "bg-success/20 text-success border-success/30",
+  lost: "bg-destructive/20 text-destructive border-destructive/30",
 };
 
 export function RecentActivity() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">Atividade Recente</CardTitle>
+    <Card className="card-elevated">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-base font-semibold">Atividade Recente</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-1">
         {mockActivities.map((activity) => (
           <div
             key={activity.id}
-            className="flex items-center gap-4 rounded-lg p-3 transition-colors hover:bg-muted/50"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/30"
           >
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
                 {activity.candidateName
                   .split(" ")
                   .map((n) => n[0])
@@ -87,22 +87,22 @@ export function RecentActivity() {
               </p>
               <p className="text-xs text-muted-foreground">
                 {activity.action}{" "}
-                <span className="font-medium text-foreground">
+                <span className="text-foreground">
                   {activity.jobTitle}
                 </span>
               </p>
             </div>
             <div className="flex flex-col items-end gap-1">
               <Badge
-                variant="secondary"
-                className={typeColors[activity.type]}
+                variant="outline"
+                className={`text-[10px] px-1.5 py-0 ${typeColors[activity.type]}`}
               >
                 {activity.type === "move" && "Movido"}
                 {activity.type === "new" && "Novo"}
                 {activity.type === "hired" && "Contratado"}
                 {activity.type === "lost" && "Perdido"}
               </Badge>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[10px] text-muted-foreground">
                 {activity.time}
               </span>
             </div>

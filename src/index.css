@@ -2,8 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* DOT ATS Design System
-   Professional HR/Recruitment System
+/* DOT Platform Design System
+   Enterprise/Premium Dark Theme - Inspired by DOT ERP Financeiro
    All colors MUST be HSL.
 */
 
@@ -11,134 +11,165 @@
 
 @layer base {
   :root {
-    /* Core palette - Professional blue theme */
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
+    /* Light mode - clean enterprise aesthetic */
+    --background: 220 14% 96%;
+    --foreground: 220 20% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 220 20% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 220 20% 10%;
 
-    /* Primary - Deep professional blue */
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Brand coral/red accent */
+    --primary: 4 76% 58%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Soft neutral */
-    --secondary: 210 20% 96%;
-    --secondary-foreground: 222 47% 11%;
+    /* Secondary - Neutral slate */
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 220 20% 10%;
 
     /* Muted - Subtle backgrounds */
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 10% 46%;
 
     /* Accent - Teal/Cyan for highlights */
-    --accent: 187 85% 43%;
+    --accent: 172 66% 50%;
     --accent-foreground: 0 0% 100%;
 
-    /* Destructive - For errors and warnings */
+    /* Destructive - For errors */
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    /* Success - For positive states */
-    --success: 142 76% 36%;
+    /* Success - Vibrant green */
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
-    /* Warning - For attention states */
+    /* Warning - Warm orange */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 0%;
 
-    /* Info - For informational states */
+    /* Info - Soft blue */
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
 
+    /* Strategic - Purple for metrics */
+    --strategic: 280 60% 55%;
+    --strategic-foreground: 0 0% 100%;
+
     /* UI Elements */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    --border: 220 13% 88%;
+    --input: 220 13% 88%;
+    --ring: 4 76% 58%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* Sidebar - Darker professional look */
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 221 83% 53%;
+    /* Sidebar - Dark theme always */
+    --sidebar-background: 220 20% 10%;
+    --sidebar-foreground: 220 14% 80%;
+    --sidebar-primary: 4 76% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 40% 18%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 222 40% 20%;
-    --sidebar-ring: 221 83% 53%;
-    --sidebar-muted: 215 16% 60%;
+    --sidebar-accent: 220 18% 16%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 220 18% 16%;
+    --sidebar-ring: 4 76% 58%;
+    --sidebar-muted: 220 10% 50%;
 
     /* Funnel stage colors */
     --stage-triagem: 199 89% 48%;
-    --stage-entrevista-rh: 262 83% 58%;
+    --stage-entrevista-rh: 280 60% 55%;
     --stage-teste: 38 92% 50%;
     --stage-gestor: 25 95% 53%;
-    --stage-proposta: 142 76% 36%;
-    --stage-contratado: 142 76% 36%;
+    --stage-proposta: 142 71% 45%;
+    --stage-contratado: 142 71% 45%;
 
     /* Priority colors */
-    --priority-baixa: 210 20% 60%;
+    --priority-baixa: 220 10% 55%;
     --priority-media: 38 92% 50%;
     --priority-alta: 25 95% 53%;
     --priority-urgente: 0 84% 60%;
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
+    /* Dark mode - Premium enterprise aesthetic (DOT ERP Financeiro style) */
+    --background: 220 20% 7%;
+    --foreground: 220 14% 90%;
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 18% 11%;
+    --card-foreground: 220 14% 90%;
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 18% 11%;
+    --popover-foreground: 220 14% 90%;
 
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Brand coral/red accent */
+    --primary: 4 76% 58%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    /* Secondary - Elevated surface */
+    --secondary: 220 18% 15%;
+    --secondary-foreground: 220 14% 90%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    /* Muted - Subtle text and backgrounds */
+    --muted: 220 15% 18%;
+    --muted-foreground: 220 10% 55%;
 
-    --accent: 187 85% 43%;
+    /* Accent - Vibrant teal */
+    --accent: 172 66% 50%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    /* Destructive - Vivid red for alerts */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --success: 142 76% 36%;
+    /* Success - Bright green for positive indicators */
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
+    /* Warning - Warm orange */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 0%;
 
+    /* Info - Soft blue */
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 212 27% 84%;
+    /* Strategic - Purple for neutral metrics */
+    --strategic: 280 60% 55%;
+    --strategic-foreground: 0 0% 100%;
 
-    --sidebar-background: 222 47% 6%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 221 83% 53%;
+    /* UI Elements */
+    --border: 220 15% 18%;
+    --input: 220 15% 18%;
+    --ring: 4 76% 58%;
+
+    /* Sidebar - Unified dark theme */
+    --sidebar-background: 220 20% 7%;
+    --sidebar-foreground: 220 14% 75%;
+    --sidebar-primary: 4 76% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 40% 12%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 222 40% 15%;
-    --sidebar-ring: 221 83% 53%;
-    --sidebar-muted: 215 16% 50%;
+    --sidebar-accent: 220 18% 13%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 220 15% 14%;
+    --sidebar-ring: 4 76% 58%;
+    --sidebar-muted: 220 10% 45%;
+
+    /* Funnel stage colors - Vibrant on dark */
+    --stage-triagem: 199 89% 48%;
+    --stage-entrevista-rh: 280 60% 55%;
+    --stage-teste: 38 92% 50%;
+    --stage-gestor: 25 95% 53%;
+    --stage-proposta: 142 71% 45%;
+    --stage-contratado: 142 71% 45%;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+  }
+
+  html {
+    @apply dark;
   }
 
   body {
@@ -158,6 +189,46 @@
 
   .animate-slide-in {
     animation: slideIn 0.3s ease-out;
+  }
+
+  /* Premium card styling */
+  .card-elevated {
+    @apply bg-card border border-border rounded-xl shadow-lg shadow-black/10;
+  }
+
+  .card-metric {
+    @apply bg-card border border-border rounded-xl p-5 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10 transition-all duration-200;
+  }
+
+  /* Gradient accents for metrics */
+  .gradient-success {
+    background: linear-gradient(135deg, hsl(var(--success) / 0.15), hsl(var(--success) / 0.05));
+    border-left: 3px solid hsl(var(--success));
+  }
+
+  .gradient-destructive {
+    background: linear-gradient(135deg, hsl(var(--destructive) / 0.15), hsl(var(--destructive) / 0.05));
+    border-left: 3px solid hsl(var(--destructive));
+  }
+
+  .gradient-strategic {
+    background: linear-gradient(135deg, hsl(var(--strategic) / 0.15), hsl(var(--strategic) / 0.05));
+    border-left: 3px solid hsl(var(--strategic));
+  }
+
+  .gradient-accent {
+    background: linear-gradient(135deg, hsl(var(--accent) / 0.15), hsl(var(--accent) / 0.05));
+    border-left: 3px solid hsl(var(--accent));
+  }
+
+  .gradient-warning {
+    background: linear-gradient(135deg, hsl(var(--warning) / 0.15), hsl(var(--warning) / 0.05));
+    border-left: 3px solid hsl(var(--warning));
+  }
+
+  .gradient-info {
+    background: linear-gradient(135deg, hsl(var(--info) / 0.15), hsl(var(--info) / 0.05));
+    border-left: 3px solid hsl(var(--info));
   }
 
   @keyframes fadeIn {
