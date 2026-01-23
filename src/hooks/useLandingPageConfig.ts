@@ -124,7 +124,7 @@ export function useLandingPageConfig() {
         return mergeConfig(parsed);
       }
     } catch (error) {
-      console.error("Error loading landing page config:", error);
+      console.error("[LandingPageConfig] Error loading config:", error);
     }
     return defaultLandingPageConfig;
   });
