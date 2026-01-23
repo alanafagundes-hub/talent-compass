@@ -74,6 +74,11 @@ const settingsSubItems = [
 // HCM Menu Items (roadmap - placeholder)
 const hcmMenuItems = [
   {
+    title: "Dashboard",
+    url: "/hcm/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
     title: "Colaboradores",
     url: "/hcm/colaboradores",
     icon: UserCircle,

@@ -23,7 +23,8 @@ const routeLabels: Record<string, string> = {
   "/configuracoes": "Configurações",
   "/configuracoes/recrutamento": "Recrutamento",
   // HCM Routes
-  "/hcm": "HCM",
+  "/hcm": "People e Performance",
+  "/hcm/dashboard": "Dashboard",
   "/hcm/colaboradores": "Colaboradores",
   "/hcm/gestao": "Gestão",
   "/hcm/gestao/1-1s": "1:1s",

@@ -16,7 +16,7 @@ import VagasPublicas from "./pages/VagasPublicas";
 import VagaPublica from "./pages/VagaPublica";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
-import { Users, Target, MessageSquare, TrendingUp, MessagesSquare, FileText, SmilePlus } from "lucide-react";
+import { Users, Target, MessageSquare, TrendingUp, MessagesSquare, FileText, SmilePlus, LayoutDashboard } from "lucide-react";
 
 
 const queryClient = new QueryClient();
@@ -43,6 +43,7 @@ const App = () => (
           <Route path="/configuracoes/recrutamento" element={<AppLayout><ConfiguracoesRecrutamento /></AppLayout>} />
           
           {/* HCM Routes - Placeholder (roadmap) */}
+          <Route path="/hcm/dashboard" element={<AppLayout><PlaceholderPage title="Dashboard" description="Visão geral de métricas e indicadores de People e Performance." icon={LayoutDashboard} /></AppLayout>} />
           <Route path="/hcm/colaboradores" element={<AppLayout><PlaceholderPage title="Colaboradores" description="Gestão completa do quadro de colaboradores da empresa." icon={Users} /></AppLayout>} />
           <Route path="/hcm/gestao" element={<AppLayout><PlaceholderPage title="Gestão de Pessoas" description="Hub central para gestão e desenvolvimento de pessoas." icon={Target} /></AppLayout>} />
           <Route path="/hcm/gestao/1-1s" element={<AppLayout><PlaceholderPage title="1:1s" description="Reuniões one-on-one entre gestores e colaboradores." icon={MessageSquare} /></AppLayout>} />
