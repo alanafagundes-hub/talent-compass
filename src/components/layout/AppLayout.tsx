@@ -64,31 +64,22 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <SidebarInset className="flex flex-col flex-1">
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-card px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb className="flex-1">
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="/">Início</BreadcrumbLink>
-                </BreadcrumbItem>
-                {breadcrumbs.map((crumb, index) => (
-                  <span key={crumb.path} className="flex items-center gap-2">
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                      {crumb.isLast ? (
-                        <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                      ) : (
-                        <BreadcrumbLink href={crumb.path}>
-                          {crumb.label}
-                        </BreadcrumbLink>
-                      )}
-                    </BreadcrumbItem>
-                  </span>
-                ))}
-              </BreadcrumbList>
-            </Breadcrumb>
-            <ThemeToggle />
+          <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border/50 bg-background px-4">
+            <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground" />
+            <Separator orientation="vertical" className="h-4 bg-border/50" />
+            
+            {/* Page title - clean header style */}
+            <h1 className="text-sm font-medium text-foreground flex-1">
+              {pageTitle}
+            </h1>
+            
+            {/* Right side actions */}
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-medium">
+                A
+              </div>
+            </div>
           </header>
           <main className="flex-1 overflow-auto bg-background p-6">
             {children}

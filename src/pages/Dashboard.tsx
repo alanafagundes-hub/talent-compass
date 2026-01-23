@@ -6,20 +6,23 @@ import { Users, Briefcase, UserCheck, UserX, Clock, TrendingUp } from "lucide-re
 export default function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Visão geral do seu processo de recrutamento
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground text-sm">
+            Visão geral do seu processo de recrutamento
+          </p>
+        </div>
       </div>
 
+      {/* Primary KPIs */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Candidatos Ativos"
           value={156}
           description="Em processo seletivo"
           icon={Users}
-          variant="primary"
+          variant="info"
           trend={{ value: 12, isPositive: true }}
         />
         <StatCard
@@ -27,7 +30,7 @@ export default function Dashboard() {
           value={8}
           description="Aguardando preenchimento"
           icon={Briefcase}
-          variant="info"
+          variant="strategic"
         />
         <StatCard
           title="Contratados no Mês"
@@ -42,23 +45,26 @@ export default function Dashboard() {
           value={12}
           description="Candidatos não aprovados"
           icon={UserX}
-          variant="warning"
+          variant="primary"
           trend={{ value: -8, isPositive: true }}
         />
       </div>
 
+      {/* Secondary metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           title="Tempo Médio de Contratação"
           value="18 dias"
           description="Da triagem à proposta"
           icon={Clock}
+          variant="default"
         />
         <StatCard
           title="Taxa de Conversão"
           value="32%"
           description="Triagem → Contratação"
           icon={TrendingUp}
+          variant="success"
           trend={{ value: 5, isPositive: true }}
         />
         <StatCard
@@ -66,9 +72,11 @@ export default function Dashboard() {
           value={847}
           description="Disponíveis para novas vagas"
           icon={Users}
+          variant="strategic"
         />
       </div>
 
+      {/* Activity sections */}
       <div className="grid gap-6 lg:grid-cols-2">
         <RecentActivity />
         <JobsOverview />

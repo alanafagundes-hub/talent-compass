@@ -122,28 +122,26 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+      <SidebarHeader className="border-b border-sidebar-border px-4 py-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-            <Building2 className="h-5 w-5 text-primary-foreground" />
-          </div>
-          {!isCollapsed && (
-            <div className="flex flex-col">
-              <span className="text-lg font-semibold text-sidebar-foreground">
-                DOT
-              </span>
-              <span className="text-xs text-sidebar-muted">
-                Recrutamento
-              </span>
+          {!isCollapsed ? (
+            <div className="flex items-center gap-1">
+              <span className="text-xl font-light tracking-widest text-sidebar-foreground">D</span>
+              <span className="text-xl font-light tracking-widest text-primary">O</span>
+              <span className="text-xl font-light tracking-widest text-sidebar-foreground">T</span>
+            </div>
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
+              <span className="text-sm font-semibold text-primary">D</span>
             </div>
           )}
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-4">
+      <SidebarContent className="px-3 py-4">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-muted text-xs uppercase tracking-wider mb-2">
+          <SidebarGroupLabel className="text-sidebar-muted text-[11px] uppercase tracking-wider font-medium mb-3 px-3">
             Recrutamento e Seleção
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -158,13 +156,16 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all",
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
                         isActive(item.url)
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                          ? "bg-sidebar-accent text-primary font-medium"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                       )}
                     >
-                      <item.icon className="h-5 w-5 shrink-0" />
+                      <item.icon className={cn(
+                        "h-4 w-4 shrink-0",
+                        isActive(item.url) ? "text-primary" : ""
+                      )} />
                       {!isCollapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -181,13 +182,16 @@ export function AppSidebar() {
                   <NavLink
                     to="/configuracoes"
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all",
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
                       isActive("/configuracoes")
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                        ? "bg-sidebar-accent text-primary font-medium"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                     )}
                   >
-                    <Settings className="h-5 w-5 shrink-0" />
+                    <Settings className={cn(
+                      "h-4 w-4 shrink-0",
+                      isActive("/configuracoes") ? "text-primary" : ""
+                    )} />
                     {!isCollapsed && <span>Configurações</span>}
                   </NavLink>
                 </SidebarMenuButton>
@@ -197,12 +201,11 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* HCM Section - Roadmap Placeholder */}
-        <SidebarGroup className="mt-4">
-          <SidebarGroupLabel className="text-sidebar-muted text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
-            <UsersRound className="h-3.5 w-3.5" />
+        <SidebarGroup className="mt-6">
+          <SidebarGroupLabel className="text-sidebar-muted text-[11px] uppercase tracking-wider font-medium mb-3 px-3 flex items-center gap-2">
             People e Performance
             {!isCollapsed && (
-              <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+              <span className="ml-auto text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-semibold">
                 Em breve
               </span>
             )}
@@ -219,13 +222,16 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all",
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
                         isActive(item.url)
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                          ? "bg-sidebar-accent text-primary font-medium"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                       )}
                     >
-                      <item.icon className="h-5 w-5 shrink-0" />
+                      <item.icon className={cn(
+                        "h-4 w-4 shrink-0",
+                        isActive(item.url) ? "text-primary" : ""
+                      )} />
                       {!isCollapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -244,20 +250,23 @@ export function AppSidebar() {
                       tooltip="Gestão"
                       isActive={isActive("/hcm/gestao")}
                       className={cn(
-                        "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-all w-full",
+                        "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm transition-all w-full",
                         isActive("/hcm/gestao")
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                          ? "bg-sidebar-accent text-primary font-medium"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <Target className="h-5 w-5 shrink-0" />
+                        <Target className={cn(
+                          "h-4 w-4 shrink-0",
+                          isActive("/hcm/gestao") ? "text-primary" : ""
+                        )} />
                         {!isCollapsed && <span>Gestão</span>}
                       </div>
                       {!isCollapsed && (
                         <ChevronDown
                           className={cn(
-                            "h-4 w-4 transition-transform duration-200",
+                            "h-3.5 w-3.5 transition-transform duration-200",
                             gestaoOpen && "rotate-180"
                           )}
                         />
@@ -275,13 +284,16 @@ export function AppSidebar() {
                             <NavLink
                               to={subItem.url}
                               className={cn(
-                                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
+                                "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm transition-all",
                                 isActive(subItem.url)
-                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                                  : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                                  ? "text-primary font-medium"
+                                  : "text-sidebar-muted hover:text-sidebar-foreground"
                               )}
                             >
-                              <subItem.icon className="h-4 w-4 shrink-0" />
+                              <subItem.icon className={cn(
+                                "h-3.5 w-3.5 shrink-0",
+                                isActive(subItem.url) ? "text-primary" : ""
+                              )} />
                               <span>{subItem.title}</span>
                             </NavLink>
                           </SidebarMenuSubButton>
