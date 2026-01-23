@@ -15,7 +15,10 @@ import {
   Building2,
   Plus,
   Trash2,
-  GripVertical
+  GripVertical,
+  BarChart3,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
@@ -23,7 +26,8 @@ import {
   defaultLandingPageConfig,
   iconMap,
   type LandingPageConfig,
-  type ValueCard 
+  type ValueCard,
+  type StatisticItem
 } from "@/hooks/useLandingPageConfig";
 
 const iconOptions = Object.keys(iconMap).map(key => ({
@@ -34,7 +38,14 @@ const iconOptions = Object.keys(iconMap).map(key => ({
          key === "TrendingUp" ? "Crescimento" :
          key === "Rocket" ? "Foguete" :
          key === "Target" ? "Alvo" :
-         key === "Building2" ? "Empresa" : key,
+         key === "Building2" ? "Empresa" :
+         key === "Award" ? "Prêmio" :
+         key === "Star" ? "Estrela" :
+         key === "Clock" ? "Relógio" :
+         key === "Globe" ? "Global" :
+         key === "Zap" ? "Energia" :
+         key === "CheckCircle" ? "Verificado" :
+         key === "Trophy" ? "Troféu" : key,
 }));
 
 const colorPresets = [
@@ -104,6 +115,54 @@ export default function LandingPageSettings() {
       ...prev,
       values: prev.values.filter(v => v.id !== id)
     }));
+    setHasChanges(true);
+  };
+
+  // Statistics management
+  const updateStatistic = (id: string, field: keyof StatisticItem, value: string) => {
+    setConfig(prev => ({
+      ...prev,
+      statistics: prev.statistics.map(s => 
+        s.id === id ? { ...s, [field]: value } : s
+      )
+    }));
+    setHasChanges(true);
+  };
+
+  const addStatistic = () => {
+    const newStatistic: StatisticItem = {
+      id: Date.now().toString(),
+      title: "Nova Estatística",
+      value: "100+",
+      description: "descrição opcional",
+    };
+    setConfig(prev => ({
+      ...prev,
+      statistics: [...prev.statistics, newStatistic]
+    }));
+    setHasChanges(true);
+  };
+
+  const removeStatistic = (id: string) => {
+    setConfig(prev => ({
+      ...prev,
+      statistics: prev.statistics.filter(s => s.id !== id)
+    }));
+    setHasChanges(true);
+  };
+
+  const moveStatistic = (id: string, direction: "up" | "down") => {
+    setConfig(prev => {
+      const stats = [...prev.statistics];
+      const index = stats.findIndex(s => s.id === id);
+      if (index === -1) return prev;
+      
+      const newIndex = direction === "up" ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= stats.length) return prev;
+      
+      [stats[index], stats[newIndex]] = [stats[newIndex], stats[index]];
+      return { ...prev, statistics: stats };
+    });
     setHasChanges(true);
   };
 
@@ -299,6 +358,144 @@ export default function LandingPageSettings() {
                 />
               </div>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Statistics Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Seção de Estatísticas
+          </CardTitle>
+          <CardDescription>
+            Configure estatísticas institucionais para employer branding e prova social
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Exibir Seção de Estatísticas</Label>
+              <p className="text-sm text-muted-foreground">
+                Mostrar estatísticas institucionais na página pública
+              </p>
+            </div>
+            <Switch
+              checked={config.showStatisticsSection}
+              onCheckedChange={(checked) => updateConfig("showStatisticsSection", checked)}
+            />
+          </div>
+
+          {config.showStatisticsSection && (
+            <>
+              <Separator />
+              
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="statisticsSectionTitle">Título da Seção</Label>
+                  <Input
+                    id="statisticsSectionTitle"
+                    value={config.statisticsSectionTitle}
+                    onChange={(e) => updateConfig("statisticsSectionTitle", e.target.value)}
+                    placeholder="Ex: Nossos Números"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="statisticsSectionSubtitle">Subtítulo</Label>
+                  <Input
+                    id="statisticsSectionSubtitle"
+                    value={config.statisticsSectionSubtitle}
+                    onChange={(e) => updateConfig("statisticsSectionSubtitle", e.target.value)}
+                    placeholder="Descrição breve da seção"
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Estatísticas</Label>
+                  <Button variant="outline" size="sm" onClick={addStatistic} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Adicionar
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  {config.statistics.map((stat, index) => (
+                    <div key={stat.id} className="flex gap-3 rounded-lg border p-4 bg-muted/30">
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => moveStatistic(stat.id, "up")}
+                          disabled={index === 0}
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => moveStatistic(stat.id, "down")}
+                          disabled={index === config.statistics.length - 1}
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="flex-1 grid gap-3 sm:grid-cols-3">
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">Valor (destaque)</Label>
+                          <Input
+                            value={stat.value}
+                            onChange={(e) => updateStatistic(stat.id, "value", e.target.value)}
+                            placeholder="Ex: +120, 95%, 8 anos"
+                            className="font-bold text-lg"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">Título</Label>
+                          <Input
+                            value={stat.title}
+                            onChange={(e) => updateStatistic(stat.id, "title", e.target.value)}
+                            placeholder="Ex: Colaboradores"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">Descrição (opcional)</Label>
+                          <Input
+                            value={stat.description || ""}
+                            onChange={(e) => updateStatistic(stat.id, "description", e.target.value)}
+                            placeholder="Ex: em crescimento constante"
+                          />
+                        </div>
+                      </div>
+                      
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={() => removeStatistic(stat.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+
+                  {config.statistics.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                      <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>Nenhuma estatística configurada</p>
+                      <p className="text-sm">Clique em "Adicionar" para criar a primeira</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
