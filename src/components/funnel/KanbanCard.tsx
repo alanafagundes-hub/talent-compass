@@ -17,26 +17,32 @@ import {
   MessageSquare, 
   ExternalLink,
   UserX,
-  FileText
+  FileText,
+  Award
 } from "lucide-react";
-import type { Candidate, Tag } from "@/types/ats";
+import type { Candidate, Tag, CardStageRating } from "@/types/ats";
 
 interface KanbanCardData {
   id: string;
   candidate: Candidate;
+  stepId: string;
+  sourceId?: string;
+  sourceName?: string;
   rating?: number;
   notes?: string;
   tags?: Tag[];
   enteredAt: Date;
+  stageRatings?: CardStageRating[];
 }
 
 interface KanbanCardProps {
   card: KanbanCardData;
   onViewDetails?: (card: KanbanCardData) => void;
   onMarkAsLost?: (card: KanbanCardData) => void;
+  onRate?: (card: KanbanCardData) => void;
 }
 
-export default function KanbanCard({ card, onViewDetails, onMarkAsLost }: KanbanCardProps) {
+export default function KanbanCard({ card, onViewDetails, onMarkAsLost, onRate }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -117,6 +123,11 @@ export default function KanbanCard({ card, onViewDetails, onMarkAsLost }: Kanban
                   </a>
                 </DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onRate?.(card)}>
+                <Award className="mr-2 h-4 w-4" />
+                Avaliar nesta Etapa
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={() => onMarkAsLost?.(card)}

@@ -22,7 +22,8 @@ import {
 import KanbanBoard from "@/components/funnel/KanbanBoard";
 import FunnelSettingsDialog from "@/components/funnel/FunnelSettingsDialog";
 import MarkAsLostDialog from "@/components/funnel/MarkAsLostDialog";
-import type { Job, FunnelStep, Candidate, Tag, Area, CardHistory, CardStageHistory, LostCandidate } from "@/types/ats";
+import RateStageDialog from "@/components/funnel/RateStageDialog";
+import type { Job, FunnelStep, Candidate, Tag, Area, CardHistory, CardStageHistory, LostCandidate, CardStageRating } from "@/types/ats";
 import { defaultFunnelStages, jobLevelLabels, contractTypeLabels } from "@/types/ats";
 import { toast } from "sonner";
 
@@ -165,8 +166,19 @@ export default function VagaFunil() {
     areaName: string;
   } | null>(null);
   const [lostCandidates, setLostCandidates] = useState<LostCandidate[]>([]);
+  
+  // Rating dialog state
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
+  const [selectedCardForRating, setSelectedCardForRating] = useState<{
+    cardId: string;
+    candidateName: string;
+    stepId: string;
+    stepName: string;
+    currentRating?: number;
+    currentNotes?: string;
+  } | null>(null);
+  const [stageRatings, setStageRatings] = useState<CardStageRating[]>([]);
 
-  // Calculate card count per step
   const cardCountByStep = useMemo(() => {
     return cards.reduce((acc, card) => {
       acc[card.stepId] = (acc[card.stepId] || 0) + 1;
@@ -192,31 +204,45 @@ export default function VagaFunil() {
     const fromStep = steps.find(s => s.id === fromStepId);
     const toStep = steps.find(s => s.id === toStepId);
 
-    // Update stage history - close previous
+    // Determine exit reason based on direction
+    const fromOrder = fromStep?.order || 0;
+    const toOrder = toStep?.order || 0;
+    const exitReason: 'advanced' | 'moved_back' = toOrder > fromOrder ? 'advanced' : 'moved_back';
+
+    // Update stage history - close previous with metrics
     setStageHistory(prev => {
       const updated = prev.map(h => 
         h.cardId === cardId && h.stepId === fromStepId && !h.exitedAt
-          ? { ...h, exitedAt: now, duration: Math.floor((now.getTime() - h.enteredAt.getTime()) / 60000) }
+          ? { 
+              ...h, 
+              exitedAt: now, 
+              duration: Math.floor((now.getTime() - h.enteredAt.getTime()) / 60000),
+              exitReason,
+            }
           : h
       );
       
-      // Add new entry
+      // Add new entry with full tracking data
       updated.push({
         id: `sh-${Date.now()}`,
         cardId,
         stepId: toStepId,
+        stepName: toStep?.name || 'Desconhecida',
+        stepOrder: toStep?.order || 0,
         enteredAt: now,
       });
       
       return updated;
     });
 
-    // Add to card history
+    // Add to card history with step names for easy querying
     setHistory(prev => [...prev, {
       id: `h-${Date.now()}`,
       cardId,
       fromStepId,
+      fromStepName: fromStep?.name,
       toStepId,
+      toStepName: toStep?.name,
       action: "moved",
       notes: `Movido de "${fromStep?.name}" para "${toStep?.name}"`,
       createdBy: "admin",
@@ -343,6 +369,79 @@ export default function VagaFunil() {
     toast.success(`${card.candidate.name} marcado como incompatível`);
   };
 
+  const handleRate = (card: any) => {
+    const currentStep = steps.find(s => s.id === card.stepId);
+    
+    // Check if there's already a rating for this card in this step
+    const existingRating = stageRatings.find(
+      r => r.cardId === card.id && r.stepId === card.stepId
+    );
+    
+    setSelectedCardForRating({
+      cardId: card.id,
+      candidateName: card.candidate.name,
+      stepId: card.stepId,
+      stepName: currentStep?.name || "Desconhecida",
+      currentRating: existingRating?.rating,
+      currentNotes: existingRating?.notes,
+    });
+    setRatingDialogOpen(true);
+  };
+
+  const handleSaveRating = (rating: number, notes: string) => {
+    if (!selectedCardForRating) return;
+
+    const now = new Date();
+    const newRating: CardStageRating = {
+      id: `sr-${Date.now()}`,
+      cardId: selectedCardForRating.cardId,
+      stepId: selectedCardForRating.stepId,
+      stepName: selectedCardForRating.stepName,
+      rating,
+      notes: notes || undefined,
+      evaluatedBy: 'admin',
+      evaluatedAt: now,
+    };
+
+    // Add or update rating
+    setStageRatings(prev => {
+      const existing = prev.findIndex(
+        r => r.cardId === selectedCardForRating.cardId && r.stepId === selectedCardForRating.stepId
+      );
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = newRating;
+        return updated;
+      }
+      return [...prev, newRating];
+    });
+
+    // Update card's general rating (latest rating)
+    setCards(prev => prev.map(c => 
+      c.id === selectedCardForRating.cardId 
+        ? { ...c, rating, updatedAt: now } 
+        : c
+    ));
+
+    // Add to history
+    setHistory(prev => [...prev, {
+      id: `h-${Date.now()}`,
+      cardId: selectedCardForRating.cardId,
+      fromStepId: selectedCardForRating.stepId,
+      fromStepName: selectedCardForRating.stepName,
+      toStepId: selectedCardForRating.stepId,
+      toStepName: selectedCardForRating.stepName,
+      action: 'rating_changed',
+      notes: `Avaliação: ${rating}/5${notes ? ` - ${notes}` : ''}`,
+      createdBy: 'admin',
+      createdAt: now,
+    }]);
+
+    setRatingDialogOpen(false);
+    setSelectedCardForRating(null);
+    toast.success(`Avaliação registrada para ${selectedCardForRating.candidateName}`);
+  };
+
   if (!job) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh]">
@@ -456,6 +555,7 @@ export default function VagaFunil() {
         onCardMove={handleCardMove}
         onViewDetails={handleViewDetails}
         onMarkAsLost={handleMarkAsLost}
+        onRate={handleRate}
       />
 
       {/* Funnel Settings Dialog */}
@@ -474,6 +574,17 @@ export default function VagaFunil() {
         onOpenChange={setLostDialogOpen}
         candidate={selectedCardForLost}
         onConfirm={handleConfirmLost}
+      />
+
+      {/* Rate Stage Dialog */}
+      <RateStageDialog
+        open={ratingDialogOpen}
+        onOpenChange={setRatingDialogOpen}
+        candidateName={selectedCardForRating?.candidateName || ""}
+        stepName={selectedCardForRating?.stepName || ""}
+        currentRating={selectedCardForRating?.currentRating}
+        currentNotes={selectedCardForRating?.currentNotes}
+        onSave={handleSaveRating}
       />
     </div>
   );

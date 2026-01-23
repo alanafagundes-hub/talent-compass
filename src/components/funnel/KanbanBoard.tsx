@@ -14,16 +14,19 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import KanbanColumn from "./KanbanColumn";
 import KanbanCard from "./KanbanCard";
-import type { Candidate, Tag, FunnelStep, CardHistory } from "@/types/ats";
+import type { Candidate, Tag, FunnelStep, CardHistory, CardStageRating } from "@/types/ats";
 
 interface KanbanCardData {
   id: string;
   candidate: Candidate;
   stepId: string;
+  sourceId?: string;
+  sourceName?: string;
   rating?: number;
   notes?: string;
   tags?: Tag[];
   enteredAt: Date;
+  stageRatings?: CardStageRating[];
 }
 
 interface KanbanBoardProps {
@@ -32,6 +35,7 @@ interface KanbanBoardProps {
   onCardMove: (cardId: string, fromStepId: string, toStepId: string) => void;
   onViewDetails?: (card: KanbanCardData) => void;
   onMarkAsLost?: (card: KanbanCardData) => void;
+  onRate?: (card: KanbanCardData) => void;
 }
 
 export default function KanbanBoard({
@@ -40,6 +44,7 @@ export default function KanbanBoard({
   onCardMove,
   onViewDetails,
   onMarkAsLost,
+  onRate,
 }: KanbanBoardProps) {
   const [activeCard, setActiveCard] = useState<KanbanCardData | null>(null);
   const [localCards, setLocalCards] = useState(cards);
@@ -141,6 +146,7 @@ export default function KanbanBoard({
                 cards={cardsByStep[step.id] || []}
                 onViewDetails={onViewDetails}
                 onMarkAsLost={onMarkAsLost}
+                onRate={onRate}
               />
             ))}
         </div>
