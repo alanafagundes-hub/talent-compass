@@ -198,13 +198,21 @@ export interface CandidateSource {
 export interface LostCandidate {
   id: string;
   candidateId: string;
+  candidateName: string;
+  candidateEmail: string;
   jobId: string;
+  jobTitle: string;
+  areaId: string;
+  areaName: string;
   cardId: string;
-  reason: LostReason;
-  incompatibilityReasonId?: string;
-  reasonDetails?: string;
+  stepId: string;
+  stepName: string;
+  reasonId: string;
+  reasonName: string;
+  observation?: string;
   canReapply: boolean;
   reapplyAfter?: Date;
+  lostAt: Date;
   createdAt: Date;
 }
 

@@ -21,7 +21,8 @@ import {
 } from "lucide-react";
 import KanbanBoard from "@/components/funnel/KanbanBoard";
 import FunnelSettingsDialog from "@/components/funnel/FunnelSettingsDialog";
-import type { Job, FunnelStep, Candidate, Tag, Area, CardHistory, CardStageHistory } from "@/types/ats";
+import MarkAsLostDialog from "@/components/funnel/MarkAsLostDialog";
+import type { Job, FunnelStep, Candidate, Tag, Area, CardHistory, CardStageHistory, LostCandidate } from "@/types/ats";
 import { defaultFunnelStages, jobLevelLabels, contractTypeLabels } from "@/types/ats";
 import { toast } from "sonner";
 
@@ -148,6 +149,22 @@ export default function VagaFunil() {
   const [searchTerm, setSearchTerm] = useState("");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Lost candidate state
+  const [lostDialogOpen, setLostDialogOpen] = useState(false);
+  const [selectedCardForLost, setSelectedCardForLost] = useState<{
+    id: string;
+    cardId: string;
+    name: string;
+    email: string;
+    currentStepId: string;
+    currentStepName: string;
+    jobId: string;
+    jobTitle: string;
+    areaId: string;
+    areaName: string;
+  } | null>(null);
+  const [lostCandidates, setLostCandidates] = useState<LostCandidate[]>([]);
 
   // Calculate card count per step
   const cardCountByStep = useMemo(() => {
@@ -245,8 +262,85 @@ export default function VagaFunil() {
   };
 
   const handleMarkAsLost = (card: any) => {
-    toast.info(`Marcar ${card.candidate.name} como perdido`);
-    // TODO: Open lost reason dialog
+    const currentStep = steps.find(s => s.id === card.stepId);
+    
+    setSelectedCardForLost({
+      id: card.candidate.id,
+      cardId: card.id,
+      name: card.candidate.name,
+      email: card.candidate.email,
+      currentStepId: card.stepId,
+      currentStepName: currentStep?.name || "Desconhecida",
+      jobId: job!.id,
+      jobTitle: job!.title,
+      areaId: job!.areaId,
+      areaName: area?.name || "Desconhecida",
+    });
+    setLostDialogOpen(true);
+  };
+
+  const handleConfirmLost = (data: {
+    candidateId: string;
+    cardId: string;
+    reasonId: string;
+    reasonName: string;
+    observation: string;
+    stepId: string;
+    stepName: string;
+    jobId: string;
+    jobTitle: string;
+    areaId: string;
+    areaName: string;
+    lostAt: Date;
+  }) => {
+    // Get candidate info
+    const card = cards.find(c => c.id === data.cardId);
+    if (!card) return;
+
+    // Create lost candidate record
+    const lostRecord: LostCandidate = {
+      id: `lost-${Date.now()}`,
+      candidateId: data.candidateId,
+      candidateName: card.candidate.name,
+      candidateEmail: card.candidate.email,
+      jobId: data.jobId,
+      jobTitle: data.jobTitle,
+      areaId: data.areaId,
+      areaName: data.areaName,
+      cardId: data.cardId,
+      stepId: data.stepId,
+      stepName: data.stepName,
+      reasonId: data.reasonId,
+      reasonName: data.reasonName,
+      observation: data.observation,
+      canReapply: true,
+      lostAt: data.lostAt,
+      createdAt: new Date(),
+    };
+
+    // Add to lost candidates
+    setLostCandidates(prev => [...prev, lostRecord]);
+
+    // Add to history
+    setHistory(prev => [...prev, {
+      id: `h-${Date.now()}`,
+      cardId: data.cardId,
+      fromStepId: data.stepId,
+      toStepId: "lost",
+      action: "marked_as_lost",
+      notes: `Marcado como incompatível: ${data.reasonName}${data.observation ? ` - ${data.observation}` : ""}`,
+      createdBy: "admin",
+      createdAt: data.lostAt,
+    }]);
+
+    // Remove card from kanban
+    setCards(prev => prev.filter(c => c.id !== data.cardId));
+
+    // Close dialog
+    setLostDialogOpen(false);
+    setSelectedCardForLost(null);
+
+    toast.success(`${card.candidate.name} marcado como incompatível`);
   };
 
   if (!job) {
@@ -372,6 +466,14 @@ export default function VagaFunil() {
         cardCountByStep={cardCountByStep}
         onSave={handleSaveSteps}
         jobId={job.id}
+      />
+
+      {/* Mark as Lost Dialog */}
+      <MarkAsLostDialog
+        open={lostDialogOpen}
+        onOpenChange={setLostDialogOpen}
+        candidate={selectedCardForLost}
+        onConfirm={handleConfirmLost}
       />
     </div>
   );
