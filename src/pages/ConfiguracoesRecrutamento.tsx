@@ -37,7 +37,7 @@ export default function ConfiguracoesRecrutamento() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Recrutamento</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
         <p className="text-muted-foreground">
           Configure etiquetas, formulários, e-mails e muito mais
         </p>
