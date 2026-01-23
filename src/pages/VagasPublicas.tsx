@@ -40,24 +40,14 @@ export default function VagasPublicas() {
     ? { ...defaultLandingPageConfig, ...JSON.parse(decodeURIComponent(previewConfig)) }
     : savedConfig;
   
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const jobsSectionRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Load published jobs from the centralized hook
-    const loadJobs = async () => {
-      setIsLoading(true);
-      // Small delay to simulate loading (can be removed when using real API)
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const publishedJobs = getPublishedJobs();
-      setJobs(publishedJobs);
-      setIsLoading(false);
-    };
-    loadJobs();
-  }, [getPublishedJobs]);
+  // Real-time sync: jobs are derived directly from the hook (single source of truth)
+  // No artificial delay - updates happen instantly when ATS data changes
+  const jobs = getPublishedJobs();
+  const isLoading = jobsLoading || configLoading || areasLoading;
 
   const scrollToJobs = () => {
     jobsSectionRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -76,7 +66,7 @@ export default function VagasPublicas() {
     "--lp-primary-medium": `${config.primaryColor}40`,
   } as React.CSSProperties;
 
-  if (isLoading || configLoading || areasLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
