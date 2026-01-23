@@ -61,14 +61,17 @@ const colorPresets = [
 
 export default function LandingPageSettings() {
   const { config: savedConfig, saveConfig, isLoading } = useLandingPageConfig();
-  const [config, setConfig] = useState<LandingPageConfig>(defaultLandingPageConfig);
+  const [config, setConfig] = useState<LandingPageConfig>(savedConfig);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Sync local state with saved config when it changes externally
   useEffect(() => {
-    if (!isLoading) {
+    if (!isInitialized) {
       setConfig(savedConfig);
+      setIsInitialized(true);
     }
-  }, [savedConfig, isLoading]);
+  }, [savedConfig, isInitialized]);
 
   const updateConfig = <K extends keyof LandingPageConfig>(
     key: K,
@@ -173,12 +176,13 @@ export default function LandingPageSettings() {
   };
 
   const handlePreview = () => {
-    // Save before preview so changes are visible
-    if (hasChanges) {
-      saveConfig(config);
-      setHasChanges(false);
-    }
-    window.open("/carreiras", "_blank");
+    // Always save current config before preview to ensure latest changes are visible
+    saveConfig(config);
+    setHasChanges(false);
+    // Small delay to ensure localStorage is updated before new tab reads it
+    setTimeout(() => {
+      window.open("/carreiras", "_blank");
+    }, 100);
   };
 
   const getIconComponent = (iconName: string) => {
