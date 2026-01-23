@@ -186,11 +186,24 @@ export default function Vagas() {
     setIsFormOpen(true);
   };
 
-  const handleArchive = (job: Job) => {
+  const handleChangeStatus = (job: Job, newStatus: JobStatus) => {
+    const statusMessages: Record<JobStatus, string> = {
+      rascunho: "Vaga movida para rascunho",
+      publicada: "Vaga publicada com sucesso!",
+      pausada: "Vaga pausada",
+      encerrada: "Vaga encerrada",
+    };
+
     setJobs(jobs.map(j => 
-      j.id === job.id ? { ...j, isArchived: true, updatedAt: new Date() } : j
+      j.id === job.id ? { ...j, status: newStatus, updatedAt: new Date() } : j
     ));
-    toast.success("Vaga arquivada!");
+    toast.success(statusMessages[newStatus]);
+  };
+
+  const handleCopyLink = (job: Job) => {
+    const publicUrl = `${window.location.origin}/carreiras/${job.id}`;
+    navigator.clipboard.writeText(publicUrl);
+    toast.success("Link copiado!");
   };
 
   const handleViewFunnel = (job: Job) => {
@@ -320,8 +333,9 @@ export default function Vagas() {
                 area={getAreaById(job.areaId)}
                 candidatesCount={mockCandidatesCount[job.id]}
                 onEdit={handleEdit}
-                onArchive={handleArchive}
+                onChangeStatus={handleChangeStatus}
                 onViewFunnel={handleViewFunnel}
+                onCopyLink={handleCopyLink}
               />
             ))}
 
@@ -360,8 +374,9 @@ export default function Vagas() {
                         area={area}
                         candidatesCount={mockCandidatesCount[job.id]}
                         onEdit={handleEdit}
-                        onArchive={handleArchive}
+                        onChangeStatus={handleChangeStatus}
                         onViewFunnel={handleViewFunnel}
+                        onCopyLink={handleCopyLink}
                       />
                     ))}
                   </div>
