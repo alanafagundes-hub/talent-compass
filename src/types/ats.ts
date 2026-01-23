@@ -79,6 +79,9 @@ export interface Job {
   priority: 'baixa' | 'media' | 'alta' | 'urgente';
   deadline?: Date;
   formTemplateId?: string;
+  // Investment tracking fields (for future cost-per-hire metrics)
+  isBoosted?: boolean; // Is the job promoted/boosted?
+  investmentAmount?: number; // Amount invested so far (R$)
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;

@@ -58,6 +58,8 @@ const initialFormData = {
   status: "rascunho" as JobStatus,
   formTemplateId: "",
   priority: "media" as Job['priority'],
+  isBoosted: false,
+  investmentAmount: "",
 };
 
 export default function JobFormDialog({
@@ -88,6 +90,8 @@ export default function JobFormDialog({
         status: job.status,
         formTemplateId: job.formTemplateId || "",
         priority: job.priority,
+        isBoosted: job.isBoosted || false,
+        investmentAmount: job.investmentAmount?.toString() || "",
       });
     } else {
       setFormData(initialFormData);
@@ -130,6 +134,8 @@ export default function JobFormDialog({
       status: formData.status,
       formTemplateId: formData.formTemplateId || undefined,
       priority: formData.priority,
+      isBoosted: formData.isBoosted,
+      investmentAmount: formData.investmentAmount ? parseFloat(formData.investmentAmount) : undefined,
       isArchived: false,
     };
 
@@ -411,6 +417,51 @@ export default function JobFormDialog({
                   </Select>
                   <p className="text-xs text-muted-foreground">
                     O formulário será usado para coleta de dados dos candidatos
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Investimento */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                Investimento
+              </h4>
+              <p className="text-xs text-muted-foreground -mt-2">
+                Dados para cálculo futuro de custo por contratação
+              </p>
+              
+              <div className="grid gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="isBoosted">Vaga Impulsionada</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Esta vaga possui investimento em divulgação
+                    </p>
+                  </div>
+                  <Switch
+                    id="isBoosted"
+                    checked={formData.isBoosted}
+                    onCheckedChange={(checked) => setFormData({ ...formData, isBoosted: checked })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="investmentAmount">Valor Investido (R$)</Label>
+                  <Input
+                    id="investmentAmount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.investmentAmount}
+                    onChange={(e) => setFormData({ ...formData, investmentAmount: e.target.value })}
+                    placeholder="0,00"
+                    disabled={!formData.isBoosted}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Total investido em anúncios e divulgação até o momento
                   </p>
                 </div>
               </div>
