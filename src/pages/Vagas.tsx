@@ -121,6 +121,7 @@ export default function Vagas() {
       setIsFormOpen(false);
     } else {
       toast.error("Erro ao salvar vaga");
+      throw new Error("Erro ao salvar vaga");
     }
   };
 

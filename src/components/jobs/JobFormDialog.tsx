@@ -40,7 +40,7 @@ interface JobFormDialogProps {
   areas: Area[];
   sources: CandidateSource[];
   formTemplates: FormTemplate[];
-  onSave: (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => void;
+  onSave: (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<void>;
 }
 
 const initialFormData = {
@@ -98,7 +98,9 @@ export default function JobFormDialog({
     }
   }, [job, open]);
 
-  const handleSave = () => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
     if (!formData.title.trim()) {
       toast.error("Título é obrigatório");
       return;
@@ -139,8 +141,12 @@ export default function JobFormDialog({
       isArchived: false,
     };
 
-    onSave(jobData);
-    onOpenChange(false);
+    setIsSaving(true);
+    try {
+      await onSave(jobData);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const activeAreas = areas.filter(a => !a.isArchived);
@@ -470,11 +476,11 @@ export default function JobFormDialog({
         </ScrollArea>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
             Cancelar
           </Button>
-          <Button onClick={handleSave}>
-            {job ? "Salvar Alterações" : "Criar Vaga"}
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Salvando..." : (job ? "Salvar Alterações" : "Criar Vaga")}
           </Button>
         </DialogFooter>
       </DialogContent>
