@@ -14,6 +14,7 @@ import {
   MessagesSquare,
   FileText,
   SmilePlus,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -37,6 +38,7 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import logoDot from "@/assets/logo-dot.png";
+import { useAuth } from "@/contexts/AuthContext";
 
 const mainMenuItems = [
   {
@@ -107,6 +109,7 @@ const gestaoSubItems = [
 export function AppSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
+  const { userRole } = useAuth();
   const isCollapsed = state === "collapsed";
   const [hcmOpen, setHcmOpen] = useState(
     location.pathname.startsWith("/hcm")
@@ -114,6 +117,8 @@ export function AppSidebar() {
   const [gestaoOpen, setGestaoOpen] = useState(
     location.pathname.startsWith("/hcm/gestao")
   );
+
+  const isAdmin = userRole === 'admin';
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -197,6 +202,33 @@ export function AppSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              {/* Usuários - Apenas Admin */}
+              {isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/usuarios")}
+                    tooltip="Usuários"
+                  >
+                    <NavLink
+                      to="/usuarios"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
+                        isActive("/usuarios")
+                          ? "bg-sidebar-accent text-primary font-medium"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                      )}
+                    >
+                      <ShieldCheck className={cn(
+                        "h-4 w-4 shrink-0",
+                        isActive("/usuarios") ? "text-primary" : ""
+                      )} />
+                      {!isCollapsed && <span>Usuários</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

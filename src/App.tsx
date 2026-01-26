@@ -15,6 +15,7 @@ import CandidatoDetalhe from "./pages/CandidatoDetalhe";
 import Talentos from "./pages/Talentos";
 import Perdidos from "./pages/Perdidos";
 import ConfiguracoesRecrutamento from "./pages/ConfiguracoesRecrutamento";
+import Usuarios from "./pages/Usuarios";
 import VagasPublicas from "./pages/VagasPublicas";
 import VagaPublica from "./pages/VagaPublica";
 import PlaceholderPage from "./pages/PlaceholderPage";
@@ -71,6 +72,11 @@ const App = () => (
             <Route path="/configuracoes" element={
               <ProtectedRoute>
                 <AppLayout><ConfiguracoesRecrutamento /></AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/usuarios" element={
+              <ProtectedRoute>
+                <AppLayout><Usuarios /></AppLayout>
               </ProtectedRoute>
             } />
             

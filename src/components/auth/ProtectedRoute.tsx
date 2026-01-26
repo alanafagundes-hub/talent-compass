@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, isLoading, isInternalUser } = useAuth();
+  const { user, isLoading, isInternalUser, isActiveUser } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -27,7 +27,23 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // User is logged in but might not have internal role yet
-  // For now, we allow access - the role check will happen at the data level via RLS
+  // Check if user is inactive
+  if (!isActiveUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4 text-center max-w-md p-6">
+          <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 text-destructive" />
+          </div>
+          <h2 className="text-xl font-semibold">Acesso Desativado</h2>
+          <p className="text-muted-foreground">
+            Sua conta foi desativada. Entre em contato com o administrador do sistema para mais informações.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // User is logged in and active
   return <>{children}</>;
 }
