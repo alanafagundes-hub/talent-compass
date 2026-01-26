@@ -43,7 +43,7 @@ export function useJobs() {
   const [jobs, setJobs] = useState<Job[]>(() => loadFromStorage());
   const [isLoading, setIsLoading] = useState(false);
 
-  // Sync with other tabs/components
+  // Sync with other tabs/components and reload on focus
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) {
@@ -55,12 +55,28 @@ export function useJobs() {
       setJobs(loadFromStorage());
     };
 
+    // Reload jobs when window gains focus (catches updates from other tabs/sessions)
+    const handleFocus = () => {
+      setJobs(loadFromStorage());
+    };
+
+    // Also reload on visibility change (when tab becomes visible)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setJobs(loadFromStorage());
+      }
+    };
+
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener(CUSTOM_EVENT_NAME, handleCustomEvent);
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener(CUSTOM_EVENT_NAME, handleCustomEvent);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
