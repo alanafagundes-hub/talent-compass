@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useUsers, UserWithDetails } from '@/hooks/useUsers';
-import { useSupabaseAreas } from '@/hooks/useSupabaseAreas';
+import { useAreas } from '@/hooks/useAreas';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   Plus, 
@@ -70,7 +70,7 @@ const roleColors: Record<string, string> = {
 // Admin view component - full user management
 function AdminUsersView() {
   const { users, isLoading, createUser, updateUser, toggleUserStatus } = useUsers();
-  const { areas } = useSupabaseAreas();
+  const { areas } = useAreas();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
