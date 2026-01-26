@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextarea } from "@/components/ui/rich-textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
@@ -357,67 +357,61 @@ export default function JobFormDialog({
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="aboutJob">Sobre a Vaga *</Label>
-                  <Textarea
+                  <RichTextarea
                     id="aboutJob"
                     value={formData.aboutJob}
-                    onChange={(e) => setFormData({ ...formData, aboutJob: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, aboutJob: value })}
                     placeholder="Descreva a vaga, o contexto do time e os principais desafios..."
-                    rows={4}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="aboutCompany">Sobre a DOT</Label>
-                  <Textarea
+                  <RichTextarea
                     id="aboutCompany"
                     value={formData.aboutCompany}
-                    onChange={(e) => setFormData({ ...formData, aboutCompany: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, aboutCompany: value })}
                     placeholder="Breve descrição sobre a empresa, cultura e valores..."
-                    rows={3}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="responsibilities">Responsabilidades da Função</Label>
-                  <Textarea
+                  <RichTextarea
                     id="responsibilities"
                     value={formData.responsibilities}
-                    onChange={(e) => setFormData({ ...formData, responsibilities: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, responsibilities: value })}
                     placeholder="Liste as principais responsabilidades e atividades do dia a dia..."
-                    rows={4}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="requirementsText">Pré-requisitos</Label>
-                  <Textarea
+                  <RichTextarea
                     id="requirementsText"
                     value={formData.requirementsText}
-                    onChange={(e) => setFormData({ ...formData, requirementsText: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, requirementsText: value })}
                     placeholder="Liste os requisitos obrigatórios: experiência, formação, conhecimentos técnicos..."
-                    rows={4}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="niceToHave">Diferenciais</Label>
-                  <Textarea
+                  <RichTextarea
                     id="niceToHave"
                     value={formData.niceToHave}
-                    onChange={(e) => setFormData({ ...formData, niceToHave: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, niceToHave: value })}
                     placeholder="Conhecimentos ou experiências que seriam um diferencial..."
-                    rows={3}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="additionalInfo">Informações Adicionais</Label>
-                  <Textarea
+                  <RichTextarea
                     id="additionalInfo"
                     value={formData.additionalInfo}
-                    onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, additionalInfo: value })}
                     placeholder="Benefícios, etapas do processo seletivo, outras informações relevantes..."
-                    rows={3}
                   />
                 </div>
               </div>
