@@ -163,12 +163,36 @@ export function useLandingPageConfig() {
       setConfig(e.detail);
     };
 
+    // Reload config when window gains focus (catches updates from other tabs/sessions)
+    const handleFocus = () => {
+      try {
+        const saved = localStorage.getItem("landingPageConfig");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setConfig(mergeConfig(parsed));
+        }
+      } catch (error) {
+        console.error("Error reloading landing page config:", error);
+      }
+    };
+
+    // Also reload on visibility change (when tab becomes visible)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleFocus();
+      }
+    };
+
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("landingPageConfigUpdated", handleCustomEvent as EventListener);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("landingPageConfigUpdated", handleCustomEvent as EventListener);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
