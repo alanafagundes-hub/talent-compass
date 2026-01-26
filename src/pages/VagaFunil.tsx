@@ -24,6 +24,7 @@ import KanbanBoard from "@/components/funnel/KanbanBoard";
 import FunnelSettingsDialog from "@/components/funnel/FunnelSettingsDialog";
 import MarkAsLostDialog from "@/components/funnel/MarkAsLostDialog";
 import RateStageDialog from "@/components/funnel/RateStageDialog";
+import CandidateDetailSheet from "@/components/funnel/CandidateDetailSheet";
 import type { FunnelStep, CardHistory, CardStageHistory, LostCandidate, CardStageRating } from "@/types/ats";
 import { jobLevelLabels, contractTypeLabels } from "@/types/ats";
 import { toast } from "sonner";
@@ -88,6 +89,10 @@ export default function VagaFunil() {
     currentNotes?: string;
   } | null>(null);
   const [stageRatings, setStageRatings] = useState<CardStageRating[]>([]);
+
+  // Candidate detail sheet state
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
+  const [selectedCardForDetail, setSelectedCardForDetail] = useState<KanbanCardData | null>(null);
 
   const cardCountByStep = useMemo(() => {
     return cards.reduce((acc, card) => {
@@ -211,7 +216,32 @@ export default function VagaFunil() {
   };
 
   const handleViewDetails = (card: KanbanCardData) => {
-    navigate(`/vagas/${jobId}/candidato/${card.id}`);
+    setSelectedCardForDetail(card);
+    setDetailSheetOpen(true);
+  };
+
+  const handleAdvanceStageFromSheet = () => {
+    if (!selectedCardForDetail) return;
+    
+    const currentStepIndex = steps.findIndex((s) => s.id === selectedCardForDetail.stepId);
+    if (currentStepIndex < steps.length - 1) {
+      const nextStep = steps[currentStepIndex + 1];
+      handleCardMove(selectedCardForDetail.id, selectedCardForDetail.stepId, nextStep.id);
+      // Update the selected card's stepId
+      setSelectedCardForDetail((prev) =>
+        prev ? { ...prev, stepId: nextStep.id, enteredAt: new Date() } : null
+      );
+    }
+  };
+
+  const handleMarkAsLostFromSheet = () => {
+    if (!selectedCardForDetail) return;
+    handleMarkAsLost(selectedCardForDetail);
+  };
+
+  const handleRateFromSheet = () => {
+    if (!selectedCardForDetail) return;
+    handleRate(selectedCardForDetail);
   };
 
   const handleMarkAsLost = (card: KanbanCardData) => {
@@ -562,6 +592,19 @@ export default function VagaFunil() {
         currentRating={selectedCardForRating?.currentRating}
         currentNotes={selectedCardForRating?.currentNotes}
         onSave={handleSaveRating}
+      />
+
+      {/* Candidate Detail Sheet */}
+      <CandidateDetailSheet
+        open={detailSheetOpen}
+        onOpenChange={setDetailSheetOpen}
+        card={selectedCardForDetail}
+        steps={steps}
+        job={job}
+        area={area}
+        onMarkAsLost={handleMarkAsLostFromSheet}
+        onAdvanceStage={handleAdvanceStageFromSheet}
+        onRate={handleRateFromSheet}
       />
     </div>
   );
