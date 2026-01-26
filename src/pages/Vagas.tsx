@@ -88,7 +88,7 @@ export default function Vagas() {
     setIsFormOpen(true);
   };
 
-  const handleChangeStatus = (job: Job, newStatus: JobStatus) => {
+  const handleChangeStatus = async (job: Job, newStatus: JobStatus) => {
     const statusMessages: Record<JobStatus, string> = {
       rascunho: "Vaga movida para rascunho",
       publicada: "Vaga publicada com sucesso!",
@@ -96,8 +96,12 @@ export default function Vagas() {
       encerrada: "Vaga encerrada",
     };
 
-    updateJobStatus(job.id, newStatus);
-    toast.success(statusMessages[newStatus]);
+    const result = await updateJobStatus(job.id, newStatus);
+    if (result) {
+      toast.success(statusMessages[newStatus]);
+    } else {
+      toast.error("Erro ao atualizar status da vaga");
+    }
   };
 
   const handleCopyLink = (job: Job) => {
@@ -110,9 +114,14 @@ export default function Vagas() {
     navigate(`/vagas/${job.id}/funil`);
   };
 
-  const handleSaveJob = (jobData: Omit<Job, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
-    saveJob(jobData);
-    toast.success(jobData.id ? "Vaga atualizada!" : "Vaga criada!");
+  const handleSaveJob = async (jobData: Omit<Job, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
+    const result = await saveJob(jobData);
+    if (result) {
+      toast.success(jobData.id ? "Vaga atualizada!" : "Vaga criada!");
+      setIsFormOpen(false);
+    } else {
+      toast.error("Erro ao salvar vaga");
+    }
   };
 
   const closedCount = jobs.filter(j => j.status === "encerrada" && !j.isArchived).length;
