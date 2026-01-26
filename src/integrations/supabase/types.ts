@@ -465,6 +465,9 @@ export type Database = {
       }
       jobs: {
         Row: {
+          about_company: string | null
+          about_job: string | null
+          additional_info: string | null
           area_id: string | null
           closed_at: string | null
           contract_type: Database["public"]["Enums"]["contract_type"]
@@ -479,17 +482,24 @@ export type Database = {
           is_remote: boolean
           level: Database["public"]["Enums"]["job_level"]
           location: string
+          nice_to_have: string | null
           priority: Database["public"]["Enums"]["job_priority"]
           published_at: string | null
           requirements: string | null
+          requirements_text: string | null
+          responsibilities: string | null
           salary_max: number | null
           salary_min: number | null
           slug: string | null
           status: Database["public"]["Enums"]["job_status"]
           title: string
           updated_at: string
+          work_model: Database["public"]["Enums"]["work_model"]
         }
         Insert: {
+          about_company?: string | null
+          about_job?: string | null
+          additional_info?: string | null
           area_id?: string | null
           closed_at?: string | null
           contract_type?: Database["public"]["Enums"]["contract_type"]
@@ -504,17 +514,24 @@ export type Database = {
           is_remote?: boolean
           level?: Database["public"]["Enums"]["job_level"]
           location?: string
+          nice_to_have?: string | null
           priority?: Database["public"]["Enums"]["job_priority"]
           published_at?: string | null
           requirements?: string | null
+          requirements_text?: string | null
+          responsibilities?: string | null
           salary_max?: number | null
           salary_min?: number | null
           slug?: string | null
           status?: Database["public"]["Enums"]["job_status"]
           title: string
           updated_at?: string
+          work_model?: Database["public"]["Enums"]["work_model"]
         }
         Update: {
+          about_company?: string | null
+          about_job?: string | null
+          additional_info?: string | null
           area_id?: string | null
           closed_at?: string | null
           contract_type?: Database["public"]["Enums"]["contract_type"]
@@ -529,15 +546,19 @@ export type Database = {
           is_remote?: boolean
           level?: Database["public"]["Enums"]["job_level"]
           location?: string
+          nice_to_have?: string | null
           priority?: Database["public"]["Enums"]["job_priority"]
           published_at?: string | null
           requirements?: string | null
+          requirements_text?: string | null
+          responsibilities?: string | null
           salary_max?: number | null
           salary_min?: number | null
           slug?: string | null
           status?: Database["public"]["Enums"]["job_status"]
           title?: string
           updated_at?: string
+          work_model?: Database["public"]["Enums"]["work_model"]
         }
         Relationships: [
           {
@@ -857,6 +878,7 @@ export type Database = {
         | "diretor"
       job_priority: "baixa" | "media" | "alta" | "urgente"
       job_status: "rascunho" | "publicada" | "pausada" | "encerrada"
+      work_model: "remoto" | "presencial" | "hibrido"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1006,6 +1028,7 @@ export const Constants = {
       ],
       job_priority: ["baixa", "media", "alta", "urgente"],
       job_status: ["rascunho", "publicada", "pausada", "encerrada"],
+      work_model: ["remoto", "presencial", "hibrido"],
     },
   },
 } as const

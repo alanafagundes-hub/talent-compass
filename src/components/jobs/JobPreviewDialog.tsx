@@ -17,9 +17,13 @@ import {
   FileText,
   Eye,
   Loader2,
+  CheckCircle,
+  Laptop,
+  Home,
+  Building,
 } from "lucide-react";
 import type { Job, Area } from "@/types/ats";
-import { jobLevelLabels, contractTypeLabels } from "@/types/ats";
+import { jobLevelLabels, contractTypeLabels, workModelLabels } from "@/types/ats";
 
 interface JobPreviewDialogProps {
   open: boolean;
@@ -30,6 +34,12 @@ interface JobPreviewDialogProps {
   isPublishing?: boolean;
 }
 
+const workModelIcons = {
+  remoto: Laptop,
+  presencial: Building,
+  hibrido: Home,
+};
+
 export default function JobPreviewDialog({
   open,
   onOpenChange,
@@ -39,6 +49,8 @@ export default function JobPreviewDialog({
   isPublishing = false,
 }: JobPreviewDialogProps) {
   if (!job) return null;
+
+  const WorkIcon = workModelIcons[job.workModel || 'presencial'];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -78,11 +90,12 @@ export default function JobPreviewDialog({
                 <div className="flex items-center gap-1.5">
                   <MapPin className="h-4 w-4" />
                   <span>{job.location}</span>
-                  {job.isRemote && (
-                    <Badge variant="secondary" className="text-xs">
-                      Remoto
-                    </Badge>
-                  )}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <WorkIcon className="h-4 w-4" />
+                  <Badge variant="secondary" className="text-xs">
+                    {workModelLabels[job.workModel || 'presencial']}
+                  </Badge>
                 </div>
               </div>
 
@@ -102,19 +115,117 @@ export default function JobPreviewDialog({
 
             <Separator />
 
-            {/* Description */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold">Descrição da Vaga</h3>
+            {/* About Job */}
+            {job.aboutJob && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">Sobre a Vaga</h3>
+                </div>
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {job.aboutJob}
+                </div>
               </div>
-              <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                {job.description}
-              </div>
-            </div>
+            )}
+
+            {/* About Company */}
+            {job.aboutCompany && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Sobre a DOT</h3>
+                  </div>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {job.aboutCompany}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Responsibilities */}
+            {job.responsibilities && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Responsabilidades da Função</h3>
+                  </div>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {job.responsibilities}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Requirements */}
-            {job.requirements && (
+            {job.requirementsText && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Pré-requisitos</h3>
+                  </div>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {job.requirementsText}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Nice to Have */}
+            {job.niceToHave && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Diferenciais</h3>
+                  </div>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {job.niceToHave}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Additional Info */}
+            {job.additionalInfo && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Informações Adicionais</h3>
+                  </div>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {job.additionalInfo}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Legacy description fallback */}
+            {!job.aboutJob && job.description && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Descrição da Vaga</h3>
+                  </div>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {job.description}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Legacy requirements fallback */}
+            {!job.requirementsText && job.requirements && (
               <>
                 <Separator />
                 <div className="space-y-3">
@@ -133,7 +244,7 @@ export default function JobPreviewDialog({
             <div className="pt-4 flex flex-wrap gap-2">
               <Badge variant="outline">{contractTypeLabels[job.contractType]}</Badge>
               <Badge variant="outline">{jobLevelLabels[job.level]}</Badge>
-              {job.isRemote && <Badge variant="outline">Trabalho Remoto</Badge>}
+              <Badge variant="outline">{workModelLabels[job.workModel || 'presencial']}</Badge>
               {area && <Badge variant="secondary">{area.name}</Badge>}
             </div>
           </div>

@@ -19,19 +19,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { 
   Job, 
   JobStatus, 
   JobLevel, 
-  ContractType, 
+  ContractType,
+  WorkModel,
   Area, 
   CandidateSource,
   FormTemplate 
 } from "@/types/ats";
-import { jobLevelLabels, contractTypeLabels, jobStatusLabels } from "@/types/ats";
+import { jobLevelLabels, contractTypeLabels, jobStatusLabels, workModelLabels } from "@/types/ats";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 interface JobFormDialogProps {
   open: boolean;
@@ -48,10 +51,19 @@ const initialFormData = {
   areaId: "",
   level: "pleno" as JobLevel,
   contractType: "clt" as ContractType,
+  workModel: "presencial" as WorkModel,
   location: "",
-  isRemote: false,
+  // Editorial fields
+  aboutJob: "",
+  aboutCompany: "",
+  responsibilities: "",
+  requirementsText: "",
+  niceToHave: "",
+  additionalInfo: "",
+  // Legacy
   description: "",
   requirements: "",
+  // Other
   salaryMin: "",
   salaryMax: "",
   sourceId: "",
@@ -72,6 +84,7 @@ export default function JobFormDialog({
   onSave,
 }: JobFormDialogProps) {
   const [formData, setFormData] = useState(initialFormData);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (job) {
@@ -80,10 +93,19 @@ export default function JobFormDialog({
         areaId: job.areaId,
         level: job.level,
         contractType: job.contractType,
+        workModel: job.workModel || "presencial",
         location: job.location,
-        isRemote: job.isRemote,
+        // Editorial fields
+        aboutJob: job.aboutJob || "",
+        aboutCompany: job.aboutCompany || "",
+        responsibilities: job.responsibilities || "",
+        requirementsText: job.requirementsText || "",
+        niceToHave: job.niceToHave || "",
+        additionalInfo: job.additionalInfo || "",
+        // Legacy
         description: job.description,
         requirements: job.requirements || "",
+        // Other
         salaryMin: job.salary?.min?.toString() || "",
         salaryMax: job.salary?.max?.toString() || "",
         sourceId: job.sourceId || "",
@@ -98,8 +120,6 @@ export default function JobFormDialog({
     }
   }, [job, open]);
 
-  const [isSaving, setIsSaving] = useState(false);
-
   const handleSave = async () => {
     if (!formData.title.trim()) {
       toast.error("Título é obrigatório");
@@ -109,14 +129,22 @@ export default function JobFormDialog({
       toast.error("Área é obrigatória");
       return;
     }
-    if (!formData.location.trim()) {
-      toast.error("Localidade é obrigatória");
+    // Validate location for non-remote jobs
+    if (formData.workModel !== "remoto" && !formData.location.trim()) {
+      toast.error("Localidade é obrigatória para vagas presenciais ou híbridas");
       return;
     }
-    if (!formData.description.trim()) {
-      toast.error("Descrição é obrigatória");
+    if (!formData.aboutJob.trim()) {
+      toast.error("O campo 'Sobre a vaga' é obrigatório");
       return;
     }
+
+    // Build description from editorial fields for legacy compatibility
+    const fullDescription = [
+      formData.aboutJob,
+      formData.aboutCompany ? `\n\n**Sobre a DOT:**\n${formData.aboutCompany}` : "",
+      formData.responsibilities ? `\n\n**Responsabilidades:**\n${formData.responsibilities}` : "",
+    ].filter(Boolean).join("");
 
     const jobData: Omit<Job, 'id' | 'createdAt' | 'updatedAt'> & { id?: string } = {
       ...(job && { id: job.id }),
@@ -124,10 +152,18 @@ export default function JobFormDialog({
       areaId: formData.areaId,
       level: formData.level,
       contractType: formData.contractType,
-      location: formData.location,
-      isRemote: formData.isRemote,
-      description: formData.description,
-      requirements: formData.requirements || undefined,
+      workModel: formData.workModel,
+      location: formData.location || "Brasil",
+      // Editorial fields
+      aboutJob: formData.aboutJob || undefined,
+      aboutCompany: formData.aboutCompany || undefined,
+      responsibilities: formData.responsibilities || undefined,
+      requirementsText: formData.requirementsText || undefined,
+      niceToHave: formData.niceToHave || undefined,
+      additionalInfo: formData.additionalInfo || undefined,
+      // Legacy fields
+      description: fullDescription || formData.aboutJob,
+      requirements: formData.requirementsText || undefined,
       salary: formData.salaryMin || formData.salaryMax ? {
         min: formData.salaryMin ? parseInt(formData.salaryMin) : 0,
         max: formData.salaryMax ? parseInt(formData.salaryMax) : 0,
@@ -155,7 +191,7 @@ export default function JobFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
+      <DialogContent className="max-w-3xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>{job ? "Editar Vaga" : "Nova Vaga"}</DialogTitle>
           <DialogDescription>
@@ -163,7 +199,7 @@ export default function JobFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-4">
+        <ScrollArea className="max-h-[65vh] pr-4">
           <div className="space-y-6 py-4">
             {/* Informações Básicas */}
             <div className="space-y-4">
@@ -266,67 +302,122 @@ export default function JobFormDialog({
 
             <Separator />
 
-            {/* Localização */}
+            {/* Modelo de Trabalho e Localização */}
             <div className="space-y-4">
               <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                Localização
+                Modelo de Trabalho
               </h4>
               
               <div className="grid gap-4">
+                <div className="space-y-3">
+                  <Label>Modelo de Trabalho *</Label>
+                  <RadioGroup
+                    value={formData.workModel}
+                    onValueChange={(value) => setFormData({ ...formData, workModel: value as WorkModel })}
+                    className="flex gap-6"
+                  >
+                    {Object.entries(workModelLabels).map(([value, label]) => (
+                      <div key={value} className="flex items-center space-x-2">
+                        <RadioGroupItem value={value} id={`workModel-${value}`} />
+                        <Label htmlFor={`workModel-${value}`} className="cursor-pointer">
+                          {label}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="location">Localidade *</Label>
+                  <Label htmlFor="location">
+                    Localidade {formData.workModel !== "remoto" && "*"}
+                  </Label>
                   <Input
                     id="location"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    placeholder="Ex: São Paulo, SP"
+                    placeholder={formData.workModel === "remoto" ? "Ex: Brasil, Global" : "Ex: São Paulo, SP"}
                   />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="remote">Aceita Remoto</Label>
-                    <p className="text-sm text-muted-foreground">
-                      A vaga permite trabalho remoto
+                  {formData.workModel === "remoto" && (
+                    <p className="text-xs text-muted-foreground">
+                      Para vagas remotas, você pode usar uma localidade genérica como "Brasil" ou "Global"
                     </p>
-                  </div>
-                  <Switch
-                    id="remote"
-                    checked={formData.isRemote}
-                    onCheckedChange={(checked) => setFormData({ ...formData, isRemote: checked })}
-                  />
+                  )}
                 </div>
               </div>
             </div>
 
             <Separator />
 
-            {/* Descrição */}
+            {/* Conteúdo Editorial */}
             <div className="space-y-4">
               <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                Descrição da Vaga
+                Conteúdo da Vaga
               </h4>
               
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="description">Descrição *</Label>
+                  <Label htmlFor="aboutJob">Sobre a Vaga *</Label>
                   <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Descreva as responsabilidades e atividades da vaga..."
-                    rows={5}
+                    id="aboutJob"
+                    value={formData.aboutJob}
+                    onChange={(e) => setFormData({ ...formData, aboutJob: e.target.value })}
+                    placeholder="Descreva a vaga, o contexto do time e os principais desafios..."
+                    rows={4}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="requirements">Requisitos</Label>
+                  <Label htmlFor="aboutCompany">Sobre a DOT</Label>
                   <Textarea
-                    id="requirements"
-                    value={formData.requirements}
-                    onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
-                    placeholder="Liste os requisitos técnicos e comportamentais..."
+                    id="aboutCompany"
+                    value={formData.aboutCompany}
+                    onChange={(e) => setFormData({ ...formData, aboutCompany: e.target.value })}
+                    placeholder="Breve descrição sobre a empresa, cultura e valores..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="responsibilities">Responsabilidades da Função</Label>
+                  <Textarea
+                    id="responsibilities"
+                    value={formData.responsibilities}
+                    onChange={(e) => setFormData({ ...formData, responsibilities: e.target.value })}
+                    placeholder="Liste as principais responsabilidades e atividades do dia a dia..."
                     rows={4}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="requirementsText">Pré-requisitos</Label>
+                  <Textarea
+                    id="requirementsText"
+                    value={formData.requirementsText}
+                    onChange={(e) => setFormData({ ...formData, requirementsText: e.target.value })}
+                    placeholder="Liste os requisitos obrigatórios: experiência, formação, conhecimentos técnicos..."
+                    rows={4}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="niceToHave">Diferenciais</Label>
+                  <Textarea
+                    id="niceToHave"
+                    value={formData.niceToHave}
+                    onChange={(e) => setFormData({ ...formData, niceToHave: e.target.value })}
+                    placeholder="Conhecimentos ou experiências que seriam um diferencial..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="additionalInfo">Informações Adicionais</Label>
+                  <Textarea
+                    id="additionalInfo"
+                    value={formData.additionalInfo}
+                    onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
+                    placeholder="Benefícios, etapas do processo seletivo, outras informações relevantes..."
+                    rows={3}
                   />
                 </div>
               </div>
@@ -421,9 +512,6 @@ export default function JobFormDialog({
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    O formulário será usado para coleta de dados dos candidatos
-                  </p>
                 </div>
               </div>
             </div>
@@ -466,9 +554,6 @@ export default function JobFormDialog({
                     placeholder="0,00"
                     disabled={!formData.isBoosted}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Total investido em anúncios e divulgação até o momento
-                  </p>
                 </div>
               </div>
             </div>
@@ -480,7 +565,12 @@ export default function JobFormDialog({
             Cancelar
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? "Salvando..." : (job ? "Salvar Alterações" : "Criar Vaga")}
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Salvando...
+              </>
+            ) : job ? "Salvar Alterações" : "Criar Vaga"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Job, JobStatus } from '@/types/ats';
+import type { Job, JobStatus, WorkModel } from '@/types/ats';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 type DbJob = Tables<'jobs'>;
@@ -13,8 +13,15 @@ const mapDbJobToJob = (dbJob: DbJob): Job => ({
   requirements: dbJob.requirements || undefined,
   level: dbJob.level,
   contractType: dbJob.contract_type,
+  workModel: (dbJob as any).work_model || 'presencial',
   location: dbJob.location,
-  isRemote: dbJob.is_remote,
+  // Editorial fields
+  aboutJob: (dbJob as any).about_job || undefined,
+  aboutCompany: (dbJob as any).about_company || undefined,
+  responsibilities: (dbJob as any).responsibilities || undefined,
+  requirementsText: (dbJob as any).requirements_text || undefined,
+  niceToHave: (dbJob as any).nice_to_have || undefined,
+  additionalInfo: (dbJob as any).additional_info || undefined,
   salary: dbJob.salary_min || dbJob.salary_max 
     ? { min: Number(dbJob.salary_min) || 0, max: Number(dbJob.salary_max) || 0 }
     : undefined,
@@ -31,48 +38,70 @@ const mapDbJobToJob = (dbJob: DbJob): Job => ({
 });
 
 // Map application Job to database insert format
-const mapJobToDbInsert = (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>): TablesInsert<'jobs'> => ({
-  title: job.title,
-  description: job.description,
-  requirements: job.requirements || null,
-  level: job.level,
-  contract_type: job.contractType,
-  location: job.location,
-  is_remote: job.isRemote,
-  salary_min: job.salary?.min || null,
-  salary_max: job.salary?.max || null,
-  status: job.status,
-  priority: job.priority,
-  area_id: job.areaId || null,
-  form_template_id: job.formTemplateId || null,
-  deadline: job.deadline ? job.deadline.toISOString().split('T')[0] : null,
-  is_archived: job.isArchived,
-  is_boosted: job.isBoosted || false,
-  investment_amount: job.investmentAmount || 0,
-});
+const mapJobToDbInsert = (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>): TablesInsert<'jobs'> => {
+  const base: TablesInsert<'jobs'> = {
+    title: job.title,
+    description: job.description,
+    requirements: job.requirements || null,
+    level: job.level,
+    contract_type: job.contractType,
+    location: job.location,
+    is_remote: job.workModel === 'remoto', // Legacy field
+    salary_min: job.salary?.min || null,
+    salary_max: job.salary?.max || null,
+    status: job.status,
+    priority: job.priority,
+    area_id: job.areaId || null,
+    form_template_id: job.formTemplateId || null,
+    deadline: job.deadline ? job.deadline.toISOString().split('T')[0] : null,
+    is_archived: job.isArchived,
+    is_boosted: job.isBoosted || false,
+    investment_amount: job.investmentAmount || 0,
+  };
+  
+  // Add new fields using spread (since types haven't been regenerated yet)
+  return {
+    ...base,
+    work_model: job.workModel,
+    about_job: job.aboutJob || null,
+    about_company: job.aboutCompany || null,
+    responsibilities: job.responsibilities || null,
+    requirements_text: job.requirementsText || null,
+    nice_to_have: job.niceToHave || null,
+    additional_info: job.additionalInfo || null,
+  } as TablesInsert<'jobs'>;
+};
 
 // Map application Job updates to database update format
 const mapJobToDbUpdate = (updates: Partial<Job>): TablesUpdate<'jobs'> => {
-  const dbUpdates: TablesUpdate<'jobs'> = {};
+  const dbUpdates: Record<string, any> = {};
   
   if (updates.title !== undefined) dbUpdates.title = updates.title;
   if (updates.description !== undefined) dbUpdates.description = updates.description;
   if (updates.requirements !== undefined) dbUpdates.requirements = updates.requirements || null;
   if (updates.level !== undefined) dbUpdates.level = updates.level;
   if (updates.contractType !== undefined) dbUpdates.contract_type = updates.contractType;
+  if (updates.workModel !== undefined) {
+    dbUpdates.work_model = updates.workModel;
+    dbUpdates.is_remote = updates.workModel === 'remoto';
+  }
   if (updates.location !== undefined) dbUpdates.location = updates.location;
-  if (updates.isRemote !== undefined) dbUpdates.is_remote = updates.isRemote;
+  // Editorial fields
+  if (updates.aboutJob !== undefined) dbUpdates.about_job = updates.aboutJob || null;
+  if (updates.aboutCompany !== undefined) dbUpdates.about_company = updates.aboutCompany || null;
+  if (updates.responsibilities !== undefined) dbUpdates.responsibilities = updates.responsibilities || null;
+  if (updates.requirementsText !== undefined) dbUpdates.requirements_text = updates.requirementsText || null;
+  if (updates.niceToHave !== undefined) dbUpdates.nice_to_have = updates.niceToHave || null;
+  if (updates.additionalInfo !== undefined) dbUpdates.additional_info = updates.additionalInfo || null;
   if (updates.salary !== undefined) {
     dbUpdates.salary_min = updates.salary?.min || null;
     dbUpdates.salary_max = updates.salary?.max || null;
   }
   if (updates.status !== undefined) {
     dbUpdates.status = updates.status;
-    // Set published_at when publishing
     if (updates.status === 'publicada') {
       dbUpdates.published_at = new Date().toISOString();
     }
-    // Set closed_at when closing
     if (updates.status === 'encerrada') {
       dbUpdates.closed_at = new Date().toISOString();
     }
@@ -85,7 +114,7 @@ const mapJobToDbUpdate = (updates: Partial<Job>): TablesUpdate<'jobs'> => {
   if (updates.isBoosted !== undefined) dbUpdates.is_boosted = updates.isBoosted;
   if (updates.investmentAmount !== undefined) dbUpdates.investment_amount = updates.investmentAmount || 0;
   
-  return dbUpdates;
+  return dbUpdates as TablesUpdate<'jobs'>;
 };
 
 export function useJobs() {
