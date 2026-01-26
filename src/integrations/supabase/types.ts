@@ -732,6 +732,68 @@ export type Database = {
         }
         Relationships: []
       }
+      user_area_assignments: {
+        Row: {
+          area_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_area_assignments_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -758,6 +820,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_users: { Args: { _user_id: string }; Returns: boolean }
+      get_user_areas: { Args: { _user_id: string }; Returns: string[] }
+      has_area_access: {
+        Args: { _area_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -766,6 +834,7 @@ export type Database = {
         Returns: boolean
       }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
+      is_user_active: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "rh" | "head" | "viewer"
