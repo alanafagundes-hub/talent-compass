@@ -349,6 +349,42 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
+        {/* Meu Perfil - Para não-admins */}
+        {!isAdmin && (
+          <SidebarGroup className="mt-6">
+            <SidebarGroupLabel className="text-sidebar-muted text-[11px] uppercase tracking-wider font-medium mb-3 px-3">
+              Conta
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/usuarios")}
+                    tooltip="Meu Perfil"
+                  >
+                    <NavLink
+                      to="/usuarios"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
+                        isActive("/usuarios")
+                          ? "bg-sidebar-accent text-primary font-medium"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                      )}
+                    >
+                      <UserCircle className={cn(
+                        "h-4 w-4 shrink-0",
+                        isActive("/usuarios") ? "text-primary" : ""
+                      )} />
+                      {!isCollapsed && <span>Meu Perfil</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
       </SidebarContent>
     </Sidebar>
   );
