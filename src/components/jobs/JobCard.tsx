@@ -20,9 +20,12 @@ import {
   Play,
   Pause,
   XCircle,
+  Home,
+  Building,
+  Laptop,
 } from "lucide-react";
 import type { Job, Area, JobStatus } from "@/types/ats";
-import { jobLevelLabels, contractTypeLabels, jobStatusLabels } from "@/types/ats";
+import { jobLevelLabels, contractTypeLabels, jobStatusLabels, workModelLabels } from "@/types/ats";
 
 const statusColors: Record<JobStatus, string> = {
   rascunho: "bg-muted text-muted-foreground border-muted",
@@ -36,6 +39,12 @@ const priorityColors = {
   media: "bg-priority-media",
   alta: "bg-priority-alta",
   urgente: "bg-priority-urgente",
+};
+
+const workModelIcons = {
+  remoto: Laptop,
+  presencial: Building,
+  hibrido: Home,
 };
 
 interface JobCardProps {
@@ -170,11 +179,15 @@ export default function JobCard({
           <div className="flex items-center gap-1.5">
             <MapPin className="h-4 w-4" />
             <span>{job.location}</span>
-            {job.isRemote && (
-              <Badge variant="secondary" className="ml-1 text-xs">
-                Remoto
-              </Badge>
-            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            {(() => {
+              const WorkIcon = workModelIcons[job.workModel || 'presencial'];
+              return <WorkIcon className="h-4 w-4" />;
+            })()}
+            <Badge variant="secondary" className="text-xs">
+              {workModelLabels[job.workModel || 'presencial']}
+            </Badge>
           </div>
           <div className="flex items-center gap-1.5">
             <Users className="h-4 w-4" />

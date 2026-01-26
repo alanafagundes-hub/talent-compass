@@ -45,6 +45,13 @@ const contractTypeLabels: Record<string, string> = {
   freelancer: "Freelancer",
 };
 
+// Work model labels
+const workModelLabels: Record<string, string> = {
+  remoto: "Remoto",
+  presencial: "Presencial",
+  hibrido: "Híbrido",
+};
+
 interface FormField {
   id: string;
   label: string;
@@ -535,26 +542,90 @@ export default function VagaPublica() {
               <div className="flex items-center gap-1.5">
                 <MapPin className="h-4 w-4" />
                 <span>{job.location}</span>
-                {job.is_remote && (
-                  <Badge variant="outline" className="ml-1">Remoto</Badge>
-                )}
               </div>
               <div className="flex items-center gap-1.5">
                 <Briefcase className="h-4 w-4" />
                 <span>{jobLevelLabels[job.level] || job.level} • {contractTypeLabels[job.contract_type] || job.contract_type}</span>
               </div>
+              <Badge variant="outline">
+                {workModelLabels[(job as any).work_model] || 'Presencial'}
+              </Badge>
             </div>
 
             <Separator />
 
-            <div className="prose prose-sm max-w-none">
-              <h3 className="text-lg font-semibold mb-3">Sobre a vaga</h3>
-              <div className="whitespace-pre-wrap text-muted-foreground">
-                {job.description}
+            {/* About Job - New editorial field */}
+            {(job as any).about_job && (
+              <div className="prose prose-sm max-w-none">
+                <h3 className="text-lg font-semibold mb-3">Sobre a Vaga</h3>
+                <div className="whitespace-pre-wrap text-muted-foreground">
+                  {(job as any).about_job}
+                </div>
               </div>
-            </div>
+            )}
 
-            {job.requirements && (
+            {/* About Company - New editorial field */}
+            {(job as any).about_company && (
+              <div className="prose prose-sm max-w-none">
+                <h3 className="text-lg font-semibold mb-3">Sobre a DOT</h3>
+                <div className="whitespace-pre-wrap text-muted-foreground">
+                  {(job as any).about_company}
+                </div>
+              </div>
+            )}
+
+            {/* Responsibilities - New editorial field */}
+            {(job as any).responsibilities && (
+              <div className="prose prose-sm max-w-none">
+                <h3 className="text-lg font-semibold mb-3">Responsabilidades da Função</h3>
+                <div className="whitespace-pre-wrap text-muted-foreground">
+                  {(job as any).responsibilities}
+                </div>
+              </div>
+            )}
+
+            {/* Requirements - New editorial field */}
+            {(job as any).requirements_text && (
+              <div className="prose prose-sm max-w-none">
+                <h3 className="text-lg font-semibold mb-3">Pré-requisitos</h3>
+                <div className="whitespace-pre-wrap text-muted-foreground">
+                  {(job as any).requirements_text}
+                </div>
+              </div>
+            )}
+
+            {/* Nice to Have - New editorial field */}
+            {(job as any).nice_to_have && (
+              <div className="prose prose-sm max-w-none">
+                <h3 className="text-lg font-semibold mb-3">Diferenciais</h3>
+                <div className="whitespace-pre-wrap text-muted-foreground">
+                  {(job as any).nice_to_have}
+                </div>
+              </div>
+            )}
+
+            {/* Additional Info - New editorial field */}
+            {(job as any).additional_info && (
+              <div className="prose prose-sm max-w-none">
+                <h3 className="text-lg font-semibold mb-3">Informações Adicionais</h3>
+                <div className="whitespace-pre-wrap text-muted-foreground">
+                  {(job as any).additional_info}
+                </div>
+              </div>
+            )}
+
+            {/* Legacy description fallback - only show if no new editorial fields */}
+            {!(job as any).about_job && job.description && (
+              <div className="prose prose-sm max-w-none">
+                <h3 className="text-lg font-semibold mb-3">Sobre a vaga</h3>
+                <div className="whitespace-pre-wrap text-muted-foreground">
+                  {job.description}
+                </div>
+              </div>
+            )}
+
+            {/* Legacy requirements fallback */}
+            {!(job as any).requirements_text && job.requirements && (
               <div className="prose prose-sm max-w-none">
                 <h3 className="text-lg font-semibold mb-3">Requisitos</h3>
                 <div className="whitespace-pre-wrap text-muted-foreground">

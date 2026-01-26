@@ -18,6 +18,8 @@ export type JobLevel = 'estagio' | 'junior' | 'pleno' | 'senior' | 'especialista
 
 export type ContractType = 'clt' | 'pj' | 'estagio' | 'temporario' | 'freelancer';
 
+export type WorkModel = 'remoto' | 'presencial' | 'hibrido';
+
 export type LostReason = 
   | 'salario' 
   | 'perfil_inadequado' 
@@ -66,10 +68,19 @@ export interface Job {
   areaId: string;
   level: JobLevel;
   contractType: ContractType;
+  workModel: WorkModel;
   location: string;
-  isRemote: boolean;
+  // Editorial fields
+  aboutJob?: string;
+  aboutCompany?: string;
+  responsibilities?: string;
+  requirementsText?: string;
+  niceToHave?: string;
+  additionalInfo?: string;
+  // Legacy fields (for backward compatibility)
   description: string;
   requirements?: string;
+  // Other fields
   salary?: {
     min: number;
     max: number;
@@ -80,8 +91,8 @@ export interface Job {
   deadline?: Date;
   formTemplateId?: string;
   // Investment tracking fields (for future cost-per-hire metrics)
-  isBoosted?: boolean; // Is the job promoted/boosted?
-  investmentAmount?: number; // Amount invested so far (R$)
+  isBoosted?: boolean;
+  investmentAmount?: number;
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -287,6 +298,12 @@ export const contractTypeLabels: Record<ContractType, string> = {
   estagio: 'Estágio',
   temporario: 'Temporário',
   freelancer: 'Freelancer',
+};
+
+export const workModelLabels: Record<WorkModel, string> = {
+  remoto: 'Remoto',
+  presencial: 'Presencial',
+  hibrido: 'Híbrido',
 };
 
 export const jobStatusLabels: Record<JobStatus, string> = {
