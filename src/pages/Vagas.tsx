@@ -23,6 +23,7 @@ import type { Job, JobStatus, CandidateSource, FormTemplate } from "@/types/ats"
 import { jobStatusLabels } from "@/types/ats";
 import JobCard from "@/components/jobs/JobCard";
 import JobFormDialog from "@/components/jobs/JobFormDialog";
+import JobPreviewDialog from "@/components/jobs/JobPreviewDialog";
 import { toast } from "sonner";
 import { useJobs } from "@/hooks/useJobs";
 import { useAreas } from "@/hooks/useAreas";
@@ -62,6 +63,11 @@ export default function Vagas() {
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
+  
+  // Preview dialog state
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [jobToPublish, setJobToPublish] = useState<Job | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Filter jobs - hide closed by default
   const filteredJobs = jobs.filter((job) => {
@@ -89,6 +95,13 @@ export default function Vagas() {
   };
 
   const handleChangeStatus = async (job: Job, newStatus: JobStatus) => {
+    // If publishing, show preview dialog first
+    if (newStatus === "publicada") {
+      setJobToPublish(job);
+      setIsPreviewOpen(true);
+      return;
+    }
+
     const statusMessages: Record<JobStatus, string> = {
       rascunho: "Vaga movida para rascunho",
       publicada: "Vaga publicada com sucesso!",
@@ -101,6 +114,24 @@ export default function Vagas() {
       toast.success(statusMessages[newStatus]);
     } else {
       toast.error("Erro ao atualizar status da vaga");
+    }
+  };
+
+  const handleConfirmPublish = async () => {
+    if (!jobToPublish) return;
+    
+    setIsPublishing(true);
+    try {
+      const result = await updateJobStatus(jobToPublish.id, "publicada");
+      if (result) {
+        toast.success("Vaga publicada com sucesso!");
+        setIsPreviewOpen(false);
+        setJobToPublish(null);
+      } else {
+        toast.error("Erro ao publicar vaga");
+      }
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -293,6 +324,21 @@ export default function Vagas() {
         sources={mockSources}
         formTemplates={mockFormTemplates}
         onSave={handleSaveJob}
+      />
+
+      {/* Preview Dialog for Publishing */}
+      <JobPreviewDialog
+        open={isPreviewOpen}
+        onOpenChange={(open) => {
+          setIsPreviewOpen(open);
+          if (!open) {
+            setJobToPublish(null);
+          }
+        }}
+        job={jobToPublish}
+        area={jobToPublish ? getAreaById(jobToPublish.areaId) : undefined}
+        onConfirm={handleConfirmPublish}
+        isPublishing={isPublishing}
       />
     </div>
   );
