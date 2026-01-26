@@ -7,6 +7,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   isInternalUser: boolean;
+  isActiveUser: boolean;
   userRole: string | null;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
@@ -20,35 +21,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInternalUser, setIsInternalUser] = useState(false);
+  const [isActiveUser, setIsActiveUser] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  // Check if user has internal role
+  // Check if user has internal role and is active
   const checkUserRole = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // Check role
+      const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error checking user role:', error);
+      if (roleError) {
+        console.error('Error checking user role:', roleError);
         setIsInternalUser(false);
         setUserRole(null);
         return;
       }
 
-      if (data) {
+      if (roleData) {
         setIsInternalUser(true);
-        setUserRole(data.role);
+        setUserRole(roleData.role);
       } else {
         setIsInternalUser(false);
         setUserRole(null);
       }
+
+      // Check if user is active
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('is_active')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Error checking user profile:', profileError);
+        setIsActiveUser(true); // Default to active if no profile exists yet
+        return;
+      }
+
+      setIsActiveUser(profileData?.is_active ?? true);
     } catch (err) {
       console.error('Error checking user role:', err);
       setIsInternalUser(false);
       setUserRole(null);
+      setIsActiveUser(true);
     }
   };
 
@@ -121,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setIsInternalUser(false);
+    setIsActiveUser(true);
     setUserRole(null);
   };
 
@@ -131,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         isLoading,
         isInternalUser,
+        isActiveUser,
         userRole,
         signIn,
         signUp,
