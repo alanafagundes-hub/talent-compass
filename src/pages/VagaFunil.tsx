@@ -18,131 +18,41 @@ import {
   Filter,
   ExternalLink,
   Users,
+  Loader2,
 } from "lucide-react";
 import KanbanBoard from "@/components/funnel/KanbanBoard";
 import FunnelSettingsDialog from "@/components/funnel/FunnelSettingsDialog";
 import MarkAsLostDialog from "@/components/funnel/MarkAsLostDialog";
 import RateStageDialog from "@/components/funnel/RateStageDialog";
-import type { Job, FunnelStep, Candidate, Tag, Area, CardHistory, CardStageHistory, LostCandidate, CardStageRating } from "@/types/ats";
-import { defaultFunnelStages, jobLevelLabels, contractTypeLabels } from "@/types/ats";
+import type { FunnelStep, CardHistory, CardStageHistory, LostCandidate, CardStageRating } from "@/types/ats";
+import { jobLevelLabels, contractTypeLabels } from "@/types/ats";
 import { toast } from "sonner";
-
-// Mock data
-const mockAreas: Area[] = [
-  { id: "1", name: "Tech", description: "Desenvolvimento", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "2", name: "Comercial", description: "Vendas", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "3", name: "Criação", description: "Design", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-];
-
-const mockJobs: Job[] = [
-  {
-    id: "1",
-    title: "Desenvolvedor Frontend Senior",
-    areaId: "1",
-    level: "senior",
-    contractType: "clt",
-    location: "São Paulo, SP",
-    isRemote: true,
-    description: "Buscamos um desenvolvedor frontend senior.",
-    status: "publicada",
-    priority: "alta",
-    isArchived: false,
-    createdAt: new Date("2024-01-10"),
-    updatedAt: new Date("2024-01-10"),
-  },
-  {
-    id: "2",
-    title: "Designer UX/UI",
-    areaId: "3",
-    level: "pleno",
-    contractType: "clt",
-    location: "Rio de Janeiro, RJ",
-    isRemote: true,
-    description: "Designer para criar experiências.",
-    status: "publicada",
-    priority: "media",
-    isArchived: false,
-    createdAt: new Date("2024-01-08"),
-    updatedAt: new Date("2024-01-08"),
-  },
-];
-
-const mockTags: Tag[] = [
-  { id: "1", name: "Destaque", color: "#22c55e", isArchived: false, createdAt: new Date() },
-  { id: "2", name: "Urgente", color: "#ef4444", isArchived: false, createdAt: new Date() },
-  { id: "3", name: "Indicação", color: "#3b82f6", isArchived: false, createdAt: new Date() },
-];
-
-const mockCandidates: Candidate[] = [
-  { id: "c1", name: "João Silva", email: "joao@email.com", phone: "(11) 99999-1111", linkedinUrl: "https://linkedin.com/in/joao", status: "ativo", tags: ["1"], isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "c2", name: "Maria Santos", email: "maria@email.com", phone: "(11) 99999-2222", status: "ativo", tags: ["2", "3"], isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "c3", name: "Pedro Oliveira", email: "pedro@email.com", phone: "(11) 99999-3333", status: "ativo", tags: [], isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "c4", name: "Ana Costa", email: "ana@email.com", phone: "(11) 99999-4444", linkedinUrl: "https://linkedin.com/in/ana", status: "ativo", tags: ["1"], isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "c5", name: "Carlos Ferreira", email: "carlos@email.com", phone: "(11) 99999-5555", status: "ativo", tags: [], isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "c6", name: "Juliana Lima", email: "juliana@email.com", phone: "(11) 99999-6666", status: "ativo", tags: ["3"], isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "c7", name: "Rafael Souza", email: "rafael@email.com", phone: "(11) 99999-7777", status: "ativo", tags: [], isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "c8", name: "Fernanda Alves", email: "fernanda@email.com", phone: "(11) 99999-8888", status: "ativo", tags: ["2"], isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-];
-
-// Generate initial funnel steps for a job
-const generateInitialSteps = (jobId: string): FunnelStep[] => {
-  return defaultFunnelStages.map((stage, index) => ({
-    id: `${jobId}-step-${index + 1}`,
-    jobId,
-    name: stage.name,
-    stage: "triagem" as const,
-    order: stage.order,
-    color: stage.color,
-    isArchived: false,
-    createdAt: new Date(),
-  }));
-};
-
-// Generate initial cards distributed across steps
-const generateInitialCards = (jobId: string, steps: FunnelStep[]) => {
-  const distribution = [
-    { candidateId: "c1", stepIndex: 0, rating: 4, notes: "Ótimo perfil" },
-    { candidateId: "c2", stepIndex: 0, rating: 3 },
-    { candidateId: "c3", stepIndex: 1, rating: 5, notes: "Destaque" },
-    { candidateId: "c4", stepIndex: 1 },
-    { candidateId: "c5", stepIndex: 2, rating: 4 },
-    { candidateId: "c6", stepIndex: 3, rating: 5 },
-    { candidateId: "c7", stepIndex: 4 },
-    { candidateId: "c8", stepIndex: 5, rating: 4 },
-  ];
-
-  return distribution.map((d, idx) => {
-    const candidate = mockCandidates.find(c => c.id === d.candidateId)!;
-    const candidateTags = candidate.tags
-      .map(tagId => mockTags.find(t => t.id === tagId))
-      .filter(Boolean) as Tag[];
-
-    return {
-      id: `card-${jobId}-${idx + 1}`,
-      candidate,
-      stepId: steps[d.stepIndex].id,
-      rating: d.rating,
-      notes: d.notes,
-      tags: candidateTags,
-      enteredAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-    };
-  });
-};
+import { useJobs } from "@/hooks/useJobs";
+import { useAreas } from "@/hooks/useAreas";
+import { useFunnelData, type KanbanCardData } from "@/hooks/useFunnelData";
 
 export default function VagaFunil() {
   const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
 
-  const job = mockJobs.find((j) => j.id === jobId);
-  const area = mockAreas.find((a) => a.id === job?.areaId);
+  // Fetch real data from Supabase
+  const { jobs } = useJobs();
+  const { getAreaById } = useAreas();
+  const { 
+    steps, 
+    cards, 
+    tags, 
+    isLoading, 
+    error, 
+    moveCard, 
+    saveRating, 
+    markAsLost, 
+    saveSteps,
+    setCards 
+  } = useFunnelData(jobId);
 
-  const [steps, setSteps] = useState<FunnelStep[]>(() => 
-    generateInitialSteps(jobId || "1")
-  );
-  
-  const [cards, setCards] = useState(() => 
-    generateInitialCards(jobId || "1", steps)
-  );
+  const job = jobs.find((j) => j.id === jobId);
+  const area = job ? getAreaById(job.areaId) : undefined;
 
   const [history, setHistory] = useState<CardHistory[]>([]);
   const [stageHistory, setStageHistory] = useState<CardStageHistory[]>([]);
@@ -199,17 +109,26 @@ export default function VagaFunil() {
     });
   }, [cards, searchTerm, tagFilter]);
 
-  const handleCardMove = (cardId: string, fromStepId: string, toStepId: string) => {
+  const handleCardMove = async (cardId: string, fromStepId: string, toStepId: string) => {
     const now = new Date();
     const fromStep = steps.find(s => s.id === fromStepId);
     const toStep = steps.find(s => s.id === toStepId);
+
+    // Optimistic update - update local state immediately
+    setCards(prev => 
+      prev.map(c => 
+        c.id === cardId 
+          ? { ...c, stepId: toStepId, enteredAt: now } 
+          : c
+      )
+    );
 
     // Determine exit reason based on direction
     const fromOrder = fromStep?.order || 0;
     const toOrder = toStep?.order || 0;
     const exitReason: 'advanced' | 'moved_back' = toOrder > fromOrder ? 'advanced' : 'moved_back';
 
-    // Update stage history - close previous with metrics
+    // Update stage history locally
     setStageHistory(prev => {
       const updated = prev.map(h => 
         h.cardId === cardId && h.stepId === fromStepId && !h.exitedAt
@@ -222,7 +141,6 @@ export default function VagaFunil() {
           : h
       );
       
-      // Add new entry with full tracking data
       updated.push({
         id: `sh-${Date.now()}`,
         cardId,
@@ -235,7 +153,7 @@ export default function VagaFunil() {
       return updated;
     });
 
-    // Add to card history with step names for easy querying
+    // Add to local history
     setHistory(prev => [...prev, {
       id: `h-${Date.now()}`,
       cardId,
@@ -249,19 +167,24 @@ export default function VagaFunil() {
       createdAt: now,
     }]);
 
-    // Update card
-    setCards(prev => 
-      prev.map(c => 
-        c.id === cardId 
-          ? { ...c, stepId: toStepId, enteredAt: now } 
-          : c
-      )
-    );
-
-    toast.success(`Candidato movido para ${toStep?.name}`);
+    // Persist to database
+    const success = await moveCard(cardId, fromStepId, toStepId);
+    if (success) {
+      toast.success(`Candidato movido para ${toStep?.name}`);
+    } else {
+      // Revert on error
+      setCards(prev => 
+        prev.map(c => 
+          c.id === cardId 
+            ? { ...c, stepId: fromStepId } 
+            : c
+        )
+      );
+      toast.error("Erro ao mover candidato");
+    }
   };
 
-  const handleSaveSteps = (newSteps: FunnelStep[]) => {
+  const handleSaveSteps = async (newSteps: FunnelStep[]) => {
     // Map old step IDs to new ones for cards that need updating
     const oldStepIds = steps.map(s => s.id);
     const newStepIds = newSteps.map(s => s.id);
@@ -271,7 +194,7 @@ export default function VagaFunil() {
     const cardsInDeletedSteps = cards.filter(c => deletedStepIds.includes(c.stepId));
     
     if (cardsInDeletedSteps.length > 0) {
-      // Move to first step
+      // Move to first step locally
       setCards(prev => prev.map(c => 
         deletedStepIds.includes(c.stepId) 
           ? { ...c, stepId: newSteps[0].id } 
@@ -279,14 +202,19 @@ export default function VagaFunil() {
       ));
     }
     
-    setSteps(newSteps);
+    const success = await saveSteps(newSteps);
+    if (success) {
+      toast.success("Funil atualizado com sucesso");
+    } else {
+      toast.error("Erro ao salvar configurações do funil");
+    }
   };
 
-  const handleViewDetails = (card: any) => {
+  const handleViewDetails = (card: KanbanCardData) => {
     navigate(`/vagas/${jobId}/candidato/${card.id}`);
   };
 
-  const handleMarkAsLost = (card: any) => {
+  const handleMarkAsLost = (card: KanbanCardData) => {
     const currentStep = steps.find(s => s.id === card.stepId);
     
     setSelectedCardForLost({
@@ -304,7 +232,7 @@ export default function VagaFunil() {
     setLostDialogOpen(true);
   };
 
-  const handleConfirmLost = (data: {
+  const handleConfirmLost = async (data: {
     candidateId: string;
     cardId: string;
     reasonId: string;
@@ -318,11 +246,13 @@ export default function VagaFunil() {
     areaName: string;
     lostAt: Date;
   }) => {
-    // Get candidate info
     const card = cards.find(c => c.id === data.cardId);
     if (!card) return;
 
-    // Create lost candidate record
+    // Optimistic update - remove from local state
+    setCards(prev => prev.filter(c => c.id !== data.cardId));
+
+    // Create lost candidate record locally
     const lostRecord: LostCandidate = {
       id: `lost-${Date.now()}`,
       candidateId: data.candidateId,
@@ -343,10 +273,9 @@ export default function VagaFunil() {
       createdAt: new Date(),
     };
 
-    // Add to lost candidates
     setLostCandidates(prev => [...prev, lostRecord]);
 
-    // Add to history
+    // Add to local history
     setHistory(prev => [...prev, {
       id: `h-${Date.now()}`,
       cardId: data.cardId,
@@ -358,22 +287,27 @@ export default function VagaFunil() {
       createdAt: data.lostAt,
     }]);
 
-    // Remove card from kanban
-    setCards(prev => prev.filter(c => c.id !== data.cardId));
-
-    // Close dialog
+    // Persist to database
+    const success = await markAsLost(data.cardId, data.reasonId, data.observation);
+    
     setLostDialogOpen(false);
     setSelectedCardForLost(null);
 
-    toast.success(`${card.candidate.name} marcado como incompatível`);
+    if (success) {
+      toast.success(`${card.candidate.name} marcado como incompatível`);
+    } else {
+      // Revert on error
+      setCards(prev => [...prev, card]);
+      toast.error("Erro ao marcar como incompatível");
+    }
   };
 
-  const handleRate = (card: any) => {
+  const handleRate = (card: KanbanCardData) => {
     const currentStep = steps.find(s => s.id === card.stepId);
     
     // Check if there's already a rating for this card in this step
-    const existingRating = stageRatings.find(
-      r => r.cardId === card.id && r.stepId === card.stepId
+    const existingRating = card.stageRatings?.find(
+      r => r.stepId === card.stepId
     );
     
     setSelectedCardForRating({
@@ -387,7 +321,7 @@ export default function VagaFunil() {
     setRatingDialogOpen(true);
   };
 
-  const handleSaveRating = (rating: number, notes: string) => {
+  const handleSaveRating = async (rating: number, notes: string) => {
     if (!selectedCardForRating) return;
 
     const now = new Date();
@@ -402,7 +336,7 @@ export default function VagaFunil() {
       evaluatedAt: now,
     };
 
-    // Add or update rating
+    // Optimistic update
     setStageRatings(prev => {
       const existing = prev.findIndex(
         r => r.cardId === selectedCardForRating.cardId && r.stepId === selectedCardForRating.stepId
@@ -415,14 +349,13 @@ export default function VagaFunil() {
       return [...prev, newRating];
     });
 
-    // Update card's general rating (latest rating)
     setCards(prev => prev.map(c => 
       c.id === selectedCardForRating.cardId 
-        ? { ...c, rating, updatedAt: now } 
+        ? { ...c, rating } 
         : c
     ));
 
-    // Add to history
+    // Add to local history
     setHistory(prev => [...prev, {
       id: `h-${Date.now()}`,
       cardId: selectedCardForRating.cardId,
@@ -436,11 +369,47 @@ export default function VagaFunil() {
       createdAt: now,
     }]);
 
+    // Persist to database
+    const success = await saveRating(
+      selectedCardForRating.cardId,
+      selectedCardForRating.stepId,
+      rating,
+      notes
+    );
+
     setRatingDialogOpen(false);
     setSelectedCardForRating(null);
-    toast.success(`Avaliação registrada para ${selectedCardForRating.candidateName}`);
+
+    if (success) {
+      toast.success(`Avaliação registrada para ${selectedCardForRating.candidateName}`);
+    } else {
+      toast.error("Erro ao salvar avaliação");
+    }
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Carregando funil...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
+        <p className="text-destructive">{error}</p>
+        <Button variant="link" onClick={() => navigate("/vagas")}>
+          Voltar para Vagas
+        </Button>
+      </div>
+    );
+  }
+
+  // Job not found
   if (!job) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh]">
@@ -475,7 +444,7 @@ export default function VagaFunil() {
               </Badge>
             </div>
             <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground flex-wrap">
-              <span>{area?.name}</span>
+              <span>{area?.name || 'Sem área'}</span>
               <span>•</span>
               <span>{jobLevelLabels[job.level]}</span>
               <span>•</span>
@@ -532,7 +501,7 @@ export default function VagaFunil() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as tags</SelectItem>
-            {mockTags.map((tag) => (
+            {tags.map((tag) => (
               <SelectItem key={tag.id} value={tag.id}>
                 <div className="flex items-center gap-2">
                   <div
@@ -548,14 +517,23 @@ export default function VagaFunil() {
       </div>
 
       {/* Kanban Board */}
-      <KanbanBoard
-        steps={steps}
-        cards={filteredCards}
-        onCardMove={handleCardMove}
-        onViewDetails={handleViewDetails}
-        onMarkAsLost={handleMarkAsLost}
-        onRate={handleRate}
-      />
+      {steps.length > 0 ? (
+        <KanbanBoard
+          steps={steps}
+          cards={filteredCards}
+          onCardMove={handleCardMove}
+          onViewDetails={handleViewDetails}
+          onMarkAsLost={handleMarkAsLost}
+          onRate={handleRate}
+        />
+      ) : (
+        <div className="flex flex-col items-center justify-center py-12 border rounded-lg bg-muted/30">
+          <p className="text-muted-foreground mb-2">Funil não configurado para esta vaga</p>
+          <Button variant="outline" onClick={() => setIsSettingsOpen(true)}>
+            Configurar Funil
+          </Button>
+        </div>
+      )}
 
       {/* Funnel Settings Dialog */}
       <FunnelSettingsDialog
