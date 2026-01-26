@@ -18,7 +18,9 @@ import {
   CheckCircle2,
   ArrowLeft,
   Loader2,
+  DollarSign,
 } from "lucide-react";
+import { JobSection } from "@/components/public/JobSection";
 import { toast } from "sonner";
 import { usePublicJobs, type PublicJob } from "@/hooks/usePublicJobs";
 import { supabase } from "@/integrations/supabase/client";
@@ -525,114 +527,113 @@ export default function VagaPublica() {
       <main className="container max-w-4xl mx-auto px-4 py-8">
         <div className="grid gap-8 lg:grid-cols-[1fr,380px]">
           {/* Job Details */}
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                {area && (
-                  <Badge variant="secondary" className="gap-1">
-                    <Building2 className="h-3 w-3" />
-                    {area.name}
-                  </Badge>
-                )}
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight">{job.title}</h1>
-            </div>
-
-            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1.5">
+          <div className="space-y-8">
+            {/* Header Section - Title, Salary, Location, Meta */}
+            <div className="space-y-4">
+              {/* Area Badge */}
+              {area && (
+                <Badge variant="secondary" className="gap-1.5">
+                  <Building2 className="h-3 w-3" />
+                  {area.name}
+                </Badge>
+              )}
+              
+              {/* Job Title */}
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+                {job.title}
+              </h1>
+              
+              {/* Salary Range - Prominent but secondary to title */}
+              {(job.salary_min || job.salary_max) && (
+                <div className="flex items-center gap-2 text-lg font-medium text-primary">
+                  <DollarSign className="h-5 w-5" />
+                  <span>
+                    {job.salary_min && job.salary_max 
+                      ? `R$ ${job.salary_min.toLocaleString('pt-BR')} – R$ ${job.salary_max.toLocaleString('pt-BR')}`
+                      : job.salary_min 
+                        ? `A partir de R$ ${job.salary_min.toLocaleString('pt-BR')}`
+                        : `Até R$ ${job.salary_max!.toLocaleString('pt-BR')}`
+                    }
+                  </span>
+                </div>
+              )}
+              
+              {/* Location */}
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <MapPin className="h-4 w-4" />
-                <span>{job.location}</span>
+                <span className="text-base">{job.location}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Briefcase className="h-4 w-4" />
-                <span>{jobLevelLabels[job.level] || job.level} • {contractTypeLabels[job.contract_type] || job.contract_type}</span>
+              
+              {/* Meta: Level • Contract • Work Model */}
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Briefcase className="h-4 w-4" />
+                  <span>
+                    {jobLevelLabels[job.level] || job.level} • {contractTypeLabels[job.contract_type] || job.contract_type}
+                  </span>
+                </div>
+                <Badge variant="outline" className="font-medium">
+                  {workModelLabels[(job as any).work_model] || 'Presencial'}
+                </Badge>
               </div>
-              <Badge variant="outline">
-                {workModelLabels[(job as any).work_model] || 'Presencial'}
-              </Badge>
             </div>
 
-            <Separator />
+            <Separator className="my-6" />
 
-            {/* About Job - New editorial field */}
-            {(job as any).about_job && (
-              <div className="prose prose-sm max-w-none">
-                <h3 className="text-lg font-semibold mb-3">Sobre a Vaga</h3>
-                <div className="whitespace-pre-wrap text-muted-foreground">
-                  {(job as any).about_job}
-                </div>
-              </div>
-            )}
+            {/* Editorial Sections - Standardized styling */}
+            <div className="space-y-8">
+              {/* About Job */}
+              <JobSection 
+                title="Sobre a Vaga" 
+                content={(job as any).about_job || ''} 
+              />
 
-            {/* About Company - New editorial field */}
-            {(job as any).about_company && (
-              <div className="prose prose-sm max-w-none">
-                <h3 className="text-lg font-semibold mb-3">Sobre a DOT</h3>
-                <div className="whitespace-pre-wrap text-muted-foreground">
-                  {(job as any).about_company}
-                </div>
-              </div>
-            )}
+              {/* About Company */}
+              <JobSection 
+                title="Sobre a DOT" 
+                content={(job as any).about_company || ''} 
+              />
 
-            {/* Responsibilities - New editorial field */}
-            {(job as any).responsibilities && (
-              <div className="prose prose-sm max-w-none">
-                <h3 className="text-lg font-semibold mb-3">Responsabilidades da Função</h3>
-                <div className="whitespace-pre-wrap text-muted-foreground">
-                  {(job as any).responsibilities}
-                </div>
-              </div>
-            )}
+              {/* Responsibilities */}
+              <JobSection 
+                title="Responsabilidades" 
+                content={(job as any).responsibilities || ''} 
+              />
 
-            {/* Requirements - New editorial field */}
-            {(job as any).requirements_text && (
-              <div className="prose prose-sm max-w-none">
-                <h3 className="text-lg font-semibold mb-3">Pré-requisitos</h3>
-                <div className="whitespace-pre-wrap text-muted-foreground">
-                  {(job as any).requirements_text}
-                </div>
-              </div>
-            )}
+              {/* Requirements */}
+              <JobSection 
+                title="Requisitos" 
+                content={(job as any).requirements_text || ''} 
+              />
 
-            {/* Nice to Have - New editorial field */}
-            {(job as any).nice_to_have && (
-              <div className="prose prose-sm max-w-none">
-                <h3 className="text-lg font-semibold mb-3">Diferenciais</h3>
-                <div className="whitespace-pre-wrap text-muted-foreground">
-                  {(job as any).nice_to_have}
-                </div>
-              </div>
-            )}
+              {/* Nice to Have */}
+              <JobSection 
+                title="Diferenciais" 
+                content={(job as any).nice_to_have || ''} 
+              />
 
-            {/* Additional Info - New editorial field */}
-            {(job as any).additional_info && (
-              <div className="prose prose-sm max-w-none">
-                <h3 className="text-lg font-semibold mb-3">Informações Adicionais</h3>
-                <div className="whitespace-pre-wrap text-muted-foreground">
-                  {(job as any).additional_info}
-                </div>
-              </div>
-            )}
+              {/* Additional Info */}
+              <JobSection 
+                title="Informações Adicionais" 
+                content={(job as any).additional_info || ''} 
+              />
 
-            {/* Legacy description fallback - only show if no new editorial fields */}
-            {!(job as any).about_job && job.description && (
-              <div className="prose prose-sm max-w-none">
-                <h3 className="text-lg font-semibold mb-3">Sobre a vaga</h3>
-                <div className="whitespace-pre-wrap text-muted-foreground">
-                  {job.description}
-                </div>
-              </div>
-            )}
+              {/* Legacy description fallback - only show if no new editorial fields */}
+              {!(job as any).about_job && job.description && (
+                <JobSection 
+                  title="Sobre a Vaga" 
+                  content={job.description} 
+                />
+              )}
 
-            {/* Legacy requirements fallback */}
-            {!(job as any).requirements_text && job.requirements && (
-              <div className="prose prose-sm max-w-none">
-                <h3 className="text-lg font-semibold mb-3">Requisitos</h3>
-                <div className="whitespace-pre-wrap text-muted-foreground">
-                  {job.requirements}
-                </div>
-              </div>
-            )}
+              {/* Legacy requirements fallback */}
+              {!(job as any).requirements_text && job.requirements && (
+                <JobSection 
+                  title="Requisitos" 
+                  content={job.requirements} 
+                />
+              )}
+            </div>
           </div>
 
           {/* Application Form */}
