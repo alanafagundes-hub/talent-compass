@@ -202,33 +202,6 @@ export function AppSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-
-              {/* Usuários - Apenas Admin */}
-              {isAdmin && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive("/usuarios")}
-                    tooltip="Usuários"
-                  >
-                    <NavLink
-                      to="/usuarios"
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
-                        isActive("/usuarios")
-                          ? "bg-sidebar-accent text-primary font-medium"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-                      )}
-                    >
-                      <ShieldCheck className={cn(
-                        "h-4 w-4 shrink-0",
-                        isActive("/usuarios") ? "text-primary" : ""
-                      )} />
-                      {!isCollapsed && <span>Usuários</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -339,6 +312,42 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Administração - Apenas Admin */}
+        {isAdmin && (
+          <SidebarGroup className="mt-6">
+            <SidebarGroupLabel className="text-sidebar-muted text-[11px] uppercase tracking-wider font-medium mb-3 px-3">
+              Administração
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/usuarios")}
+                    tooltip="Usuários"
+                  >
+                    <NavLink
+                      to="/usuarios"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
+                        isActive("/usuarios")
+                          ? "bg-sidebar-accent text-primary font-medium"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                      )}
+                    >
+                      <ShieldCheck className={cn(
+                        "h-4 w-4 shrink-0",
+                        isActive("/usuarios") ? "text-primary" : ""
+                      )} />
+                      {!isCollapsed && <span>Usuários</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
       </SidebarContent>
     </Sidebar>
