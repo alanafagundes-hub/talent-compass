@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -18,49 +19,59 @@ import {
   ArrowLeft,
   Loader2,
 } from "lucide-react";
-import type { Job, FormTemplate, FormField, Area } from "@/types/ats";
-import { jobLevelLabels, contractTypeLabels } from "@/types/ats";
 import { toast } from "sonner";
-import { useJobs } from "@/hooks/useJobs";
-import { useAreas } from "@/hooks/useAreas";
+import { usePublicJobs, type PublicJob } from "@/hooks/usePublicJobs";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
-// Mock form templates (will be moved to a hook later)
-const mockFormTemplates: Record<string, FormTemplate> = {
-  "1": {
-    id: "1",
-    name: "Formulário Padrão",
-    fields: [
-      { id: "custom1", label: "Por que você quer trabalhar conosco?", type: "long_text", required: true, order: 1 },
-      { id: "custom2", label: "Pretensão salarial (R$)", type: "short_text", required: false, order: 2 },
-    ],
-    isDefault: true,
-    isArchived: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
+// Job level labels
+const jobLevelLabels: Record<string, string> = {
+  estagio: "Estágio",
+  junior: "Júnior",
+  pleno: "Pleno",
+  senior: "Sênior",
+  especialista: "Especialista",
+  coordenador: "Coordenador",
+  gerente: "Gerente",
+  diretor: "Diretor",
 };
 
+// Contract type labels
+const contractTypeLabels: Record<string, string> = {
+  clt: "CLT",
+  pj: "PJ",
+  estagio: "Estágio",
+  temporario: "Temporário",
+  freelancer: "Freelancer",
+};
+
+interface FormField {
+  id: string;
+  label: string;
+  type: string;
+  required: boolean;
+  order: number;
+  placeholder?: string;
+  options?: string[];
+}
+
 interface ApplicationFormData {
-  // Standard required fields
   name: string;
   email: string;
   phone: string;
   linkedin: string;
   resumeFile: File | null;
-  // LGPD consent
   lgpdConsent: boolean;
-  // Dynamic fields from template
   customFields: Record<string, string | string[] | boolean>;
 }
 
 export default function VagaPublica() {
   const { id } = useParams<{ id: string }>();
-  const { getJobById, isLoading: jobsLoading } = useJobs();
-  const { getAreaById, isLoading: areasLoading } = useAreas();
+  const { setTheme } = useTheme();
+  const { fetchJobById } = usePublicJobs();
   
-  const [job, setJob] = useState<Job | null>(null);
-  const [area, setArea] = useState<Area | null>(null);
-  const [formTemplate, setFormTemplate] = useState<FormTemplate | null>(null);
+  const [job, setJob] = useState<PublicJob | null>(null);
+  const [formFields, setFormFields] = useState<Tables<'form_fields'>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -77,29 +88,35 @@ export default function VagaPublica() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Force dark mode on public pages
+  useEffect(() => {
+    setTheme('dark');
+  }, [setTheme]);
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      // Small delay to simulate loading
-      await new Promise(resolve => setTimeout(resolve, 300));
       
       if (id) {
-        const jobData = getJobById(id);
-        if (jobData) {
-          setJob(jobData);
-          const areaData = getAreaById(jobData.areaId);
-          setArea(areaData || null);
+        const jobData = await fetchJobById(id);
+        setJob(jobData);
+        
+        // Load form fields if job has a form template
+        if (jobData?.form_template_id) {
+          const { data: fields } = await supabase
+            .from('form_fields')
+            .select('*')
+            .eq('template_id', jobData.form_template_id)
+            .order('order_index', { ascending: true });
           
-          if (jobData.formTemplateId && mockFormTemplates[jobData.formTemplateId]) {
-            setFormTemplate(mockFormTemplates[jobData.formTemplateId]);
-          }
+          setFormFields(fields || []);
         }
       }
       setIsLoading(false);
     };
     
     loadData();
-  }, [id, getJobById, getAreaById]);
+  }, [id, fetchJobById]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -131,16 +148,14 @@ export default function VagaPublica() {
     }
 
     // Validate custom required fields
-    if (formTemplate) {
-      formTemplate.fields.forEach((field) => {
-        if (field.required) {
-          const value = formData.customFields[field.id];
-          if (!value || (typeof value === "string" && !value.trim())) {
-            newErrors[`custom_${field.id}`] = `${field.label} é obrigatório`;
-          }
+    formFields.forEach((field) => {
+      if (field.is_required) {
+        const value = formData.customFields[field.id];
+        if (!value || (typeof value === "string" && !value.trim())) {
+          newErrors[`custom_${field.id}`] = `${field.label} é obrigatório`;
         }
-      });
-    }
+      }
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -149,7 +164,7 @@ export default function VagaPublica() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!validateForm() || !job) {
       toast.error("Por favor, corrija os erros no formulário");
       return;
     }
@@ -157,69 +172,117 @@ export default function VagaPublica() {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
       // Capture source from URL params (utm_source) or referrer
       const urlParams = new URLSearchParams(window.location.search);
       const utmSource = urlParams.get('utm_source');
       const referrer = document.referrer;
       
-      // Determine source for metrics
-      let sourceId = '3'; // Default: Site Carreiras
       let sourceName = 'Site Carreiras';
       
       if (utmSource) {
         if (utmSource.toLowerCase().includes('linkedin')) {
-          sourceId = '1';
           sourceName = 'LinkedIn';
         } else if (utmSource.toLowerCase().includes('indicacao')) {
-          sourceId = '2';
           sourceName = 'Indicação Interna';
         } else {
           sourceName = utmSource;
         }
       } else if (referrer.includes('linkedin.com')) {
-        sourceId = '1';
         sourceName = 'LinkedIn';
       }
 
-      // Data to be persisted (for future database integration):
-      const applicationData = {
-        // Candidate data
-        candidate: {
-          name: formData.name.trim(),
-          email: formData.email.trim().toLowerCase(),
-          phone: formData.phone.trim(),
-          linkedinUrl: formData.linkedin.trim(),
-        },
-        // Card data with metrics
-        card: {
-          jobId: job?.id,
-          sourceId,
-          sourceName,
-          appliedAt: new Date(),
-          customFields: formData.customFields,
-        },
-        // Initial stage history for metrics
-        stageHistory: {
-          stepName: 'Inscritos',
-          stepOrder: 1,
-          enteredAt: new Date(),
-        },
-        // Application history for metrics
-        history: {
-          action: 'applied',
-          notes: `Candidatura recebida via ${sourceName}`,
-          createdAt: new Date(),
-        },
-      };
+      // 1. Create or find candidate
+      const { data: existingCandidate } = await supabase
+        .from('candidates')
+        .select('id')
+        .eq('email', formData.email.trim().toLowerCase())
+        .maybeSingle();
 
-      console.log("Application data with metrics:", applicationData);
+      let candidateId = existingCandidate?.id;
+
+      if (!candidateId) {
+        const { data: newCandidate, error: candidateError } = await supabase
+          .from('candidates')
+          .insert({
+            name: formData.name.trim(),
+            email: formData.email.trim().toLowerCase(),
+            phone: formData.phone.trim(),
+            linkedin_url: formData.linkedin.trim(),
+            source: sourceName,
+          })
+          .select('id')
+          .single();
+
+        if (candidateError) throw candidateError;
+        candidateId = newCandidate.id;
+      }
+
+      // 2. Get the first stage of the job's funnel
+      const { data: funnel } = await supabase
+        .from('funnels')
+        .select('id')
+        .eq('job_id', job.id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      let firstStageId = null;
+      if (funnel) {
+        const { data: firstStage } = await supabase
+          .from('funnel_stages')
+          .select('id')
+          .eq('funnel_id', funnel.id)
+          .eq('is_archived', false)
+          .order('order_index', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        
+        firstStageId = firstStage?.id;
+      }
+
+      // 3. Create application
+      const { data: application, error: appError } = await supabase
+        .from('applications')
+        .insert({
+          candidate_id: candidateId,
+          job_id: job.id,
+          source: sourceName,
+          current_stage_id: firstStageId,
+          status: 'ativa',
+        })
+        .select('id')
+        .single();
+
+      if (appError) throw appError;
+
+      // 4. Save form responses
+      if (formFields.length > 0 && application) {
+        const responses = formFields
+          .filter(field => formData.customFields[field.id])
+          .map(field => ({
+            application_id: application.id,
+            field_id: field.id,
+            value: String(formData.customFields[field.id]),
+          }));
+
+        if (responses.length > 0) {
+          await supabase.from('form_responses').insert(responses);
+        }
+      }
+
+      // 5. Record history
+      if (application && firstStageId) {
+        await supabase.from('application_history').insert({
+          application_id: application.id,
+          action: 'applied',
+          to_stage_id: firstStageId,
+          notes: `Candidatura recebida via ${sourceName}`,
+        });
+      }
 
       setIsSubmitted(true);
       toast.success("Candidatura enviada com sucesso!");
     } catch (error) {
+      console.error('Error submitting application:', error);
       toast.error("Erro ao enviar candidatura. Tente novamente.");
     } finally {
       setIsSubmitting(false);
@@ -229,9 +292,8 @@ export default function VagaPublica() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type and size
       const allowedTypes = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      const maxSize = 5 * 1024 * 1024;
 
       if (!allowedTypes.includes(file.type)) {
         setErrors({ ...errors, resumeFile: "Apenas arquivos PDF ou Word são aceitos" });
@@ -248,16 +310,16 @@ export default function VagaPublica() {
     }
   };
 
-  const renderCustomField = (field: FormField) => {
+  const renderCustomField = (field: Tables<'form_fields'>) => {
     const value = formData.customFields[field.id] || "";
     const error = errors[`custom_${field.id}`];
 
-    switch (field.type) {
+    switch (field.field_type) {
       case "short_text":
         return (
           <div key={field.id} className="space-y-2">
             <Label htmlFor={field.id}>
-              {field.label} {field.required && <span className="text-destructive">*</span>}
+              {field.label} {field.is_required && <span className="text-destructive">*</span>}
             </Label>
             <Input
               id={field.id}
@@ -268,7 +330,7 @@ export default function VagaPublica() {
                   customFields: { ...formData.customFields, [field.id]: e.target.value },
                 })
               }
-              placeholder={field.placeholder}
+              placeholder={field.placeholder || undefined}
             />
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
@@ -278,7 +340,7 @@ export default function VagaPublica() {
         return (
           <div key={field.id} className="space-y-2">
             <Label htmlFor={field.id}>
-              {field.label} {field.required && <span className="text-destructive">*</span>}
+              {field.label} {field.is_required && <span className="text-destructive">*</span>}
             </Label>
             <Textarea
               id={field.id}
@@ -289,7 +351,7 @@ export default function VagaPublica() {
                   customFields: { ...formData.customFields, [field.id]: e.target.value },
                 })
               }
-              placeholder={field.placeholder}
+              placeholder={field.placeholder || undefined}
               rows={4}
             />
             {error && <p className="text-sm text-destructive">{error}</p>}
@@ -300,7 +362,7 @@ export default function VagaPublica() {
         return (
           <div key={field.id} className="space-y-2">
             <Label>
-              {field.label} {field.required && <span className="text-destructive">*</span>}
+              {field.label} {field.is_required && <span className="text-destructive">*</span>}
             </Label>
             <RadioGroup
               value={value as string}
@@ -325,13 +387,14 @@ export default function VagaPublica() {
         );
 
       case "multiple_choice":
+        const options = (field.options as string[]) || [];
         return (
           <div key={field.id} className="space-y-2">
             <Label>
-              {field.label} {field.required && <span className="text-destructive">*</span>}
+              {field.label} {field.is_required && <span className="text-destructive">*</span>}
             </Label>
             <div className="space-y-2">
-              {field.options?.map((option) => (
+              {options.map((option) => (
                 <div key={option} className="flex items-center space-x-2">
                   <Checkbox
                     id={`${field.id}-${option}`}
@@ -360,9 +423,9 @@ export default function VagaPublica() {
     }
   };
 
-  if (isLoading || jobsLoading || areasLoading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-background dark">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
           <p className="mt-2 text-muted-foreground">Carregando vaga...</p>
@@ -373,7 +436,7 @@ export default function VagaPublica() {
 
   if (!job) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background dark p-4">
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
             <Briefcase className="h-12 w-12 mx-auto text-muted-foreground/50" />
@@ -392,20 +455,20 @@ export default function VagaPublica() {
 
   // Block applications for non-published jobs
   if (job.status !== "publicada") {
-    const statusMessages = {
+    const statusMessages: Record<string, string> = {
       rascunho: "Esta vaga ainda está em preparação.",
       pausada: "Esta vaga está temporariamente pausada e não está aceitando novas candidaturas.",
       encerrada: "Esta vaga foi encerrada e não está mais aceitando candidaturas.",
     };
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background dark p-4">
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
             <Briefcase className="h-12 w-12 mx-auto text-muted-foreground/50" />
             <h2 className="mt-4 text-xl font-semibold">Vaga indisponível</h2>
             <p className="mt-2 text-muted-foreground">
-              {statusMessages[job.status as keyof typeof statusMessages]}
+              {statusMessages[job.status] || "Esta vaga não está disponível."}
             </p>
             <Button asChild className="mt-4">
               <Link to="/carreiras">Ver outras vagas disponíveis</Link>
@@ -418,7 +481,7 @@ export default function VagaPublica() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background dark p-4">
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
             <div className="h-16 w-16 mx-auto rounded-full bg-success/10 flex items-center justify-center">
@@ -438,8 +501,10 @@ export default function VagaPublica() {
     );
   }
 
+  const area = job.area;
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background dark">
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container max-w-4xl mx-auto px-4 py-4">
@@ -470,13 +535,13 @@ export default function VagaPublica() {
               <div className="flex items-center gap-1.5">
                 <MapPin className="h-4 w-4" />
                 <span>{job.location}</span>
-                {job.isRemote && (
+                {job.is_remote && (
                   <Badge variant="outline" className="ml-1">Remoto</Badge>
                 )}
               </div>
               <div className="flex items-center gap-1.5">
                 <Briefcase className="h-4 w-4" />
-                <span>{jobLevelLabels[job.level]} • {contractTypeLabels[job.contractType]}</span>
+                <span>{jobLevelLabels[job.level] || job.level} • {contractTypeLabels[job.contract_type] || job.contract_type}</span>
               </div>
             </div>
 
@@ -502,31 +567,26 @@ export default function VagaPublica() {
           {/* Application Form */}
           <div className="lg:sticky lg:top-8 h-fit">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Candidatar-se
-                </CardTitle>
-                <CardDescription>
-                  Preencha o formulário abaixo para se candidatar a esta vaga
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <h2 className="text-lg font-semibold">Candidatar-se</h2>
+                </div>
+
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* Standard Required Fields */}
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nome Completo <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="name">Nome completo *</Label>
                     <Input
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Seu nome completo"
+                      placeholder="Seu nome"
                     />
                     {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email">E-mail <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="email">E-mail *</Label>
                     <Input
                       id="email"
                       type="email"
@@ -538,7 +598,7 @@ export default function VagaPublica() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="phone">Telefone *</Label>
                     <Input
                       id="phone"
                       value={formData.phone}
@@ -549,67 +609,49 @@ export default function VagaPublica() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="linkedin">LinkedIn <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="linkedin">LinkedIn *</Label>
                     <Input
                       id="linkedin"
                       value={formData.linkedin}
                       onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
-                      placeholder="linkedin.com/in/seu-perfil"
+                      placeholder="linkedin.com/in/seuperfil"
                     />
                     {errors.linkedin && <p className="text-sm text-destructive">{errors.linkedin}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="resume">Currículo <span className="text-destructive">*</span></Label>
-                    <div className="relative">
-                      <Input
-                        id="resume"
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        onChange={handleFileChange}
-                        className="cursor-pointer"
-                      />
-                      {formData.resumeFile && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Arquivo: {formData.resumeFile.name}
-                        </p>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">PDF ou Word, máximo 5MB</p>
+                    <Label htmlFor="resume">Currículo (PDF ou Word) *</Label>
+                    <Input
+                      id="resume"
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleFileChange}
+                      className="cursor-pointer"
+                    />
+                    {formData.resumeFile && (
+                      <p className="text-sm text-muted-foreground">{formData.resumeFile.name}</p>
+                    )}
                     {errors.resumeFile && <p className="text-sm text-destructive">{errors.resumeFile}</p>}
                   </div>
 
-                  {/* Custom Fields from Form Template */}
-                  {formTemplate && formTemplate.fields.length > 0 && (
-                    <>
-                      <Separator className="my-4" />
-                      {formTemplate.fields.map(renderCustomField)}
-                    </>
-                  )}
+                  {formFields.map(renderCustomField)}
 
                   <Separator className="my-4" />
 
-                  {/* LGPD Consent */}
-                  <div className="space-y-2">
-                    <div className="flex items-start space-x-2">
-                      <Checkbox
-                        id="lgpd"
-                        checked={formData.lgpdConsent}
-                        onCheckedChange={(checked) => 
-                          setFormData({ ...formData, lgpdConsent: checked as boolean })
-                        }
-                      />
-                      <Label htmlFor="lgpd" className="text-sm leading-relaxed">
-                        Declaro que li e concordo com a{" "}
-                        <a href="/politica-privacidade" target="_blank" className="text-primary underline">
-                          Política de Privacidade
-                        </a>{" "}
-                        e autorizo o armazenamento e processamento dos meus dados pessoais para fins de 
-                        recrutamento e seleção, conforme a LGPD. <span className="text-destructive">*</span>
-                      </Label>
-                    </div>
-                    {errors.lgpdConsent && <p className="text-sm text-destructive">{errors.lgpdConsent}</p>}
+                  <div className="flex items-start space-x-2">
+                    <Checkbox
+                      id="lgpd"
+                      checked={formData.lgpdConsent}
+                      onCheckedChange={(checked) => 
+                        setFormData({ ...formData, lgpdConsent: checked as boolean })
+                      }
+                    />
+                    <Label htmlFor="lgpd" className="text-sm leading-relaxed">
+                      Concordo com o tratamento dos meus dados pessoais para fins de
+                      processo seletivo, conforme a LGPD. *
+                    </Label>
                   </div>
+                  {errors.lgpdConsent && <p className="text-sm text-destructive">{errors.lgpdConsent}</p>}
 
                   <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting ? (
@@ -618,7 +660,7 @@ export default function VagaPublica() {
                         Enviando...
                       </>
                     ) : (
-                      "Enviar Candidatura"
+                      "Enviar candidatura"
                     )}
                   </Button>
                 </form>
@@ -627,13 +669,6 @@ export default function VagaPublica() {
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t mt-16">
-        <div className="container max-w-4xl mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} Todos os direitos reservados.</p>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -21,18 +22,42 @@ import {
   Sparkles,
   ChevronDown,
 } from "lucide-react";
-import type { Job } from "@/types/ats";
-import { jobLevelLabels, contractTypeLabels } from "@/types/ats";
 import logoDot from "@/assets/logo-dot.png";
 import { useLandingPageConfig, getIconComponent, defaultLandingPageConfig, type LandingPageConfig } from "@/hooks/useLandingPageConfig";
-import { useJobs } from "@/hooks/useJobs";
-import { useAreas } from "@/hooks/useAreas";
+import { usePublicJobs, usePublicAreas } from "@/hooks/usePublicJobs";
+
+// Job level labels
+const jobLevelLabels: Record<string, string> = {
+  estagio: "Estágio",
+  junior: "Júnior",
+  pleno: "Pleno",
+  senior: "Sênior",
+  especialista: "Especialista",
+  coordenador: "Coordenador",
+  gerente: "Gerente",
+  diretor: "Diretor",
+};
+
+// Contract type labels
+const contractTypeLabels: Record<string, string> = {
+  clt: "CLT",
+  pj: "PJ",
+  estagio: "Estágio",
+  temporario: "Temporário",
+  freelancer: "Freelancer",
+};
 
 export default function VagasPublicas() {
   const [searchParams] = useSearchParams();
+  const { setTheme } = useTheme();
   const { config: savedConfig, isLoading: configLoading } = useLandingPageConfig();
-  const { getPublishedJobs, isLoading: jobsLoading } = useJobs();
-  const { areas, getAreaById, isLoading: areasLoading } = useAreas();
+  const { jobs, isLoading: jobsLoading } = usePublicJobs();
+  const { areas, getAreaById, isLoading: areasLoading } = usePublicAreas();
+  
+  // Force dark mode on public pages
+  useEffect(() => {
+    setTheme('dark');
+  }, [setTheme]);
   
   // Check for preview config in URL (used when previewing from settings)
   const previewConfig = searchParams.get("preview");
@@ -44,9 +69,6 @@ export default function VagasPublicas() {
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const jobsSectionRef = useRef<HTMLDivElement>(null);
 
-  // Real-time sync: jobs are derived directly from the hook (single source of truth)
-  // No artificial delay - updates happen instantly when ATS data changes
-  const jobs = getPublishedJobs();
   const isLoading = jobsLoading || configLoading || areasLoading;
 
   const scrollToJobs = () => {
@@ -55,7 +77,7 @@ export default function VagasPublicas() {
 
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesArea = areaFilter === "all" || job.areaId === areaFilter;
+    const matchesArea = areaFilter === "all" || job.area_id === areaFilter;
     return matchesSearch && matchesArea;
   });
 
@@ -68,7 +90,7 @@ export default function VagasPublicas() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-background dark">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
           <p className="mt-2 text-muted-foreground">Carregando...</p>
@@ -80,7 +102,7 @@ export default function VagasPublicas() {
   const logoSrc = config.logoUrl || logoDot;
 
   return (
-    <div className="min-h-screen bg-background" style={primaryColorStyle}>
+    <div className="min-h-screen bg-background dark" style={primaryColorStyle}>
       {/* Header/Navigation */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -324,7 +346,7 @@ export default function VagasPublicas() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as áreas</SelectItem>
-                {areas.filter(a => !a.isArchived).map((area) => (
+                {areas.map((area) => (
                   <SelectItem key={area.id} value={area.id}>
                     {area.name}
                   </SelectItem>
@@ -355,7 +377,7 @@ export default function VagasPublicas() {
               </p>
               
               {filteredJobs.map((job) => {
-                const area = getAreaById(job.areaId);
+                const area = job.area || getAreaById(job.area_id);
                 return (
                   <Card 
                     key={job.id} 
@@ -373,7 +395,7 @@ export default function VagasPublicas() {
                                 {area.name}
                               </Badge>
                             )}
-                            {job.isRemote && (
+                            {job.is_remote && (
                               <Badge variant="outline" className="text-xs border-accent/50 text-accent">
                                 Remoto
                               </Badge>
@@ -391,11 +413,11 @@ export default function VagasPublicas() {
                             </span>
                             <span className="flex items-center gap-1">
                               <Briefcase className="h-4 w-4" />
-                              {jobLevelLabels[job.level]}
+                              {jobLevelLabels[job.level] || job.level}
                             </span>
                             <span className="flex items-center gap-1">
                               <Building2 className="h-4 w-4" />
-                              {contractTypeLabels[job.contractType]}
+                              {contractTypeLabels[job.contract_type] || job.contract_type}
                             </span>
                           </div>
                           
