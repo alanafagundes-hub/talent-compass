@@ -1,75 +1,70 @@
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import type { Area } from '@/types/ats';
 
-const STORAGE_KEY = 'ats_areas';
-const CUSTOM_EVENT_NAME = 'areasUpdated';
+// Database type
+interface DbArea {
+  id: string;
+  name: string;
+  description: string | null;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
-// Initial seed data
-const initialAreas: Area[] = [
-  { id: "1", name: "Tech", description: "Desenvolvimento e infraestrutura", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "2", name: "Comercial", description: "Vendas e relacionamento", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "3", name: "Criação", description: "Design e produção visual", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "4", name: "Marketing", description: "Comunicação e growth", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "5", name: "RH", description: "Pessoas e cultura", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-];
-
-// Helper to parse dates
-const parseAreaDates = (area: Area): Area => ({
-  ...area,
-  createdAt: new Date(area.createdAt),
-  updatedAt: new Date(area.updatedAt),
+// Map database fields to TypeScript interface
+const mapDbAreaToArea = (dbArea: DbArea): Area => ({
+  id: dbArea.id,
+  name: dbArea.name,
+  description: dbArea.description || '',
+  isArchived: dbArea.is_archived,
+  createdAt: new Date(dbArea.created_at),
+  updatedAt: new Date(dbArea.updated_at),
 });
 
-// Load from localStorage
-const loadFromStorage = (): Area[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored) as Area[];
-      return parsed.map(parseAreaDates);
-    }
-  } catch (error) {
-    console.error('Error loading areas from storage:', error);
-  }
-  return initialAreas;
-};
-
-// Save to localStorage
-const saveToStorage = (areas: Area[]): void => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(areas));
-    window.dispatchEvent(new CustomEvent(CUSTOM_EVENT_NAME));
-  } catch (error) {
-    console.error('Error saving areas to storage:', error);
-  }
-};
-
 export function useAreas() {
-  const [areas, setAreas] = useState<Area[]>(() => loadFromStorage());
-  const [isLoading, setIsLoading] = useState(false);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Sync with other tabs/components
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) {
-        setAreas(loadFromStorage());
-      }
-    };
+  // Fetch areas from Supabase
+  const fetchAreas = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('areas')
+        .select('*')
+        .order('name');
 
-    const handleCustomEvent = () => {
-      setAreas(loadFromStorage());
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener(CUSTOM_EVENT_NAME, handleCustomEvent);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener(CUSTOM_EVENT_NAME, handleCustomEvent);
-    };
+      if (error) throw error;
+      setAreas((data || []).map(mapDbAreaToArea));
+    } catch (error) {
+      console.error('Error fetching areas:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  // Get all areas (non-archived by default)
+  // Initial fetch and realtime subscription
+  useEffect(() => {
+    fetchAreas();
+
+    const channel = supabase
+      .channel('areas-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'areas' },
+        () => {
+          fetchAreas();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchAreas]);
+
+  // Get areas (non-archived by default)
   const getAreas = useCallback((includeArchived = false) => {
     return includeArchived ? areas : areas.filter(a => !a.isArchived);
   }, [areas]);
@@ -80,43 +75,51 @@ export function useAreas() {
   }, [areas]);
 
   // Create new area
-  const createArea = useCallback((areaData: Omit<Area, 'id' | 'createdAt' | 'updatedAt'>): Area => {
-    const newArea: Area = {
-      ...areaData,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    const updatedAreas = [...areas, newArea];
-    setAreas(updatedAreas);
-    saveToStorage(updatedAreas);
-    
-    return newArea;
-  }, [areas]);
+  const createArea = useCallback(async (areaData: Omit<Area, 'id' | 'createdAt' | 'updatedAt'>): Promise<Area | undefined> => {
+    try {
+      const { data, error } = await supabase
+        .from('areas')
+        .insert({
+          name: areaData.name,
+          description: areaData.description || null,
+          is_archived: areaData.isArchived || false,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return mapDbAreaToArea(data);
+    } catch (error) {
+      console.error('Error creating area:', error);
+      return undefined;
+    }
+  }, []);
 
   // Update area
-  const updateArea = useCallback((id: string, updates: Partial<Area>): Area | undefined => {
-    let updatedArea: Area | undefined;
-    
-    const updatedAreas = areas.map(area => {
-      if (area.id === id) {
-        updatedArea = { ...area, ...updates, updatedAt: new Date() };
-        return updatedArea;
-      }
-      return area;
-    });
-    
-    if (updatedArea) {
-      setAreas(updatedAreas);
-      saveToStorage(updatedAreas);
+  const updateArea = useCallback(async (id: string, updates: Partial<Area>): Promise<Area | undefined> => {
+    try {
+      const updateData: Record<string, unknown> = {};
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.isArchived !== undefined) updateData.is_archived = updates.isArchived;
+
+      const { data, error } = await supabase
+        .from('areas')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return mapDbAreaToArea(data);
+    } catch (error) {
+      console.error('Error updating area:', error);
+      return undefined;
     }
-    
-    return updatedArea;
-  }, [areas]);
+  }, []);
 
   // Toggle archive status
-  const toggleArchive = useCallback((id: string): Area | undefined => {
+  const toggleArchive = useCallback(async (id: string): Promise<Area | undefined> => {
     const area = areas.find(a => a.id === id);
     if (area) {
       return updateArea(id, { isArchived: !area.isArchived });
@@ -132,12 +135,22 @@ export function useAreas() {
     createArea,
     updateArea,
     toggleArchive,
+    refetch: fetchAreas,
   };
 }
 
-// Export for direct usage
-export const getAreasFromStorage = loadFromStorage;
-export const getAreaByIdFromStorage = (id: string): Area | undefined => {
-  const areas = loadFromStorage();
-  return areas.find(area => area.id === id);
+// Export helper for direct usage (fetches fresh from DB)
+export const getAreaByIdFromStorage = async (id: string): Promise<Area | undefined> => {
+  try {
+    const { data, error } = await supabase
+      .from('areas')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error || !data) return undefined;
+    return mapDbAreaToArea(data);
+  } catch {
+    return undefined;
+  }
 };
