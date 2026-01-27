@@ -184,14 +184,29 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
           </div>
         </div>
 
-        {/* PDF Preview */}
+        {/* PDF Preview - Use object tag instead of iframe to avoid Chrome blocking */}
         {showPreview && isPdf && signedUrl && (
           <div className="border rounded-lg overflow-hidden bg-muted/30">
-            <iframe
-              src={`${signedUrl}#view=FitH`}
+            <object
+              data={signedUrl}
+              type="application/pdf"
               className="w-full h-[400px]"
               title={`Preview de ${fileName}`}
-            />
+            >
+              <div className="p-8 text-center">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Não foi possível exibir o PDF no navegador.
+                </p>
+                <a
+                  href={signedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Clique aqui para abrir em nova aba
+                </a>
+              </div>
+            </object>
           </div>
         )}
 
