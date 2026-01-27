@@ -2,7 +2,6 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +17,8 @@ import {
   ExternalLink,
   UserX,
   FileText,
-  Award
+  Award,
+  User
 } from "lucide-react";
 import type { Candidate, Tag, CardStageRating } from "@/types/ats";
 
@@ -57,14 +57,13 @@ export default function KanbanCard({ card, onViewDetails, onMarkAsLost, onRate }
     transition,
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  // Calculate average rating from stage evaluations
+  const averageRating = card.stageRatings && card.stageRatings.length > 0
+    ? Math.round(
+        card.stageRatings.reduce((sum, r) => sum + r.rating, 0) /
+          card.stageRatings.length
+      )
+    : card.rating || null;
 
   const formatTimeInStage = (enteredAt: Date) => {
     const now = new Date();
@@ -96,21 +95,11 @@ export default function KanbanCard({ card, onViewDetails, onMarkAsLost, onRate }
       {...attributes}
       {...listeners}
     >
-      <div className="space-y-3">
-        {/* Header */}
+      <div className="space-y-2.5">
+        {/* Header - Name and Actions */}
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <Avatar className="h-8 w-8 shrink-0">
-              <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                {getInitials(card.candidate.name)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <p className="font-medium text-sm truncate">{card.candidate.name}</p>
-              <p className="text-xs text-muted-foreground truncate">
-                {card.candidate.email}
-              </p>
-            </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-sm leading-tight truncate">{card.candidate.name}</p>
           </div>
           
           <DropdownMenu>
@@ -149,14 +138,21 @@ export default function KanbanCard({ card, onViewDetails, onMarkAsLost, onRate }
           </DropdownMenu>
         </div>
 
-        {/* Rating & Notes indicator */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {card.rating && (
-            <div className="flex items-center gap-1">
+        {/* Status Badge */}
+        <div className="flex items-center gap-1.5">
+          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+            Ativo
+          </Badge>
+          {averageRating && (
+            <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
               <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-              <span>{card.rating}</span>
+              <span className="font-medium">{averageRating}/5</span>
             </div>
           )}
+        </div>
+
+        {/* Time in stage indicator */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {card.notes && (
             <div className="flex items-center gap-1">
               <MessageSquare className="h-3 w-3" />
