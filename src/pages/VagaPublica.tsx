@@ -26,6 +26,7 @@ import { usePublicJobs, type PublicJob } from "@/hooks/usePublicJobs";
 import { useLandingPageConfig } from "@/hooks/useLandingPageConfig";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { useTrackingParams, resolveSourceName } from "@/hooks/useTrackingParams";
 
 // Job level labels
 const jobLevelLabels: Record<string, string> = {
@@ -80,6 +81,7 @@ export default function VagaPublica() {
   const { setTheme } = useTheme();
   const { fetchJobById } = usePublicJobs();
   const { config } = useLandingPageConfig();
+  const trackingData = useTrackingParams();
   
   const [job, setJob] = useState<PublicJob | null>(null);
   const [formFields, setFormFields] = useState<Tables<'form_fields'>[]>([]);
@@ -183,24 +185,8 @@ export default function VagaPublica() {
     setIsSubmitting(true);
 
     try {
-      // Capture source from URL params (utm_source) or referrer
-      const urlParams = new URLSearchParams(window.location.search);
-      const utmSource = urlParams.get('utm_source');
-      const referrer = document.referrer;
-      
-      let sourceName = 'Site Carreiras';
-      
-      if (utmSource) {
-        if (utmSource.toLowerCase().includes('linkedin')) {
-          sourceName = 'LinkedIn';
-        } else if (utmSource.toLowerCase().includes('indicacao')) {
-          sourceName = 'Indicação Interna';
-        } else {
-          sourceName = utmSource;
-        }
-      } else if (referrer.includes('linkedin.com')) {
-        sourceName = 'LinkedIn';
-      }
+      // Resolve source name using tracking data (UTM → referrer → direct)
+      const sourceName = resolveSourceName(trackingData);
 
       // 1. Create or find candidate
       const { data: existingCandidate } = await supabase
@@ -250,7 +236,7 @@ export default function VagaPublica() {
         firstStageId = firstStage?.id;
       }
 
-      // 3. Create application
+      // 3. Create application with tracking data
       const { data: application, error: appError } = await supabase
         .from('applications')
         .insert({
@@ -259,7 +245,8 @@ export default function VagaPublica() {
           source: sourceName,
           current_stage_id: firstStageId,
           status: 'ativa',
-        })
+          tracking_data: trackingData as unknown as Record<string, unknown>,
+        } as any)
         .select('id')
         .single();
 

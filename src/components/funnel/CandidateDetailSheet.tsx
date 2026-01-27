@@ -256,21 +256,67 @@ export default function CandidateDetailSheet({
 
                 <Separator className="my-3" />
 
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="flex items-start gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-muted-foreground text-xs">Candidatura</p>
-                      <p className="font-medium">{formatDate(card.enteredAt)}</p>
-                    </div>
-                  </div>
-                  {card.sourceName && (
+                {/* Origin/Tracking Section */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-semibold uppercase text-muted-foreground">
+                    Origem da Candidatura
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="flex items-start gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                      <Calendar className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-muted-foreground text-xs">Fonte</p>
-                        <p className="font-medium">{card.sourceName}</p>
+                        <p className="text-muted-foreground text-xs">Data</p>
+                        <p className="font-medium">{formatDate(card.enteredAt)}</p>
                       </div>
+                    </div>
+                    {card.sourceName && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-muted-foreground text-xs">Fonte</p>
+                          <p className="font-medium">{card.sourceName}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Detailed UTM tracking */}
+                  {card.trackingData && (
+                    <div className="mt-2 p-3 rounded-lg bg-muted/30 space-y-2 text-sm">
+                      {card.trackingData.utm_medium && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Mídia</span>
+                          <span className="font-medium">{card.trackingData.utm_medium}</span>
+                        </div>
+                      )}
+                      {card.trackingData.utm_campaign && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Campanha</span>
+                          <span className="font-medium">{card.trackingData.utm_campaign}</span>
+                        </div>
+                      )}
+                      {card.trackingData.referrer && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Referrer</span>
+                          <span className="font-medium truncate max-w-[180px]" title={card.trackingData.referrer}>
+                            {(() => {
+                              try {
+                                return new URL(card.trackingData.referrer).hostname;
+                              } catch {
+                                return card.trackingData.referrer.slice(0, 30);
+                              }
+                            })()}
+                          </span>
+                        </div>
+                      )}
+                      {card.trackingData.landing_page && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Página</span>
+                          <span className="font-medium truncate max-w-[180px]" title={card.trackingData.landing_page}>
+                            {card.trackingData.landing_page.split('?')[0]}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
