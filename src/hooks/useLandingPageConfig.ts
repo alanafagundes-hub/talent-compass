@@ -24,6 +24,14 @@ export type HeroStyle = "compact" | "prominent";
 // CTA action types
 export type CtaAction = "jobs" | "talent-pool" | "culture";
 
+// Section identifiers for ordering
+export type SectionId = "statistics" | "culture" | "jobs" | "talent-pool-cta";
+
+export interface SectionOrder {
+  id: SectionId;
+  enabled: boolean;
+}
+
 export interface LandingPageConfig {
   // Branding (controlled parameters)
   companyName: string;
@@ -36,19 +44,30 @@ export interface LandingPageConfig {
   cardStyle: CardStyle;
   heroStyle: HeroStyle;
   
+  // Section ordering and visibility
+  sectionOrder: SectionOrder[];
+  
+  // Header
+  headerCtaText: string;
+  
   // Hero Section (emotional/inspirational only)
+  heroBadgeText: string;
   heroHeadline: string;
   heroSubheadline: string;
   heroCta: string;
-  heroCtaAction: CtaAction; // Where the CTA leads to
+  heroCtaAction: CtaAction;
+  heroSecondaryCta: string; // Secondary CTA text
   
   // Statistics Section (Employer Branding)
   showStatisticsSection: boolean;
+  statisticsBadgeText: string;
   statisticsSectionTitle: string;
   statisticsSectionSubtitle: string;
   statistics: StatisticItem[];
   
   // About Section
+  showCultureSection: boolean;
+  cultureBadgeText: string;
   aboutTitle: string;
   aboutSubtitle: string;
   values: ValueCard[];
@@ -58,6 +77,8 @@ export interface LandingPageConfig {
   cultureCtaAction: CtaAction;
   
   // Jobs Section
+  showJobsSection: boolean;
+  jobsBadgeText: string;
   jobsSectionTitle: string;
   jobsSectionSubtitle: string;
   jobsEmptyTitle: string;
@@ -70,6 +91,9 @@ export interface LandingPageConfig {
   ctaSubtitle: string;
   ctaButtonText: string;
   showTalentPoolCta: boolean;
+  
+  // Footer
+  footerText: string;
 }
 
 export const defaultLandingPageConfig: LandingPageConfig = {
@@ -84,14 +108,28 @@ export const defaultLandingPageConfig: LandingPageConfig = {
   cardStyle: "solid",
   heroStyle: "prominent",
   
+  // Section ordering (default order)
+  sectionOrder: [
+    { id: "statistics", enabled: true },
+    { id: "culture", enabled: true },
+    { id: "jobs", enabled: true },
+    { id: "talent-pool-cta", enabled: true },
+  ],
+  
+  // Header
+  headerCtaText: "Ver Vagas",
+  
   // Hero (emotional/inspirational tone)
+  heroBadgeText: "Estamos contratando!",
   heroHeadline: "Construa sua carreira com a gente",
   heroSubheadline: "Junte-se a uma equipe apaixonada por inovação e faça parte de projetos que transformam o mercado.",
   heroCta: "Explorar oportunidades",
   heroCtaAction: "jobs",
+  heroSecondaryCta: "Conheça a empresa",
   
   // Statistics
   showStatisticsSection: true,
+  statisticsBadgeText: "Nosso Impacto",
   statisticsSectionTitle: "Nossos Números",
   statisticsSectionSubtitle: "Resultados que refletem nossa dedicação e crescimento contínuo",
   statistics: [
@@ -102,6 +140,8 @@ export const defaultLandingPageConfig: LandingPageConfig = {
   ],
   
   // About (culture section with light invitation CTA)
+  showCultureSection: true,
+  cultureBadgeText: "Sobre nós",
   aboutTitle: "Por que trabalhar conosco?",
   aboutSubtitle: "Descubra o que faz da nossa empresa um ótimo lugar para crescer profissionalmente",
   values: [
@@ -115,6 +155,8 @@ export const defaultLandingPageConfig: LandingPageConfig = {
   cultureCtaAction: "jobs",
   
   // Jobs (direct action tone)
+  showJobsSection: true,
+  jobsBadgeText: "Oportunidades",
   jobsSectionTitle: "Vagas Abertas",
   jobsSectionSubtitle: "Encontre a oportunidade perfeita para o próximo passo da sua carreira",
   jobsEmptyTitle: "Em breve, novas oportunidades!",
@@ -126,6 +168,9 @@ export const defaultLandingPageConfig: LandingPageConfig = {
   ctaSubtitle: "Cadastre-se em nosso banco de talentos e seja o primeiro a saber quando surgirem novas oportunidades na sua área.",
   ctaButtonText: "Entrar para o Banco de Talentos",
   showTalentPoolCta: true,
+  
+  // Footer
+  footerText: "Desenvolvido com 💜 pelo time de R&S",
 };
 
 export const iconMap: Record<string, LucideIcon> = {

@@ -413,6 +413,27 @@ export default function LandingPageSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="heroBadgeText">Texto do Badge</Label>
+              <Input
+                id="heroBadgeText"
+                value={config.heroBadgeText}
+                onChange={(e) => updateConfig("heroBadgeText", e.target.value)}
+                placeholder="Ex: Estamos contratando!"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="headerCtaText">Botão do Header</Label>
+              <Input
+                id="headerCtaText"
+                value={config.headerCtaText}
+                onChange={(e) => updateConfig("headerCtaText", e.target.value)}
+                placeholder="Ex: Ver Vagas"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="heroHeadline">Título Principal (Headline)</Label>
             <Input
@@ -432,14 +453,26 @@ export default function LandingPageSettings() {
               rows={2}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="heroCta">Texto do Botão CTA</Label>
-            <Input
-              id="heroCta"
-              value={config.heroCta}
-              onChange={(e) => updateConfig("heroCta", e.target.value)}
-              placeholder="Ex: Ver vagas abertas"
-            />
+          
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="heroCta">Botão Principal (CTA)</Label>
+              <Input
+                id="heroCta"
+                value={config.heroCta}
+                onChange={(e) => updateConfig("heroCta", e.target.value)}
+                placeholder="Ex: Explorar oportunidades"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="heroSecondaryCta">Botão Secundário</Label>
+              <Input
+                id="heroSecondaryCta"
+                value={config.heroSecondaryCta}
+                onChange={(e) => updateConfig("heroSecondaryCta", e.target.value)}
+                placeholder="Ex: Conheça a empresa"
+              />
+            </div>
           </div>
 
           <Separator />
@@ -498,7 +531,16 @@ export default function LandingPageSettings() {
             <>
               <Separator />
               
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="statisticsBadgeText">Badge</Label>
+                  <Input
+                    id="statisticsBadgeText"
+                    value={config.statisticsBadgeText}
+                    onChange={(e) => updateConfig("statisticsBadgeText", e.target.value)}
+                    placeholder="Ex: Nosso Impacto"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="statisticsSectionTitle">Título da Seção</Label>
                   <Input
@@ -633,24 +675,49 @@ export default function LandingPageSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="aboutTitle">Título da Seção</Label>
-              <Input
-                id="aboutTitle"
-                value={config.aboutTitle}
-                onChange={(e) => updateConfig("aboutTitle", e.target.value)}
-              />
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Exibir Seção de Cultura</Label>
+              <p className="text-sm text-muted-foreground">
+                Mostrar seção institucional com valores e diferenciais
+              </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="aboutSubtitle">Subtítulo</Label>
-              <Input
-                id="aboutSubtitle"
-                value={config.aboutSubtitle}
-                onChange={(e) => updateConfig("aboutSubtitle", e.target.value)}
-              />
-            </div>
+            <Switch
+              checked={config.showCultureSection}
+              onCheckedChange={(checked) => updateConfig("showCultureSection", checked)}
+            />
           </div>
+
+          {config.showCultureSection && (
+            <>
+              <Separator />
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="cultureBadgeText">Badge</Label>
+                  <Input
+                    id="cultureBadgeText"
+                    value={config.cultureBadgeText}
+                    onChange={(e) => updateConfig("cultureBadgeText", e.target.value)}
+                    placeholder="Ex: Sobre nós"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="aboutTitle">Título da Seção</Label>
+                  <Input
+                    id="aboutTitle"
+                    value={config.aboutTitle}
+                    onChange={(e) => updateConfig("aboutTitle", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="aboutSubtitle">Subtítulo</Label>
+                  <Input
+                    id="aboutSubtitle"
+                    value={config.aboutSubtitle}
+                    onChange={(e) => updateConfig("aboutSubtitle", e.target.value)}
+                  />
+                </div>
+              </div>
 
           <Separator />
 
@@ -766,6 +833,8 @@ export default function LandingPageSettings() {
               </div>
             )}
           </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -778,32 +847,58 @@ export default function LandingPageSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert className="bg-muted/50">
-            <Briefcase className="h-4 w-4" />
-            <AlertDescription>
-              As vagas exibidas vêm diretamente do ATS. Apenas vagas com status "Publicada" 
-              aparecem na página de carreiras. Não é possível criar ou editar vagas por aqui.
-            </AlertDescription>
-          </Alert>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="jobsSectionTitle">Título da Seção</Label>
-              <Input
-                id="jobsSectionTitle"
-                value={config.jobsSectionTitle}
-                onChange={(e) => updateConfig("jobsSectionTitle", e.target.value)}
-              />
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Exibir Seção de Vagas</Label>
+              <p className="text-sm text-muted-foreground">
+                Mostrar listagem de vagas abertas do ATS
+              </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="jobsSectionSubtitle">Subtítulo</Label>
-              <Input
-                id="jobsSectionSubtitle"
-                value={config.jobsSectionSubtitle}
-                onChange={(e) => updateConfig("jobsSectionSubtitle", e.target.value)}
-              />
-            </div>
+            <Switch
+              checked={config.showJobsSection}
+              onCheckedChange={(checked) => updateConfig("showJobsSection", checked)}
+            />
           </div>
+
+          {config.showJobsSection && (
+            <>
+              <Separator />
+              
+              <Alert className="bg-muted/50">
+                <Briefcase className="h-4 w-4" />
+                <AlertDescription>
+                  As vagas exibidas vêm diretamente do ATS. Apenas vagas com status "Publicada" 
+                  aparecem na página de carreiras. Não é possível criar ou editar vagas por aqui.
+                </AlertDescription>
+              </Alert>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="jobsBadgeText">Badge</Label>
+                  <Input
+                    id="jobsBadgeText"
+                    value={config.jobsBadgeText}
+                    onChange={(e) => updateConfig("jobsBadgeText", e.target.value)}
+                    placeholder="Ex: Oportunidades"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="jobsSectionTitle">Título da Seção</Label>
+                  <Input
+                    id="jobsSectionTitle"
+                    value={config.jobsSectionTitle}
+                    onChange={(e) => updateConfig("jobsSectionTitle", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="jobsSectionSubtitle">Subtítulo</Label>
+                  <Input
+                    id="jobsSectionSubtitle"
+                    value={config.jobsSectionSubtitle}
+                    onChange={(e) => updateConfig("jobsSectionSubtitle", e.target.value)}
+                  />
+                </div>
+              </div>
 
           <Separator />
 
@@ -850,6 +945,8 @@ export default function LandingPageSettings() {
               placeholder="Ex: Candidatar-se"
             />
           </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -905,6 +1002,27 @@ export default function LandingPageSettings() {
               </div>
             </>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Footer */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Rodapé</CardTitle>
+          <CardDescription>
+            Configure o texto do rodapé da página
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Label htmlFor="footerText">Texto do Rodapé</Label>
+            <Input
+              id="footerText"
+              value={config.footerText}
+              onChange={(e) => updateConfig("footerText", e.target.value)}
+              placeholder="Ex: Desenvolvido com 💜 pelo time de R&S"
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

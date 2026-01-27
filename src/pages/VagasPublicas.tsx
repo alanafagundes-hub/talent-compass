@@ -174,7 +174,7 @@ export default function VagasPublicas() {
             size="sm" 
             style={{ backgroundColor: config.secondaryColor }}
           >
-            Ver Vagas
+            {config.headerCtaText}
           </Button>
         </div>
       </header>
@@ -222,7 +222,7 @@ export default function VagasPublicas() {
             style={{ borderColor: config.secondaryColor, color: config.secondaryColor }}
           >
             <Sparkles className="h-4 w-4 mr-2" />
-            Estamos contratando!
+            {config.heroBadgeText}
           </Badge>
           
           <h1 className={cn(
@@ -285,7 +285,7 @@ export default function VagasPublicas() {
               )}
               asChild
             >
-              <a href="#about">Conheça a {config.companyName}</a>
+              <a href="#about">{config.heroSecondaryCta}</a>
             </Button>
           </div>
           
@@ -311,7 +311,7 @@ export default function VagasPublicas() {
           
           <div className="container max-w-6xl mx-auto px-4 relative z-10">
             <div className="text-center mb-12">
-              <Badge variant="outline" className="mb-4">Nosso Impacto</Badge>
+              <Badge variant="outline" className="mb-4">{config.statisticsBadgeText}</Badge>
               <h2 className="text-3xl sm:text-4xl font-bold">
                 {config.statisticsSectionTitle}
               </h2>
@@ -387,10 +387,11 @@ export default function VagasPublicas() {
       )}
 
       {/* About/Culture Section */}
-      <section ref={aboutSectionRef} id="about" className={cn("py-24", getSectionBg(false))}>
+      {config.showCultureSection && (
+        <section ref={aboutSectionRef} id="about" className={cn("py-24", getSectionBg(false))}>
         <div className="container max-w-6xl mx-auto px-4">
           <div className="text-center mb-16">
-            <Badge variant="outline" className="mb-4">Sobre nós</Badge>
+            <Badge variant="outline" className="mb-4">{config.cultureBadgeText}</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold">
               {config.aboutTitle}
             </h2>
@@ -457,12 +458,14 @@ export default function VagasPublicas() {
           )}
         </div>
       </section>
+      )}
 
       {/* Jobs Section */}
-      <section ref={jobsSectionRef} id="vagas" className={cn("py-24 scroll-mt-20", getSectionBg(true))}>
+      {config.showJobsSection && (
+        <section ref={jobsSectionRef} id="vagas" className={cn("py-24 scroll-mt-20", getSectionBg(true))}>
         <div className="container max-w-5xl mx-auto px-4">
           <div className="text-center mb-12">
-            <Badge variant="outline" className="mb-4">Oportunidades</Badge>
+            <Badge variant="outline" className="mb-4">{config.jobsBadgeText}</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold">
               {config.jobsSectionTitle}
             </h2>
@@ -631,6 +634,7 @@ export default function VagasPublicas() {
           )}
         </div>
       </section>
+      )}
 
       {/* CTA Section */}
       {config.showTalentPoolCta && (
@@ -668,7 +672,7 @@ export default function VagasPublicas() {
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Desenvolvido com 💜 pelo time de R&S
+              {config.footerText}
             </p>
           </div>
         </div>
