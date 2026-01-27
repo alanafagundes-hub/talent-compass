@@ -25,6 +25,7 @@ import {
 import logoDot from "@/assets/logo-dot.png";
 import { useLandingPageConfig, getIconComponent, defaultLandingPageConfig, type LandingPageConfig } from "@/hooks/useLandingPageConfig";
 import { usePublicJobs, usePublicAreas } from "@/hooks/usePublicJobs";
+import { cn } from "@/lib/utils";
 
 // Job level labels
 const jobLevelLabels: Record<string, string> = {
@@ -54,7 +55,7 @@ export default function VagasPublicas() {
   const { jobs, isLoading: jobsLoading } = usePublicJobs();
   const { areas, getAreaById, isLoading: areasLoading } = usePublicAreas();
   
-  // Force dark mode on public pages
+  // Force dark mode on public pages - MANDATORY (no light mode allowed)
   useEffect(() => {
     setTheme('dark');
   }, [setTheme]);
@@ -81,12 +82,33 @@ export default function VagasPublicas() {
     return matchesSearch && matchesArea;
   });
 
-  // Generate dynamic primary color styles
+  // Generate dynamic styles based on config
   const primaryColorStyle = {
     "--lp-primary": config.primaryColor,
     "--lp-primary-light": `${config.primaryColor}20`,
     "--lp-primary-medium": `${config.primaryColor}40`,
+    "--lp-secondary": config.secondaryColor,
   } as React.CSSProperties;
+
+  // Style helpers based on controlled options
+  const isContrasted = config.backgroundStyle === "dark-contrasted";
+  const isBorderedCards = config.cardStyle === "bordered";
+  const isCompactHero = config.heroStyle === "compact";
+
+  // Card classes based on style
+  const getCardClasses = (extraClasses?: string) => cn(
+    "transition-all duration-300",
+    isBorderedCards 
+      ? "bg-transparent border border-border/50 backdrop-blur-sm" 
+      : "bg-card/80 border-0 shadow-lg",
+    extraClasses
+  );
+
+  // Section background based on style
+  const getSectionBg = (isAlternate: boolean) => {
+    if (!isContrasted) return "";
+    return isAlternate ? "bg-muted/20" : "";
+  };
 
   if (isLoading) {
     return (
@@ -112,14 +134,21 @@ export default function VagasPublicas() {
               <span className="font-semibold text-lg">{config.companyName}</span>
             )}
           </div>
-          <Button onClick={scrollToJobs} size="sm" style={{ backgroundColor: config.primaryColor }}>
+          <Button 
+            onClick={scrollToJobs} 
+            size="sm" 
+            style={{ backgroundColor: config.secondaryColor }}
+          >
             Ver Vagas
           </Button>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-16">
+      <section className={cn(
+        "relative flex items-center justify-center overflow-hidden pt-16",
+        isCompactHero ? "min-h-[60vh] py-16" : "min-h-[90vh]"
+      )}>
         {/* Background gradient with dynamic color */}
         <div 
           className="absolute inset-0" 
@@ -134,23 +163,39 @@ export default function VagasPublicas() {
           }} 
         />
         
-        {/* Decorative elements */}
-        <div 
-          className="absolute top-1/4 left-10 w-72 h-72 rounded-full blur-3xl animate-pulse" 
-          style={{ backgroundColor: `${config.primaryColor}15` }}
-        />
-        <div 
-          className="absolute bottom-1/4 right-10 w-96 h-96 rounded-full blur-3xl animate-pulse" 
-          style={{ backgroundColor: `${config.primaryColor}10` }}
-        />
+        {/* Decorative elements - only for prominent hero */}
+        {!isCompactHero && (
+          <>
+            <div 
+              className="absolute top-1/4 left-10 w-72 h-72 rounded-full blur-3xl animate-pulse" 
+              style={{ backgroundColor: `${config.primaryColor}15` }}
+            />
+            <div 
+              className="absolute bottom-1/4 right-10 w-96 h-96 rounded-full blur-3xl animate-pulse" 
+              style={{ backgroundColor: `${config.primaryColor}10` }}
+            />
+          </>
+        )}
         
-        <div className="container max-w-5xl mx-auto px-4 py-20 text-center relative z-10">
-          <Badge variant="secondary" className="mb-6 px-4 py-2 text-sm font-medium">
+        <div className={cn(
+          "container max-w-5xl mx-auto px-4 text-center relative z-10",
+          isCompactHero ? "py-12" : "py-20"
+        )}>
+          <Badge 
+            variant="secondary" 
+            className="mb-6 px-4 py-2 text-sm font-medium"
+            style={{ borderColor: config.secondaryColor, color: config.secondaryColor }}
+          >
             <Sparkles className="h-4 w-4 mr-2" />
             Estamos contratando!
           </Badge>
           
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
+          <h1 className={cn(
+            "font-bold tracking-tight leading-tight",
+            isCompactHero 
+              ? "text-3xl sm:text-4xl md:text-5xl" 
+              : "text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
+          )}>
             {config.heroHeadline.split(" ").slice(0, -2).join(" ")}
             <br />
             <span style={{ color: config.primaryColor }}>
@@ -158,28 +203,48 @@ export default function VagasPublicas() {
             </span>
           </h1>
           
-          <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          <p className={cn(
+            "mt-6 text-muted-foreground max-w-2xl mx-auto leading-relaxed",
+            isCompactHero ? "text-base sm:text-lg" : "text-lg sm:text-xl"
+          )}>
             {config.heroSubheadline}
           </p>
           
-          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+          <div className={cn(
+            "flex flex-col sm:flex-row gap-4 justify-center",
+            isCompactHero ? "mt-8" : "mt-10"
+          )}>
             <Button 
               size="lg" 
               onClick={scrollToJobs} 
-              className="text-lg px-8 py-6 h-auto"
-              style={{ backgroundColor: config.primaryColor }}
+              className={cn(
+                "px-8 h-auto",
+                isCompactHero ? "py-4 text-base" : "py-6 text-lg"
+              )}
+              style={{ backgroundColor: config.secondaryColor }}
             >
               {config.heroCta}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button size="lg" variant="outline" className="text-lg px-8 py-6 h-auto" asChild>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className={cn(
+                "px-8 h-auto",
+                isCompactHero ? "py-4 text-base" : "py-6 text-lg"
+              )}
+              asChild
+            >
               <a href="#about">Conheça a {config.companyName}</a>
             </Button>
           </div>
           
           {/* Stats */}
           {config.showStats && (
-            <div className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto">
+            <div className={cn(
+              "grid grid-cols-3 gap-8 max-w-lg mx-auto",
+              isCompactHero ? "mt-10" : "mt-16"
+            )}>
               <div className="text-center">
                 <p className="text-3xl sm:text-4xl font-bold" style={{ color: config.primaryColor }}>
                   {config.stats.jobs}
@@ -201,16 +266,18 @@ export default function VagasPublicas() {
             </div>
           )}
           
-          {/* Scroll indicator */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-            <ChevronDown className="h-8 w-8 text-muted-foreground" />
-          </div>
+          {/* Scroll indicator - only for prominent hero */}
+          {!isCompactHero && (
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+              <ChevronDown className="h-8 w-8 text-muted-foreground" />
+            </div>
+          )}
         </div>
       </section>
 
       {/* Statistics Section (Employer Branding) */}
       {config.showStatisticsSection && config.statistics.length > 0 && (
-        <section className="py-20 relative overflow-hidden">
+        <section className={cn("py-20 relative overflow-hidden", getSectionBg(true))}>
           {/* Background */}
           <div 
             className="absolute inset-0"
@@ -241,7 +308,9 @@ export default function VagasPublicas() {
               {config.statistics.map((stat) => (
                 <Card 
                   key={stat.id}
-                  className="relative overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm text-center group hover:shadow-xl transition-all duration-300"
+                  className={cn(
+                    getCardClasses("relative overflow-hidden text-center group hover:shadow-xl")
+                  )}
                 >
                   {/* Accent line */}
                   <div 
@@ -273,7 +342,7 @@ export default function VagasPublicas() {
       )}
 
       {/* About/Culture Section */}
-      <section id="about" className="py-24 bg-muted/30">
+      <section id="about" className={cn("py-24", getSectionBg(false))}>
         <div className="container max-w-6xl mx-auto px-4">
           <div className="text-center mb-16">
             <Badge variant="outline" className="mb-4">Sobre nós</Badge>
@@ -291,10 +360,9 @@ export default function VagasPublicas() {
               return (
                 <Card 
                   key={value.id} 
-                  className="group relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300"
-                  style={{ 
-                    ["--hover-border-color" as string]: `${config.primaryColor}50`,
-                  }}
+                  className={cn(
+                    getCardClasses("group hover:shadow-lg")
+                  )}
                 >
                   <CardContent className="p-6">
                     <div 
@@ -316,7 +384,7 @@ export default function VagasPublicas() {
       </section>
 
       {/* Jobs Section */}
-      <section ref={jobsSectionRef} id="vagas" className="py-24 scroll-mt-20">
+      <section ref={jobsSectionRef} id="vagas" className={cn("py-24 scroll-mt-20", getSectionBg(true))}>
         <div className="container max-w-5xl mx-auto px-4">
           <div className="text-center mb-12">
             <Badge variant="outline" className="mb-4">Oportunidades</Badge>
@@ -329,7 +397,10 @@ export default function VagasPublicas() {
           </div>
 
           {/* Filters */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center mb-8 p-4 rounded-xl bg-muted/30 border border-border/50">
+          <div className={cn(
+            "flex flex-col gap-4 sm:flex-row sm:items-center mb-8 p-4 rounded-xl",
+            isBorderedCards ? "border border-border/50" : "bg-muted/30"
+          )}>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -381,10 +452,9 @@ export default function VagasPublicas() {
                 return (
                   <Card 
                     key={job.id} 
-                    className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
-                    style={{
-                      ["--hover-shadow-color" as string]: `${config.primaryColor}10`,
-                    }}
+                    className={cn(
+                      getCardClasses("group overflow-hidden hover:shadow-xl hover:-translate-y-1")
+                    )}
                   >
                     <CardContent className="p-6">
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -396,7 +466,11 @@ export default function VagasPublicas() {
                               </Badge>
                             )}
                             {job.is_remote && (
-                              <Badge variant="outline" className="text-xs border-accent/50 text-accent">
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs"
+                                style={{ borderColor: config.secondaryColor, color: config.secondaryColor }}
+                              >
                                 Remoto
                               </Badge>
                             )}
@@ -423,19 +497,15 @@ export default function VagasPublicas() {
                           
                           {job.description && (
                             <p className="mt-3 text-sm text-muted-foreground line-clamp-2">
-                              {job.description.substring(0, 150)}...
+                              {job.description}
                             </p>
                           )}
                         </div>
                         
                         <div className="flex-shrink-0">
-                          <Button 
-                            asChild 
-                            className="w-full lg:w-auto"
-                            style={{ backgroundColor: config.primaryColor }}
-                          >
-                            <Link to={`/carreiras/${job.id}`}>
-                              Candidatar-se
+                          <Button asChild style={{ backgroundColor: config.secondaryColor }}>
+                            <Link to={`/vaga/${job.id}`}>
+                              Ver Detalhes
                               <ArrowRight className="ml-2 h-4 w-4" />
                             </Link>
                           </Button>
@@ -451,45 +521,42 @@ export default function VagasPublicas() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 relative overflow-hidden">
-        <div 
-          className="absolute inset-0"
-          style={{ 
-            background: `linear-gradient(135deg, ${config.primaryColor}15, ${config.primaryColor}05)` 
-          }}
-        />
-        
-        <div className="container max-w-4xl mx-auto px-4 text-center relative z-10">
-          <h2 className="text-3xl sm:text-4xl font-bold">
-            {config.ctaTitle}
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            {config.ctaSubtitle}
-          </p>
-          <Button 
-            size="lg" 
-            className="mt-8 text-lg px-8 py-6 h-auto"
-            style={{ backgroundColor: config.primaryColor }}
-            onClick={scrollToJobs}
-          >
-            {config.ctaButtonText}
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-        </div>
-      </section>
+      {config.showTalentPoolCta && (
+        <section className={cn("py-24", getSectionBg(false))}>
+          <div className="container max-w-4xl mx-auto px-4 text-center">
+            <h2 className="text-3xl sm:text-4xl font-bold">
+              {config.ctaTitle}
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+              {config.ctaSubtitle}
+            </p>
+            <Button 
+              size="lg" 
+              className="mt-8 text-lg px-8 py-6 h-auto"
+              style={{ backgroundColor: config.secondaryColor }}
+              asChild
+            >
+              <Link to="/cadastro">
+                {config.ctaButtonText}
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
-      <footer className="py-12 border-t border-border bg-muted/20">
+      <footer className="py-8 border-t border-border">
         <div className="container max-w-6xl mx-auto px-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <img src={logoSrc} alt={config.companyName} className="h-6 w-auto opacity-70" />
-              {config.companyName && (
-                <span className="text-sm text-muted-foreground">{config.companyName}</span>
-              )}
+            <div className="flex items-center gap-2">
+              <img src={logoSrc} alt={config.companyName} className="h-6 w-auto" />
+              <span className="text-sm text-muted-foreground">
+                © {new Date().getFullYear()} {config.companyName}. Todos os direitos reservados.
+              </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} {config.companyName}. Todos os direitos reservados.
+              Desenvolvido com 💜 pelo time de R&S
             </p>
           </div>
         </div>

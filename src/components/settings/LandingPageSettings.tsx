@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   Save, 
   Eye, 
@@ -18,16 +19,29 @@ import {
   GripVertical,
   BarChart3,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Layout,
+  Square,
+  Monitor,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   useLandingPageConfig, 
   defaultLandingPageConfig,
   iconMap,
+  primaryColorPresets,
+  secondaryColorPresets,
+  backgroundStyleOptions,
+  cardStyleOptions,
+  heroStyleOptions,
   type LandingPageConfig,
   type ValueCard,
-  type StatisticItem
+  type StatisticItem,
+  type BackgroundStyle,
+  type CardStyle,
+  type HeroStyle,
 } from "@/hooks/useLandingPageConfig";
 
 const iconOptions = Object.keys(iconMap).map(key => ({
@@ -47,17 +61,6 @@ const iconOptions = Object.keys(iconMap).map(key => ({
          key === "CheckCircle" ? "Verificado" :
          key === "Trophy" ? "Troféu" : key,
 }));
-
-const colorPresets = [
-  { name: "Roxo", value: "#8B5CF6" },
-  { name: "Azul", value: "#3B82F6" },
-  { name: "Verde", value: "#10B981" },
-  { name: "Rosa", value: "#EC4899" },
-  { name: "Laranja", value: "#F97316" },
-  { name: "Ciano", value: "#06B6D4" },
-  { name: "Índigo", value: "#6366F1" },
-  { name: "Vermelho", value: "#EF4444" },
-];
 
 export default function LandingPageSettings() {
   const { config: savedConfig, saveConfig, isLoading } = useLandingPageConfig();
@@ -212,7 +215,16 @@ export default function LandingPageSettings() {
         </div>
       </div>
 
-      {/* Branding */}
+      {/* Governance Notice */}
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          A identidade visual segue um modelo de <strong>parametrização controlada</strong> para 
+          garantir consistência e qualidade. Fontes, CSS e layout são gerenciados automaticamente.
+        </AlertDescription>
+      </Alert>
+
+      {/* Branding Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -220,7 +232,7 @@ export default function LandingPageSettings() {
             Identidade Visual
           </CardTitle>
           <CardDescription>
-            Configure as cores e logo da sua página de carreiras
+            Configure cores e marca da página de carreiras
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -250,10 +262,16 @@ export default function LandingPageSettings() {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <Separator />
+
+          {/* Primary Color */}
+          <div className="space-y-3">
             <Label>Cor Principal</Label>
+            <p className="text-sm text-muted-foreground">
+              Usada em títulos, destaques e elementos principais
+            </p>
             <div className="flex flex-wrap gap-3">
-              {colorPresets.map((color) => (
+              {primaryColorPresets.map((color) => (
                 <button
                   key={color.value}
                   type="button"
@@ -276,6 +294,116 @@ export default function LandingPageSettings() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Secondary Color */}
+          <div className="space-y-3">
+            <Label>Cor Secundária (CTAs e Links)</Label>
+            <p className="text-sm text-muted-foreground">
+              Usada exclusivamente em botões de ação, links e badges
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {secondaryColorPresets.map((color) => (
+                <button
+                  key={color.value}
+                  type="button"
+                  className={`h-10 w-10 rounded-lg border-2 transition-all hover:scale-110 ${
+                    config.secondaryColor === color.value 
+                      ? 'ring-2 ring-offset-2 ring-primary border-primary' 
+                      : 'border-transparent'
+                  }`}
+                  style={{ backgroundColor: color.value }}
+                  onClick={() => updateConfig("secondaryColor", color.value)}
+                  title={color.name}
+                />
+              ))}
+              <div className="flex items-center gap-2">
+                <Input
+                  type="color"
+                  value={config.secondaryColor}
+                  onChange={(e) => updateConfig("secondaryColor", e.target.value)}
+                  className="h-10 w-14 cursor-pointer p-1"
+                />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Visual Style Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Layout className="h-5 w-5" />
+            Estilo Visual
+          </CardTitle>
+          <CardDescription>
+            Escolha entre opções pré-definidas de layout e estilo
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Background Style */}
+          <div className="space-y-3">
+            <Label>Estilo de Fundo</Label>
+            <RadioGroup
+              value={config.backgroundStyle}
+              onValueChange={(value) => updateConfig("backgroundStyle", value as BackgroundStyle)}
+              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+            >
+              {backgroundStyleOptions.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.value} id={`bg-${option.value}`} />
+                  <Label htmlFor={`bg-${option.value}`} className="flex flex-col cursor-pointer">
+                    <span className="font-medium">{option.label}</span>
+                    <span className="text-xs text-muted-foreground">{option.description}</span>
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          <Separator />
+
+          {/* Card Style */}
+          <div className="space-y-3">
+            <Label>Estilo de Cards</Label>
+            <RadioGroup
+              value={config.cardStyle}
+              onValueChange={(value) => updateConfig("cardStyle", value as CardStyle)}
+              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+            >
+              {cardStyleOptions.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.value} id={`card-${option.value}`} />
+                  <Label htmlFor={`card-${option.value}`} className="flex flex-col cursor-pointer">
+                    <span className="font-medium">{option.label}</span>
+                    <span className="text-xs text-muted-foreground">{option.description}</span>
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          <Separator />
+
+          {/* Hero Style */}
+          <div className="space-y-3">
+            <Label>Estilo do Hero</Label>
+            <RadioGroup
+              value={config.heroStyle}
+              onValueChange={(value) => updateConfig("heroStyle", value as HeroStyle)}
+              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+            >
+              {heroStyleOptions.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.value} id={`hero-${option.value}`} />
+                  <Label htmlFor={`hero-${option.value}`} className="flex flex-col cursor-pointer">
+                    <span className="font-medium">{option.label}</span>
+                    <span className="text-xs text-muted-foreground">{option.description}</span>
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
           </div>
         </CardContent>
       </Card>
