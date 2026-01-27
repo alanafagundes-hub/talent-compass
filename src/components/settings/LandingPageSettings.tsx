@@ -41,8 +41,15 @@ import {
   type BackgroundStyle,
   type CardStyle,
   type HeroStyle,
-  type HeroCtaAction,
+  type CtaAction,
 } from "@/hooks/useLandingPageConfig";
+
+// CTA action options for radio groups
+const ctaActionOptions = [
+  { value: "jobs" as const, label: "Ir para Vagas", description: "Scroll suave até a seção de vagas" },
+  { value: "talent-pool" as const, label: "Banco de Talentos", description: "Redireciona para cadastro de talentos" },
+  { value: "culture" as const, label: "Conhecer Cultura", description: "Scroll até a seção institucional" },
+];
 
 const iconOptions = Object.keys(iconMap).map(key => ({
   value: key,
@@ -445,23 +452,18 @@ export default function LandingPageSettings() {
             </p>
             <RadioGroup
               value={config.heroCtaAction}
-              onValueChange={(value) => updateConfig("heroCtaAction", value as HeroCtaAction)}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+              onValueChange={(value) => updateConfig("heroCtaAction", value as CtaAction)}
+              className="grid grid-cols-1 sm:grid-cols-3 gap-3"
             >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="jobs" id="cta-jobs" />
-                <Label htmlFor="cta-jobs" className="flex flex-col cursor-pointer">
-                  <span className="font-medium">Ir para Vagas</span>
-                  <span className="text-xs text-muted-foreground">Scroll suave até a seção de vagas</span>
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="talent-pool" id="cta-talent" />
-                <Label htmlFor="cta-talent" className="flex flex-col cursor-pointer">
-                  <span className="font-medium">Banco de Talentos</span>
-                  <span className="text-xs text-muted-foreground">Redireciona para cadastro de talentos</span>
-                </Label>
-              </div>
+              {ctaActionOptions.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.value} id={`hero-cta-${option.value}`} />
+                  <Label htmlFor={`hero-cta-${option.value}`} className="flex flex-col cursor-pointer">
+                    <span className="font-medium">{option.label}</span>
+                    <span className="text-xs text-muted-foreground">{option.description}</span>
+                  </Label>
+                </div>
+              ))}
             </RadioGroup>
           </div>
         </CardContent>
@@ -715,6 +717,55 @@ export default function LandingPageSettings() {
               })}
             </div>
           </div>
+
+          <Separator />
+
+          {/* CTA after Culture Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>CTA Pós-Cultura</Label>
+                <p className="text-sm text-muted-foreground">
+                  Botão exibido após os valores da empresa (tom: convite leve)
+                </p>
+              </div>
+              <Switch
+                checked={config.showCultureCta}
+                onCheckedChange={(checked) => updateConfig("showCultureCta", checked)}
+              />
+            </div>
+
+            {config.showCultureCta && (
+              <div className="space-y-4 pl-4 border-l-2 border-muted">
+                <div className="space-y-2">
+                  <Label htmlFor="cultureCta">Texto do Botão</Label>
+                  <Input
+                    id="cultureCta"
+                    value={config.cultureCta}
+                    onChange={(e) => updateConfig("cultureCta", e.target.value)}
+                    placeholder="Ex: Quero fazer parte"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label>Ação do CTA</Label>
+                  <RadioGroup
+                    value={config.cultureCtaAction}
+                    onValueChange={(value) => updateConfig("cultureCtaAction", value as CtaAction)}
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+                  >
+                    {ctaActionOptions.filter(o => o.value !== "culture").map((option) => (
+                      <div key={option.value} className="flex items-center space-x-2">
+                        <RadioGroupItem value={option.value} id={`culture-cta-${option.value}`} />
+                        <Label htmlFor={`culture-cta-${option.value}`} className="flex flex-col cursor-pointer">
+                          <span className="font-medium">{option.label}</span>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -782,6 +833,22 @@ export default function LandingPageSettings() {
                 />
               </div>
             </div>
+          </div>
+
+          <Separator />
+
+          {/* CTA on Job Cards */}
+          <div className="space-y-2">
+            <Label htmlFor="jobCardCta">Texto do Botão nas Vagas</Label>
+            <p className="text-sm text-muted-foreground">
+              Texto do botão de ação direta em cada card de vaga (tom: ação direta)
+            </p>
+            <Input
+              id="jobCardCta"
+              value={config.jobCardCta}
+              onChange={(e) => updateConfig("jobCardCta", e.target.value)}
+              placeholder="Ex: Candidatar-se"
+            />
           </div>
         </CardContent>
       </Card>
