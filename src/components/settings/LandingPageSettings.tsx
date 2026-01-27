@@ -40,6 +40,7 @@ import {
   type BackgroundStyle,
   type CardStyle,
   type HeroStyle,
+  type HeroCtaAction,
 } from "@/hooks/useLandingPageConfig";
 
 const iconOptions = Object.keys(iconMap).map(key => ({
@@ -82,13 +83,7 @@ export default function LandingPageSettings() {
     setHasChanges(true);
   };
 
-  const updateStats = (key: keyof LandingPageConfig["stats"], value: string) => {
-    setConfig(prev => ({
-      ...prev,
-      stats: { ...prev.stats, [key]: value }
-    }));
-    setHasChanges(true);
-  };
+  // Removed: updateStats function (stats removed from Hero)
 
   const updateValue = (id: string, field: keyof ValueCard, value: string) => {
     setConfig(prev => ({
@@ -441,47 +436,33 @@ export default function LandingPageSettings() {
 
           <Separator />
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Exibir Estatísticas</Label>
-              <p className="text-sm text-muted-foreground">
-                Mostrar números de vagas, contratados e áreas
-              </p>
-            </div>
-            <Switch
-              checked={config.showStats}
-              onCheckedChange={(checked) => updateConfig("showStats", checked)}
-            />
+          {/* CTA Action Configuration */}
+          <div className="space-y-3">
+            <Label>Ação do CTA Principal</Label>
+            <p className="text-sm text-muted-foreground">
+              Para onde o botão principal do Hero deve direcionar
+            </p>
+            <RadioGroup
+              value={config.heroCtaAction}
+              onValueChange={(value) => updateConfig("heroCtaAction", value as HeroCtaAction)}
+              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="jobs" id="cta-jobs" />
+                <Label htmlFor="cta-jobs" className="flex flex-col cursor-pointer">
+                  <span className="font-medium">Ir para Vagas</span>
+                  <span className="text-xs text-muted-foreground">Scroll suave até a seção de vagas</span>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="talent-pool" id="cta-talent" />
+                <Label htmlFor="cta-talent" className="flex flex-col cursor-pointer">
+                  <span className="font-medium">Banco de Talentos</span>
+                  <span className="text-xs text-muted-foreground">Redireciona para cadastro de talentos</span>
+                </Label>
+              </div>
+            </RadioGroup>
           </div>
-
-          {config.showStats && (
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="statsJobs">Vagas Abertas</Label>
-                <Input
-                  id="statsJobs"
-                  value={config.stats.jobs}
-                  onChange={(e) => updateStats("jobs", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="statsHired">Pessoas Contratadas</Label>
-                <Input
-                  id="statsHired"
-                  value={config.stats.hired}
-                  onChange={(e) => updateStats("hired", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="statsAreas">Áreas de Atuação</Label>
-                <Input
-                  id="statsAreas"
-                  value={config.stats.areas}
-                  onChange={(e) => updateStats("areas", e.target.value)}
-                />
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 

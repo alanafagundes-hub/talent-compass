@@ -21,6 +21,9 @@ export type BackgroundStyle = "dark-default" | "dark-contrasted";
 export type CardStyle = "solid" | "bordered";
 export type HeroStyle = "compact" | "prominent";
 
+// Hero CTA action types
+export type HeroCtaAction = "jobs" | "talent-pool";
+
 export interface LandingPageConfig {
   // Branding (controlled parameters)
   companyName: string;
@@ -33,16 +36,11 @@ export interface LandingPageConfig {
   cardStyle: CardStyle;
   heroStyle: HeroStyle;
   
-  // Hero Section
+  // Hero Section (emotional/inspirational only)
   heroHeadline: string;
   heroSubheadline: string;
   heroCta: string;
-  showStats: boolean;
-  stats: {
-    jobs: string;
-    hired: string;
-    areas: string;
-  };
+  heroCtaAction: HeroCtaAction; // Where the CTA leads to
   
   // Statistics Section (Employer Branding)
   showStatisticsSection: boolean;
@@ -78,16 +76,11 @@ export const defaultLandingPageConfig: LandingPageConfig = {
   cardStyle: "solid",
   heroStyle: "prominent",
   
-  // Hero
+  // Hero (emotional/inspirational)
   heroHeadline: "Construa sua carreira com a gente",
   heroSubheadline: "Junte-se a uma equipe apaixonada por inovação e faça parte de projetos que transformam o mercado.",
   heroCta: "Ver vagas abertas",
-  showStats: true,
-  stats: {
-    jobs: "12",
-    hired: "150+",
-    areas: "8",
-  },
+  heroCtaAction: "jobs",
   
   // Statistics
   showStatisticsSection: true,
@@ -197,10 +190,6 @@ export function useLandingPageConfig() {
     return {
       ...defaultLandingPageConfig,
       ...saved,
-      stats: {
-        ...defaultLandingPageConfig.stats,
-        ...(saved.stats || {}),
-      },
       // Preserve arrays as-is from saved config (don't merge with defaults)
       values: saved.values ?? defaultLandingPageConfig.values,
       statistics: saved.statistics ?? defaultLandingPageConfig.statistics,
