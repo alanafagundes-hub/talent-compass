@@ -21,6 +21,7 @@ import {
   ArrowDown,
   Layout,
   AlertCircle,
+  Briefcase,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -722,13 +723,21 @@ export default function LandingPageSettings() {
         <CardHeader>
           <CardTitle>Seção de Vagas</CardTitle>
           <CardDescription>
-            Configure os textos da seção de vagas abertas
+            As vagas são carregadas automaticamente do ATS. Configure apenas os textos da seção.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Alert className="bg-muted/50">
+            <Briefcase className="h-4 w-4" />
+            <AlertDescription>
+              As vagas exibidas vêm diretamente do ATS. Apenas vagas com status "Publicada" 
+              aparecem na página de carreiras. Não é possível criar ou editar vagas por aqui.
+            </AlertDescription>
+          </Alert>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="jobsSectionTitle">Título</Label>
+              <Label htmlFor="jobsSectionTitle">Título da Seção</Label>
               <Input
                 id="jobsSectionTitle"
                 value={config.jobsSectionTitle}
@@ -742,6 +751,36 @@ export default function LandingPageSettings() {
                 value={config.jobsSectionSubtitle}
                 onChange={(e) => updateConfig("jobsSectionSubtitle", e.target.value)}
               />
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-3">
+            <Label>Estado Vazio (quando não há vagas)</Label>
+            <p className="text-sm text-muted-foreground">
+              Texto exibido quando não há vagas publicadas no ATS
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="jobsEmptyTitle" className="text-xs text-muted-foreground">Título</Label>
+                <Input
+                  id="jobsEmptyTitle"
+                  value={config.jobsEmptyTitle}
+                  onChange={(e) => updateConfig("jobsEmptyTitle", e.target.value)}
+                  placeholder="Ex: Em breve, novas oportunidades!"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="jobsEmptySubtitle" className="text-xs text-muted-foreground">Mensagem</Label>
+                <Textarea
+                  id="jobsEmptySubtitle"
+                  value={config.jobsEmptySubtitle}
+                  onChange={(e) => updateConfig("jobsEmptySubtitle", e.target.value)}
+                  placeholder="Mensagem para quando não houver vagas..."
+                  rows={2}
+                />
+              </div>
             </div>
           </div>
         </CardContent>

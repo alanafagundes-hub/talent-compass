@@ -21,6 +21,7 @@ import {
   Loader2,
   Sparkles,
   ChevronDown,
+  Home,
 } from "lucide-react";
 import logoDot from "@/assets/logo-dot.png";
 import { useLandingPageConfig, getIconComponent, defaultLandingPageConfig, type LandingPageConfig } from "@/hooks/useLandingPageConfig";
@@ -68,6 +69,7 @@ export default function VagasPublicas() {
   
   const [searchTerm, setSearchTerm] = useState("");
   const [areaFilter, setAreaFilter] = useState<string>("all");
+  const [workModelFilter, setWorkModelFilter] = useState<string>("all");
   const jobsSectionRef = useRef<HTMLDivElement>(null);
 
   const isLoading = jobsLoading || configLoading || areasLoading;
@@ -79,8 +81,22 @@ export default function VagasPublicas() {
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesArea = areaFilter === "all" || job.area_id === areaFilter;
-    return matchesSearch && matchesArea;
+    const matchesWorkModel = workModelFilter === "all" || job.work_model === workModelFilter;
+    return matchesSearch && matchesArea && matchesWorkModel;
   });
+
+  // Check if there are no jobs at all (not just filtered)
+  const hasNoJobs = jobs.length === 0;
+  // Check if no jobs after applying filters
+  const hasNoFilteredJobs = filteredJobs.length === 0 && !hasNoJobs;
+  // Check if any filter is active
+  const hasActiveFilters = searchTerm !== "" || areaFilter !== "all" || workModelFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setAreaFilter("all");
+    setWorkModelFilter("all");
+  };
 
   // Generate dynamic styles based on config
   const primaryColorStyle = {
@@ -401,47 +417,84 @@ export default function VagasPublicas() {
             </p>
           </div>
 
-          {/* Filters */}
-          <div className={cn(
-            "flex flex-col gap-4 sm:flex-row sm:items-center mb-8 p-4 rounded-xl",
-            isBorderedCards ? "border border-border/50" : "bg-muted/30"
-          )}>
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por cargo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-background"
-              />
+          {/* Filters - only show if there are jobs */}
+          {!hasNoJobs && (
+            <div className={cn(
+              "flex flex-col gap-4 sm:flex-row sm:items-center mb-8 p-4 rounded-xl",
+              isBorderedCards ? "border border-border/50" : "bg-muted/30"
+            )}>
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por cargo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-background"
+                />
+              </div>
+              <Select value={areaFilter} onValueChange={setAreaFilter}>
+                <SelectTrigger className="w-full sm:w-[180px] bg-background">
+                  <Building2 className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="Área" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as áreas</SelectItem>
+                  {areas.map((area) => (
+                    <SelectItem key={area.id} value={area.id}>
+                      {area.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={workModelFilter} onValueChange={setWorkModelFilter}>
+                <SelectTrigger className="w-full sm:w-[160px] bg-background">
+                  <Home className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="Modelo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os modelos</SelectItem>
+                  <SelectItem value="remoto">Remoto</SelectItem>
+                  <SelectItem value="presencial">Presencial</SelectItem>
+                  <SelectItem value="hibrido">Híbrido</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={areaFilter} onValueChange={setAreaFilter}>
-              <SelectTrigger className="w-full sm:w-[200px] bg-background">
-                <Building2 className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Filtrar por área" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as áreas</SelectItem>
-                {areas.map((area) => (
-                  <SelectItem key={area.id} value={area.id}>
-                    {area.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          )}
 
-          {/* Jobs List */}
-          {filteredJobs.length === 0 ? (
-            <Card className="border-dashed">
+          {/* Empty State - No jobs at all (configurable) */}
+          {hasNoJobs ? (
+            <Card className={cn(getCardClasses("border-dashed"))}>
               <CardContent className="py-16 text-center">
                 <Briefcase className="h-16 w-16 mx-auto text-muted-foreground/30" />
+                <h3 className="mt-6 text-xl font-semibold">{config.jobsEmptyTitle}</h3>
+                <p className="text-muted-foreground mt-2 max-w-md mx-auto">
+                  {config.jobsEmptySubtitle}
+                </p>
+                {config.showTalentPoolCta && (
+                  <Button 
+                    className="mt-6" 
+                    style={{ backgroundColor: config.secondaryColor }}
+                    asChild
+                  >
+                    <Link to="/cadastro">
+                      {config.ctaButtonText}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : hasNoFilteredJobs ? (
+            /* Empty State - No jobs matching filters */
+            <Card className="border-dashed">
+              <CardContent className="py-16 text-center">
+                <Search className="h-16 w-16 mx-auto text-muted-foreground/30" />
                 <h3 className="mt-6 text-xl font-semibold">Nenhuma vaga encontrada</h3>
                 <p className="text-muted-foreground mt-2 max-w-md mx-auto">
                   Não encontramos vagas com os filtros selecionados. 
-                  Tente ajustar sua busca ou volte em breve.
+                  Tente ajustar sua busca.
                 </p>
-                <Button variant="outline" className="mt-6" onClick={() => { setSearchTerm(""); setAreaFilter("all"); }}>
+                <Button variant="outline" className="mt-6" onClick={clearFilters}>
                   Limpar filtros
                 </Button>
               </CardContent>

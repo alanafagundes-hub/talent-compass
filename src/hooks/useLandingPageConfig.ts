@@ -56,6 +56,8 @@ export interface LandingPageConfig {
   // Jobs Section
   jobsSectionTitle: string;
   jobsSectionSubtitle: string;
+  jobsEmptyTitle: string;
+  jobsEmptySubtitle: string;
   
   // CTA Final
   ctaTitle: string;
@@ -106,6 +108,8 @@ export const defaultLandingPageConfig: LandingPageConfig = {
   // Jobs
   jobsSectionTitle: "Vagas Abertas",
   jobsSectionSubtitle: "Encontre a oportunidade perfeita para o próximo passo da sua carreira",
+  jobsEmptyTitle: "Em breve, novas oportunidades!",
+  jobsEmptySubtitle: "No momento não temos vagas abertas, mas estamos sempre em busca de talentos. Cadastre-se em nosso banco de talentos para ser notificado.",
   
   // CTA
   ctaTitle: "Não encontrou a vaga ideal?",
