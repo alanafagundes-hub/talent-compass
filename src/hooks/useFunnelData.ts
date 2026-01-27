@@ -549,6 +549,72 @@ export function useFunnelData(jobId: string | undefined) {
     };
   }, [jobId, fetchFunnelData]);
 
+  // Add tag to application
+  const addTag = useCallback(async (cardId: string, tagId: string) => {
+    try {
+      // Optimistic update
+      const tagToAdd = tags.find(t => t.id === tagId);
+      if (tagToAdd) {
+        setCards(prev => prev.map(c => 
+          c.id === cardId 
+            ? { ...c, tags: [...(c.tags || []), tagToAdd] }
+            : c
+        ));
+      }
+
+      // Insert into database
+      const { error } = await supabase
+        .from('application_tags')
+        .insert({
+          application_id: cardId,
+          tag_id: tagId,
+        });
+
+      if (error) throw error;
+      return true;
+    } catch (err: any) {
+      console.error('Error adding tag:', err);
+      // Revert optimistic update
+      setCards(prev => prev.map(c => 
+        c.id === cardId 
+          ? { ...c, tags: (c.tags || []).filter(t => t.id !== tagId) }
+          : c
+      ));
+      return false;
+    }
+  }, [tags]);
+
+  // Remove tag from application
+  const removeTag = useCallback(async (cardId: string, tagId: string) => {
+    try {
+      // Store original tags for potential rollback
+      const card = cards.find(c => c.id === cardId);
+      const originalTags = card?.tags || [];
+
+      // Optimistic update
+      setCards(prev => prev.map(c => 
+        c.id === cardId 
+          ? { ...c, tags: (c.tags || []).filter(t => t.id !== tagId) }
+          : c
+      ));
+
+      // Delete from database
+      const { error } = await supabase
+        .from('application_tags')
+        .delete()
+        .eq('application_id', cardId)
+        .eq('tag_id', tagId);
+
+      if (error) throw error;
+      return true;
+    } catch (err: any) {
+      console.error('Error removing tag:', err);
+      // Revert on error
+      await fetchFunnelData();
+      return false;
+    }
+  }, [cards, fetchFunnelData]);
+
   return {
     steps,
     cards,
@@ -560,6 +626,8 @@ export function useFunnelData(jobId: string | undefined) {
     saveRating,
     markAsLost,
     saveSteps,
+    addTag,
+    removeTag,
     refetch: fetchFunnelData,
     setCards, // For local optimistic updates
   };
