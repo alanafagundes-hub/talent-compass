@@ -19,9 +19,9 @@ import {
   BarChart3,
   ArrowUp,
   ArrowDown,
-  Layout,
   AlertCircle,
   Briefcase,
+  Moon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -32,15 +32,9 @@ import {
   iconMap,
   primaryColorPresets,
   secondaryColorPresets,
-  backgroundStyleOptions,
-  cardStyleOptions,
-  heroStyleOptions,
   type LandingPageConfig,
   type ValueCard,
   type StatisticItem,
-  type BackgroundStyle,
-  type CardStyle,
-  type HeroStyle,
   type CtaAction,
 } from "@/hooks/useLandingPageConfig";
 
@@ -220,21 +214,30 @@ export default function LandingPageSettings() {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          A identidade visual segue um modelo de <strong>parametrização controlada</strong> para 
-          garantir consistência e qualidade. Fontes, CSS e layout são gerenciados automaticamente.
+          <strong>Governança Visual:</strong> A página pública opera em <strong>dark mode fixo</strong> para 
+          garantir consistência. Apenas cores (principal e secundária) e logo são configuráveis. 
+          Fontes, CSS e layout são gerenciados automaticamente.
         </AlertDescription>
       </Alert>
 
       {/* Branding Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Palette className="h-5 w-5" />
-            Identidade Visual
-          </CardTitle>
-          <CardDescription>
-            Configure cores e marca da página de carreiras
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5" />
+                Identidade Visual
+              </CardTitle>
+              <CardDescription>
+                Configure cores e marca da página de carreiras
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted border border-border text-sm">
+              <Moon className="h-4 w-4" />
+              <span className="font-medium">Dark Mode Fixo</span>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
@@ -323,83 +326,7 @@ export default function LandingPageSettings() {
         </CardContent>
       </Card>
 
-      {/* Visual Style Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Layout className="h-5 w-5" />
-            Estilo Visual
-          </CardTitle>
-          <CardDescription>
-            Escolha entre opções pré-definidas de layout e estilo
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Background Style */}
-          <div className="space-y-3">
-            <Label>Estilo de Fundo</Label>
-            <RadioGroup
-              value={config.backgroundStyle}
-              onValueChange={(value) => updateConfig("backgroundStyle", value as BackgroundStyle)}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-            >
-              {backgroundStyleOptions.map((option) => (
-                <div key={option.value} className="flex items-center space-x-2">
-                  <RadioGroupItem value={option.value} id={`bg-${option.value}`} />
-                  <Label htmlFor={`bg-${option.value}`} className="flex flex-col cursor-pointer">
-                    <span className="font-medium">{option.label}</span>
-                    <span className="text-xs text-muted-foreground">{option.description}</span>
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
-
-          <Separator />
-
-          {/* Card Style */}
-          <div className="space-y-3">
-            <Label>Estilo de Cards</Label>
-            <RadioGroup
-              value={config.cardStyle}
-              onValueChange={(value) => updateConfig("cardStyle", value as CardStyle)}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-            >
-              {cardStyleOptions.map((option) => (
-                <div key={option.value} className="flex items-center space-x-2">
-                  <RadioGroupItem value={option.value} id={`card-${option.value}`} />
-                  <Label htmlFor={`card-${option.value}`} className="flex flex-col cursor-pointer">
-                    <span className="font-medium">{option.label}</span>
-                    <span className="text-xs text-muted-foreground">{option.description}</span>
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
-
-          <Separator />
-
-          {/* Hero Style */}
-          <div className="space-y-3">
-            <Label>Estilo do Hero</Label>
-            <RadioGroup
-              value={config.heroStyle}
-              onValueChange={(value) => updateConfig("heroStyle", value as HeroStyle)}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-            >
-              {heroStyleOptions.map((option) => (
-                <div key={option.value} className="flex items-center space-x-2">
-                  <RadioGroupItem value={option.value} id={`hero-${option.value}`} />
-                  <Label htmlFor={`hero-${option.value}`} className="flex flex-col cursor-pointer">
-                    <span className="font-medium">{option.label}</span>
-                    <span className="text-xs text-muted-foreground">{option.description}</span>
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Visual Style is now fixed - removed customization to maintain consistency */}
 
       {/* Hero Section */}
       <Card>
