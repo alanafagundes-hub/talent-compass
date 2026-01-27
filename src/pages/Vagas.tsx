@@ -19,7 +19,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import type { Job, JobStatus, CandidateSource, FormTemplate } from "@/types/ats";
+import type { Job, JobStatus, CandidateSource } from "@/types/ats";
 import { jobStatusLabels } from "@/types/ats";
 import JobCard from "@/components/jobs/JobCard";
 import JobFormDialog from "@/components/jobs/JobFormDialog";
@@ -27,17 +27,13 @@ import JobPreviewDialog from "@/components/jobs/JobPreviewDialog";
 import { toast } from "sonner";
 import { useJobs } from "@/hooks/useJobs";
 import { useAreas } from "@/hooks/useAreas";
+import { useFormTemplates } from "@/hooks/useFormTemplates";
 
-// Mock data for sources and form templates (will be moved to hooks later)
+// Mock data for sources (will be moved to hooks later)
 const mockSources: CandidateSource[] = [
   { id: "1", name: "LinkedIn", icon: "linkedin", isArchived: false, createdAt: new Date() },
   { id: "2", name: "Indicação Interna", icon: "users", isArchived: false, createdAt: new Date() },
   { id: "3", name: "Site Carreiras", icon: "globe", isArchived: false, createdAt: new Date() },
-];
-
-const mockFormTemplates: FormTemplate[] = [
-  { id: "1", name: "Formulário Padrão", fields: [], isDefault: true, isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "2", name: "Formulário Tech", fields: [], isDefault: false, isArchived: false, createdAt: new Date(), updatedAt: new Date() },
 ];
 
 // Mock candidates count per job
@@ -54,6 +50,7 @@ export default function Vagas() {
   const navigate = useNavigate();
   const { jobs, saveJob, updateJobStatus } = useJobs();
   const { areas, getAreaById } = useAreas();
+  const { templates: formTemplates } = useFormTemplates();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -322,7 +319,7 @@ export default function Vagas() {
         job={editingJob}
         areas={areas}
         sources={mockSources}
-        formTemplates={mockFormTemplates}
+        formTemplates={formTemplates}
         onSave={handleSaveJob}
       />
 

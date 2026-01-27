@@ -3,9 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -34,9 +34,11 @@ import {
   ListChecks,
   ToggleLeft,
   Upload,
-  Copy
+  Copy,
+  Loader2
 } from "lucide-react";
-import type { FormTemplate, FormField, FormFieldType } from "@/types/ats";
+import type { FormField, FormFieldType } from "@/types/ats";
+import { useFormTemplates } from "@/hooks/useFormTemplates";
 import { toast } from "sonner";
 
 const fieldTypeConfig: Record<FormFieldType, { icon: React.ReactNode; label: string }> = {
@@ -47,48 +49,12 @@ const fieldTypeConfig: Record<FormFieldType, { icon: React.ReactNode; label: str
   file_upload: { icon: <Upload className="h-4 w-4" />, label: "Upload de Arquivo" },
 };
 
-const initialTemplates: FormTemplate[] = [
-  {
-    id: "1",
-    name: "Formulário Padrão",
-    description: "Formulário básico para todas as vagas",
-    isDefault: true,
-    isArchived: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    fields: [
-      { id: "f1", label: "Nome Completo", type: "short_text", required: true, order: 1 },
-      { id: "f2", label: "E-mail", type: "short_text", required: true, order: 2 },
-      { id: "f3", label: "Telefone", type: "short_text", required: true, order: 3 },
-      { id: "f4", label: "LinkedIn", type: "short_text", required: false, order: 4 },
-      { id: "f5", label: "Por que você quer trabalhar conosco?", type: "long_text", required: true, order: 5 },
-      { id: "f6", label: "Currículo", type: "file_upload", required: true, order: 6 },
-    ],
-  },
-  {
-    id: "2",
-    name: "Formulário Tech",
-    description: "Perguntas específicas para vagas de tecnologia",
-    isDefault: false,
-    isArchived: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    fields: [
-      { id: "f1", label: "Nome Completo", type: "short_text", required: true, order: 1 },
-      { id: "f2", label: "E-mail", type: "short_text", required: true, order: 2 },
-      { id: "f3", label: "GitHub", type: "short_text", required: false, order: 3 },
-      { id: "f4", label: "Principais tecnologias", type: "multiple_choice", required: true, order: 4, options: ["React", "Node.js", "Python", "Java", "Go", "Outros"] },
-      { id: "f5", label: "Anos de experiência", type: "short_text", required: true, order: 5 },
-      { id: "f6", label: "Aceita trabalhar presencial?", type: "yes_no", required: true, order: 6 },
-    ],
-  },
-];
-
 export default function FormTemplatesSettings() {
-  const [templates, setTemplates] = useState<FormTemplate[]>(initialTemplates);
+  const { templates, isLoading, createTemplate, updateTemplate, toggleArchive, duplicateTemplate } = useFormTemplates();
   const [showArchived, setShowArchived] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<FormTemplate | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [formData, setFormData] = useState<{
     name: string;
     description: string;
@@ -104,7 +70,7 @@ export default function FormTemplatesSettings() {
   const filteredTemplates = templates.filter(t => showArchived ? t.isArchived : !t.isArchived);
 
   const openCreateDialog = () => {
-    setEditingTemplate(null);
+    setEditingTemplateId(null);
     setFormData({
       name: "",
       description: "",
@@ -114,8 +80,11 @@ export default function FormTemplatesSettings() {
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (template: FormTemplate) => {
-    setEditingTemplate(template);
+  const openEditDialog = (templateId: string) => {
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+
+    setEditingTemplateId(template.id);
     setFormData({
       name: template.name,
       description: template.description || "",
@@ -125,18 +94,8 @@ export default function FormTemplatesSettings() {
     setIsDialogOpen(true);
   };
 
-  const duplicateTemplate = (template: FormTemplate) => {
-    const newTemplate: FormTemplate = {
-      ...template,
-      id: Date.now().toString(),
-      name: `${template.name} (Cópia)`,
-      isDefault: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      fields: template.fields.map(f => ({ ...f, id: `${f.id}-copy-${Date.now()}` })),
-    };
-    setTemplates([...templates, newTemplate]);
-    toast.success("Template duplicado!");
+  const handleDuplicate = async (templateId: string) => {
+    await duplicateTemplate(templateId);
   };
 
   const addField = () => {
@@ -164,7 +123,7 @@ export default function FormTemplatesSettings() {
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name.trim()) {
       toast.error("Nome é obrigatório");
       return;
@@ -180,48 +139,38 @@ export default function FormTemplatesSettings() {
       return;
     }
 
-    if (editingTemplate) {
-      setTemplates(templates.map(t => 
-        t.id === editingTemplate.id 
-          ? { 
-              ...t, 
-              name: formData.name, 
-              description: formData.description,
-              isDefault: formData.isDefault,
-              fields: formData.fields,
-              updatedAt: new Date(),
-            }
-          : formData.isDefault ? { ...t, isDefault: false } : t
-      ));
-      toast.success("Template atualizado!");
-    } else {
-      const newTemplate: FormTemplate = {
-        id: Date.now().toString(),
-        name: formData.name,
-        description: formData.description,
-        isDefault: formData.isDefault,
-        isArchived: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        fields: formData.fields,
-      };
-      
-      if (formData.isDefault) {
-        setTemplates([...templates.map(t => ({ ...t, isDefault: false })), newTemplate]);
+    setIsSaving(true);
+    try {
+      if (editingTemplateId) {
+        await updateTemplate(editingTemplateId, formData);
       } else {
-        setTemplates([...templates, newTemplate]);
+        await createTemplate(formData);
       }
-      toast.success("Template criado!");
+      setIsDialogOpen(false);
+    } finally {
+      setIsSaving(false);
     }
-    setIsDialogOpen(false);
   };
 
-  const toggleArchive = (template: FormTemplate) => {
-    setTemplates(templates.map(t => 
-      t.id === template.id ? { ...t, isArchived: !t.isArchived } : t
-    ));
-    toast.success(template.isArchived ? "Template restaurado!" : "Template arquivado!");
+  const handleToggleArchive = async (templateId: string) => {
+    await toggleArchive(templateId);
   };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Templates de Formulário</CardTitle>
+          <CardDescription>Carregando...</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -291,7 +240,7 @@ export default function FormTemplatesSettings() {
                       variant="ghost" 
                       size="icon" 
                       className="h-8 w-8"
-                      onClick={() => duplicateTemplate(template)}
+                      onClick={() => handleDuplicate(template.id)}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -299,7 +248,7 @@ export default function FormTemplatesSettings() {
                       variant="ghost" 
                       size="icon" 
                       className="h-8 w-8"
-                      onClick={() => openEditDialog(template)}
+                      onClick={() => openEditDialog(template.id)}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -307,7 +256,7 @@ export default function FormTemplatesSettings() {
                       variant="ghost" 
                       size="icon" 
                       className="h-8 w-8"
-                      onClick={() => toggleArchive(template)}
+                      onClick={() => handleToggleArchive(template.id)}
                     >
                       {template.isArchived ? (
                         <ArchiveRestore className="h-4 w-4" />
@@ -327,7 +276,7 @@ export default function FormTemplatesSettings() {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingTemplate ? "Editar Template" : "Novo Template"}
+              {editingTemplateId ? "Editar Template" : "Novo Template"}
             </DialogTitle>
             <DialogDescription>
               Configure os campos do formulário de candidatura
@@ -443,11 +392,16 @@ export default function FormTemplatesSettings() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>
               Cancelar
             </Button>
-            <Button onClick={handleSave}>
-              {editingTemplate ? "Salvar" : "Criar"}
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : editingTemplateId ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>
