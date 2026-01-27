@@ -403,7 +403,7 @@ export default function CandidateDetailSheet({
                   <p className="text-xs text-muted-foreground mb-4">
                     Todos os dados abaixo foram preenchidos pelo candidato através do formulário da vaga.
                   </p>
-                  <ApplicationDataBlock responses={card.formResponses || []} />
+                  <ApplicationDataBlock responses={card.formResponses || []} candidate={card.candidate} />
                 </CollapsibleContent>
               </Collapsible>
 
