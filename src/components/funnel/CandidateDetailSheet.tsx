@@ -24,21 +24,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Mail,
-  Phone,
-  Linkedin,
   Calendar,
   Star,
   UserX,
   UserPlus,
   ChevronRight,
   ChevronDown,
-  ExternalLink,
   Briefcase,
   MapPin,
   AlertTriangle,
   UserCheck,
-  Copy,
+  FileText,
+  Linkedin,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -49,10 +46,9 @@ import StageEvaluationBlock, {
   type StageEvaluation,
   type StageStatus,
 } from "./StageEvaluationBlock";
-import FormResponsesBlock from "./FormResponsesBlock";
+import ApplicationDataBlock from "./ApplicationDataBlock";
 import TagsBlock from "./TagsBlock";
 import ProcessTimelineBlock from "./ProcessTimelineBlock";
-import ResumeBlock from "./ResumeBlock";
 
 interface CandidateDetailSheetProps {
   open: boolean;
@@ -99,7 +95,7 @@ export default function CandidateDetailSheet({
   const [showAdvanceBlockedDialog, setShowAdvanceBlockedDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(["stages", "profile", "resume", "form", "tags", "timeline"])
+    new Set(["applicationData", "stages", "tags", "timeline", "source"])
   );
 
   // All hooks must be called before any early returns
@@ -213,11 +209,6 @@ export default function CandidateDetailSheet({
       }
       return newSet;
     });
-  };
-
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${label} copiado!`);
   };
 
   const getStatusBadge = () => {
@@ -384,80 +375,35 @@ export default function CandidateDetailSheet({
             </div>
           </div>
 
-          {/* ========== SCROLLABLE CONTENT ========== */}
           <ScrollArea className="flex-1">
             <div className="p-6 space-y-4">
-              {/* ========== BLOCK 1: CANDIDATE DATA ========== */}
+              {/* ========== BLOCK 1: APPLICATION DATA (SINGLE SOURCE OF TRUTH) ========== */}
               <Collapsible
-                open={expandedSections.has("profile")}
-                onOpenChange={() => toggleSection("profile")}
+                open={expandedSections.has("applicationData")}
+                onOpenChange={() => toggleSection("applicationData")}
+                defaultOpen
               >
                 <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:bg-muted/50 rounded -mx-2 px-2">
-                  <h3 className="text-sm font-semibold uppercase text-muted-foreground">
-                    Dados do Candidato
+                  <h3 className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Dados da Candidatura
+                    {card.formResponses && card.formResponses.length > 0 && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        {card.formResponses.length} campos
+                      </Badge>
+                    )}
                   </h3>
-                  {expandedSections.has("profile") ? (
+                  {expandedSections.has("applicationData") ? (
                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   ) : (
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   )}
                 </CollapsibleTrigger>
-                <CollapsibleContent className="pt-3 space-y-3">
-                  {/* Email */}
-                  <div className="flex items-center gap-3 text-sm group">
-                    <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <a
-                      href={`mailto:${card.candidate.email}`}
-                      className="text-primary hover:underline truncate"
-                    >
-                      {card.candidate.email}
-                    </a>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
-                      onClick={() => copyToClipboard(card.candidate.email, "E-mail")}
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-
-                  {/* Phone */}
-                  {card.candidate.phone && (
-                    <div className="flex items-center gap-3 text-sm group">
-                      <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <a
-                        href={`tel:${card.candidate.phone}`}
-                        className="hover:underline"
-                      >
-                        {card.candidate.phone}
-                      </a>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
-                        onClick={() => copyToClipboard(card.candidate.phone!, "Telefone")}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* LinkedIn */}
-                  {card.candidate.linkedinUrl && (
-                    <div className="flex items-center gap-3 text-sm">
-                      <Linkedin className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <a
-                        href={card.candidate.linkedinUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline flex items-center gap-1"
-                      >
-                        Ver perfil no LinkedIn
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-                  )}
+                <CollapsibleContent className="pt-3">
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Todos os dados abaixo foram preenchidos pelo candidato através do formulário da vaga.
+                  </p>
+                  <ApplicationDataBlock responses={card.formResponses || []} />
                 </CollapsibleContent>
               </Collapsible>
 
@@ -532,58 +478,6 @@ export default function CandidateDetailSheet({
                       )}
                     </div>
                   )}
-                </CollapsibleContent>
-              </Collapsible>
-
-              <Separator />
-
-              {/* ========== BLOCK 3: RESUME ========== */}
-              <Collapsible
-                open={expandedSections.has("resume")}
-                onOpenChange={() => toggleSection("resume")}
-              >
-                <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:bg-muted/50 rounded -mx-2 px-2">
-                  <h3 className="text-sm font-semibold uppercase text-muted-foreground">
-                    Currículo
-                  </h3>
-                  {expandedSections.has("resume") ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pt-3">
-                  <ResumeBlock
-                    resumeUrl={card.candidate.resumeUrl}
-                    candidateName={card.candidate.name}
-                  />
-                </CollapsibleContent>
-              </Collapsible>
-
-              <Separator />
-
-              {/* ========== BLOCK 4: FORM RESPONSES ========== */}
-              <Collapsible
-                open={expandedSections.has("form")}
-                onOpenChange={() => toggleSection("form")}
-              >
-                <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:bg-muted/50 rounded -mx-2 px-2">
-                  <h3 className="text-sm font-semibold uppercase text-muted-foreground">
-                    Respostas do Formulário
-                    {card.formResponses && card.formResponses.length > 0 && (
-                      <Badge variant="secondary" className="ml-2 text-[10px]">
-                        {card.formResponses.length}
-                      </Badge>
-                    )}
-                  </h3>
-                  {expandedSections.has("form") ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pt-3">
-                  <FormResponsesBlock responses={card.formResponses || []} />
                 </CollapsibleContent>
               </Collapsible>
 
