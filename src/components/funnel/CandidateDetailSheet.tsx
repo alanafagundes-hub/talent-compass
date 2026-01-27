@@ -87,16 +87,17 @@ export default function CandidateDetailSheet({
   const [showAdvanceBlockedDialog, setShowAdvanceBlockedDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  if (!card) return null;
-
-  const currentStep = steps.find((s) => s.id === card.stepId);
-  const currentStepIndex = steps.findIndex((s) => s.id === card.stepId);
-  const canAdvance = currentStepIndex < steps.length - 1;
-  const sortedSteps = [...steps].sort((a, b) => a.order - b.order);
+  // All hooks must be called before any early returns
+  const currentStep = card ? steps.find((s) => s.id === card.stepId) : undefined;
+  const currentStepIndex = card ? steps.findIndex((s) => s.id === card.stepId) : -1;
+  const canAdvance = currentStepIndex >= 0 && currentStepIndex < steps.length - 1;
+  const sortedSteps = useMemo(() => [...steps].sort((a, b) => a.order - b.order), [steps]);
 
   // Build evaluations map from existing ratings + local changes
   const evaluationsMap = useMemo(() => {
     const map: Record<string, StageEvaluation> = {};
+
+    if (!card) return map;
 
     // First, populate from existing stage ratings
     if (card.stageRatings) {
@@ -117,20 +118,20 @@ export default function CandidateDetailSheet({
     }
 
     return map;
-  }, [card.stageRatings, localEvaluations]);
+  }, [card, localEvaluations]);
 
   // Get status for each stage
-  const getStageStatus = (stepIndex: number): StageStatus => {
+  const getStageStatus = useCallback((stepIndex: number): StageStatus => {
     if (stepIndex < currentStepIndex) {
       return "completed";
     } else if (stepIndex === currentStepIndex) {
       return "in_progress";
     }
     return "not_started";
-  };
+  }, [currentStepIndex]);
 
   // Check if current stage has required evaluation
-  const currentStageEvaluation = evaluationsMap[card.stepId];
+  const currentStageEvaluation = card ? evaluationsMap[card.stepId] : undefined;
   const hasCurrentStageNotes = currentStageEvaluation?.notes?.trim();
 
   // Calculate average rating
@@ -142,15 +143,15 @@ export default function CandidateDetailSheet({
     return Math.round(ratings.reduce((sum, r) => sum + r, 0) / ratings.length);
   }, [evaluationsMap]);
 
-  const formatDate = (date: Date) => {
+  const formatDate = useCallback((date: Date) => {
     return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-  };
+  }, []);
 
-  const formatDateTime = (date: Date) => {
+  const formatDateTime = useCallback((date: Date) => {
     return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-  };
+  }, []);
 
-  const handleAddComment = () => {
+  const handleAddComment = useCallback(() => {
     if (!newComment.trim()) return;
 
     setComments((prev) => [
@@ -163,7 +164,7 @@ export default function CandidateDetailSheet({
       },
     ]);
     setNewComment("");
-  };
+  }, [newComment]);
 
   const handleSaveEvaluation = useCallback(
     async (stepId: string, rating: number | null, notes: string) => {
@@ -194,13 +195,17 @@ export default function CandidateDetailSheet({
     [card, onSaveStageEvaluation]
   );
 
-  const handleAdvanceClick = () => {
+  const handleAdvanceClick = useCallback(() => {
     if (!hasCurrentStageNotes) {
       setShowAdvanceBlockedDialog(true);
       return;
     }
     onAdvanceStage();
-  };
+  }, [hasCurrentStageNotes, onAdvanceStage]);
+
+  // Early return AFTER all hooks
+  if (!card) return null;
+
 
   return (
     <>
