@@ -216,15 +216,25 @@ export default function VagasPublicas() {
           )}>
             <Button 
               size="lg" 
-              onClick={scrollToJobs} 
+              onClick={config.heroCtaAction === "jobs" ? scrollToJobs : undefined}
+              asChild={config.heroCtaAction === "talent-pool"}
               className={cn(
                 "px-8 h-auto",
                 isCompactHero ? "py-4 text-base" : "py-6 text-lg"
               )}
               style={{ backgroundColor: config.secondaryColor }}
             >
-              {config.heroCta}
-              <ArrowRight className="ml-2 h-5 w-5" />
+              {config.heroCtaAction === "talent-pool" ? (
+                <Link to="/cadastro">
+                  {config.heroCta}
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              ) : (
+                <>
+                  {config.heroCta}
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </>
+              )}
             </Button>
             <Button 
               size="lg" 
@@ -238,33 +248,6 @@ export default function VagasPublicas() {
               <a href="#about">Conheça a {config.companyName}</a>
             </Button>
           </div>
-          
-          {/* Stats */}
-          {config.showStats && (
-            <div className={cn(
-              "grid grid-cols-3 gap-8 max-w-lg mx-auto",
-              isCompactHero ? "mt-10" : "mt-16"
-            )}>
-              <div className="text-center">
-                <p className="text-3xl sm:text-4xl font-bold" style={{ color: config.primaryColor }}>
-                  {config.stats.jobs}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">Vagas Abertas</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl sm:text-4xl font-bold" style={{ color: config.primaryColor }}>
-                  {config.stats.hired}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">Contratados</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl sm:text-4xl font-bold" style={{ color: config.primaryColor }}>
-                  {config.stats.areas}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">Áreas</p>
-              </div>
-            </div>
-          )}
           
           {/* Scroll indicator - only for prominent hero */}
           {!isCompactHero && (
