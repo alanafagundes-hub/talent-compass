@@ -71,11 +71,30 @@ export default function VagasPublicas() {
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const [workModelFilter, setWorkModelFilter] = useState<string>("all");
   const jobsSectionRef = useRef<HTMLDivElement>(null);
+  const aboutSectionRef = useRef<HTMLDivElement>(null);
 
   const isLoading = jobsLoading || configLoading || areasLoading;
 
   const scrollToJobs = () => {
     jobsSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const scrollToCulture = () => {
+    aboutSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Helper to get CTA action handler
+  const getCtaAction = (action: string) => {
+    switch (action) {
+      case "jobs":
+        return { onClick: scrollToJobs, asChild: false, href: undefined };
+      case "culture":
+        return { onClick: scrollToCulture, asChild: false, href: undefined };
+      case "talent-pool":
+        return { onClick: undefined, asChild: true, href: "/cadastro" };
+      default:
+        return { onClick: scrollToJobs, asChild: false, href: undefined };
+    }
   };
 
   const filteredJobs = jobs.filter((job) => {
@@ -230,28 +249,33 @@ export default function VagasPublicas() {
             "flex flex-col sm:flex-row gap-4 justify-center",
             isCompactHero ? "mt-8" : "mt-10"
           )}>
-            <Button 
-              size="lg" 
-              onClick={config.heroCtaAction === "jobs" ? scrollToJobs : undefined}
-              asChild={config.heroCtaAction === "talent-pool"}
-              className={cn(
-                "px-8 h-auto",
-                isCompactHero ? "py-4 text-base" : "py-6 text-lg"
-              )}
-              style={{ backgroundColor: config.secondaryColor }}
-            >
-              {config.heroCtaAction === "talent-pool" ? (
-                <Link to="/cadastro">
-                  {config.heroCta}
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              ) : (
-                <>
-                  {config.heroCta}
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </>
-              )}
-            </Button>
+            {(() => {
+              const ctaConfig = getCtaAction(config.heroCtaAction);
+              return (
+                <Button 
+                  size="lg" 
+                  onClick={ctaConfig.onClick}
+                  asChild={ctaConfig.asChild}
+                  className={cn(
+                    "px-8 h-auto",
+                    isCompactHero ? "py-4 text-base" : "py-6 text-lg"
+                  )}
+                  style={{ backgroundColor: config.secondaryColor }}
+                >
+                  {ctaConfig.asChild ? (
+                    <Link to={ctaConfig.href!}>
+                      {config.heroCta}
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Link>
+                  ) : (
+                    <>
+                      {config.heroCta}
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </>
+                  )}
+                </Button>
+              );
+            })()}
             <Button 
               size="lg" 
               variant="outline" 
@@ -363,7 +387,7 @@ export default function VagasPublicas() {
       )}
 
       {/* About/Culture Section */}
-      <section id="about" className={cn("py-24", getSectionBg(false))}>
+      <section ref={aboutSectionRef} id="about" className={cn("py-24", getSectionBg(false))}>
         <div className="container max-w-6xl mx-auto px-4">
           <div className="text-center mb-16">
             <Badge variant="outline" className="mb-4">Sobre nós</Badge>
@@ -401,6 +425,36 @@ export default function VagasPublicas() {
               );
             })}
           </div>
+
+          {/* CTA after culture - light invitation tone */}
+          {config.showCultureCta && (
+            <div className="mt-12 text-center">
+              {(() => {
+                const ctaConfig = getCtaAction(config.cultureCtaAction);
+                return (
+                  <Button 
+                    size="lg"
+                    onClick={ctaConfig.onClick}
+                    asChild={ctaConfig.asChild}
+                    className="px-8"
+                    style={{ backgroundColor: config.secondaryColor }}
+                  >
+                    {ctaConfig.asChild ? (
+                      <Link to={ctaConfig.href!}>
+                        {config.cultureCta}
+                        <ArrowRight className="ml-2 h-5 w-5" />
+                      </Link>
+                    ) : (
+                      <>
+                        {config.cultureCta}
+                        <ArrowRight className="ml-2 h-5 w-5" />
+                      </>
+                    )}
+                  </Button>
+                );
+              })()}
+            </div>
+          )}
         </div>
       </section>
 
@@ -563,7 +617,7 @@ export default function VagasPublicas() {
                         <div className="flex-shrink-0">
                           <Button asChild style={{ backgroundColor: config.secondaryColor }}>
                             <Link to={`/vaga/${job.id}`}>
-                              Ver Detalhes
+                              {config.jobCardCta}
                               <ArrowRight className="ml-2 h-4 w-4" />
                             </Link>
                           </Button>

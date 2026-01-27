@@ -21,8 +21,8 @@ export type BackgroundStyle = "dark-default" | "dark-contrasted";
 export type CardStyle = "solid" | "bordered";
 export type HeroStyle = "compact" | "prominent";
 
-// Hero CTA action types
-export type HeroCtaAction = "jobs" | "talent-pool";
+// CTA action types
+export type CtaAction = "jobs" | "talent-pool" | "culture";
 
 export interface LandingPageConfig {
   // Branding (controlled parameters)
@@ -40,7 +40,7 @@ export interface LandingPageConfig {
   heroHeadline: string;
   heroSubheadline: string;
   heroCta: string;
-  heroCtaAction: HeroCtaAction; // Where the CTA leads to
+  heroCtaAction: CtaAction; // Where the CTA leads to
   
   // Statistics Section (Employer Branding)
   showStatisticsSection: boolean;
@@ -52,14 +52,20 @@ export interface LandingPageConfig {
   aboutTitle: string;
   aboutSubtitle: string;
   values: ValueCard[];
+  // CTA after culture section (light invitation)
+  showCultureCta: boolean;
+  cultureCta: string;
+  cultureCtaAction: CtaAction;
   
   // Jobs Section
   jobsSectionTitle: string;
   jobsSectionSubtitle: string;
   jobsEmptyTitle: string;
   jobsEmptySubtitle: string;
+  // CTA for job cards (direct action)
+  jobCardCta: string;
   
-  // CTA Final
+  // CTA Final (talent pool focus)
   ctaTitle: string;
   ctaSubtitle: string;
   ctaButtonText: string;
@@ -78,10 +84,10 @@ export const defaultLandingPageConfig: LandingPageConfig = {
   cardStyle: "solid",
   heroStyle: "prominent",
   
-  // Hero (emotional/inspirational)
+  // Hero (emotional/inspirational tone)
   heroHeadline: "Construa sua carreira com a gente",
   heroSubheadline: "Junte-se a uma equipe apaixonada por inovação e faça parte de projetos que transformam o mercado.",
-  heroCta: "Ver vagas abertas",
+  heroCta: "Explorar oportunidades",
   heroCtaAction: "jobs",
   
   // Statistics
@@ -95,7 +101,7 @@ export const defaultLandingPageConfig: LandingPageConfig = {
     { id: "4", title: "Satisfação", value: "95%", description: "dos nossos clientes" },
   ],
   
-  // About
+  // About (culture section with light invitation CTA)
   aboutTitle: "Por que trabalhar conosco?",
   aboutSubtitle: "Descubra o que faz da nossa empresa um ótimo lugar para crescer profissionalmente",
   values: [
@@ -104,17 +110,21 @@ export const defaultLandingPageConfig: LandingPageConfig = {
     { id: "3", icon: "Heart", title: "Bem-estar em Primeiro Lugar", description: "Oferecemos benefícios que cuidam de você e da sua família." },
     { id: "4", icon: "TrendingUp", title: "Crescimento Acelerado", description: "Plano de carreira estruturado com oportunidades reais de evolução." },
   ],
+  showCultureCta: true,
+  cultureCta: "Quero fazer parte",
+  cultureCtaAction: "jobs",
   
-  // Jobs
+  // Jobs (direct action tone)
   jobsSectionTitle: "Vagas Abertas",
   jobsSectionSubtitle: "Encontre a oportunidade perfeita para o próximo passo da sua carreira",
   jobsEmptyTitle: "Em breve, novas oportunidades!",
   jobsEmptySubtitle: "No momento não temos vagas abertas, mas estamos sempre em busca de talentos. Cadastre-se em nosso banco de talentos para ser notificado.",
+  jobCardCta: "Candidatar-se",
   
-  // CTA
+  // CTA Final (talent pool focus)
   ctaTitle: "Não encontrou a vaga ideal?",
   ctaSubtitle: "Cadastre-se em nosso banco de talentos e seja o primeiro a saber quando surgirem novas oportunidades na sua área.",
-  ctaButtonText: "Cadastrar no Banco de Talentos",
+  ctaButtonText: "Entrar para o Banco de Talentos",
   showTalentPoolCta: true,
 };
 
