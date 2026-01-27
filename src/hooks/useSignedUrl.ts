@@ -2,6 +2,35 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
+ * Parse Supabase storage URL to extract bucket and path
+ * Handles both public and signed URL formats
+ */
+function parseStorageUrl(url: string): { bucket: string; path: string } | null {
+  try {
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
+    
+    // URL formats:
+    // - /storage/v1/object/public/{bucket}/{path}
+    // - /storage/v1/object/sign/{bucket}/{path}
+    // - /storage/v1/object/{bucket}/{path}
+    
+    const match = pathname.match(/\/storage\/v1\/object(?:\/(?:public|sign))?\/([^/]+)\/(.+)/);
+    
+    if (match) {
+      return {
+        bucket: match[1],
+        path: decodeURIComponent(match[2])
+      };
+    }
+    
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Hook to generate signed URLs for private storage files
  * Returns a signed URL that's valid for the specified duration
  */
@@ -30,36 +59,21 @@ export function useSignedUrl(publicUrl: string | null | undefined, expiresIn: nu
       setError(null);
 
       try {
-        // Extract bucket and path from the URL
-        // URL formats:
-        // - Public: https://{project}.supabase.co/storage/v1/object/public/{bucket}/{path}
-        // - Signed: https://{project}.supabase.co/storage/v1/object/sign/{bucket}/{path}
-        const urlObj = new URL(publicUrl);
-        const pathParts = urlObj.pathname.split('/');
+        const parsed = parseStorageUrl(publicUrl);
         
-        // Find the bucket name and file path
-        const storageIndex = pathParts.indexOf('object');
-        if (storageIndex === -1) {
+        if (!parsed) {
+          console.error('Could not parse storage URL:', publicUrl);
           setSignedUrl(publicUrl);
           return;
         }
 
-        // Path structure: /storage/v1/object/{public|sign}/bucket/path/to/file
-        // Skip 'object' and the access type ('public' or 'sign')
-        const accessTypeIndex = storageIndex + 1;
-        const bucketAndPath = pathParts.slice(accessTypeIndex + 1);
-        const bucket = bucketAndPath[0];
-        const filePath = bucketAndPath.slice(1).join('/');
-
-        if (!bucket || !filePath) {
-          setSignedUrl(publicUrl);
-          return;
-        }
+        const { bucket, path } = parsed;
+        console.log('Generating signed URL for:', { bucket, path });
 
         // Generate signed URL
         const { data, error: signError } = await supabase.storage
           .from(bucket)
-          .createSignedUrl(filePath, expiresIn);
+          .createSignedUrl(path, expiresIn);
 
         if (signError) {
           console.error('Error creating signed URL:', signError);
@@ -67,6 +81,7 @@ export function useSignedUrl(publicUrl: string | null | undefined, expiresIn: nu
           // Fallback to original URL
           setSignedUrl(publicUrl);
         } else if (data?.signedUrl) {
+          console.log('Signed URL generated successfully');
           setSignedUrl(data.signedUrl);
         } else {
           setSignedUrl(publicUrl);
@@ -97,23 +112,19 @@ export async function getSignedUrl(publicUrl: string, expiresIn: number = 3600):
   if (!isSupabaseStorage) return publicUrl;
 
   try {
-    const urlObj = new URL(publicUrl);
-    const pathParts = urlObj.pathname.split('/');
+    const parsed = parseStorageUrl(publicUrl);
     
-    const storageIndex = pathParts.indexOf('object');
-    if (storageIndex === -1) return publicUrl;
+    if (!parsed) {
+      console.error('Could not parse storage URL:', publicUrl);
+      return publicUrl;
+    }
 
-    // Skip 'object' and the access type ('public' or 'sign')
-    const accessTypeIndex = storageIndex + 1;
-    const bucketAndPath = pathParts.slice(accessTypeIndex + 1);
-    const bucket = bucketAndPath[0];
-    const filePath = bucketAndPath.slice(1).join('/');
-
-    if (!bucket || !filePath) return publicUrl;
+    const { bucket, path } = parsed;
+    console.log('getSignedUrl - Generating for:', { bucket, path });
 
     const { data, error } = await supabase.storage
       .from(bucket)
-      .createSignedUrl(filePath, expiresIn);
+      .createSignedUrl(path, expiresIn);
 
     if (error || !data?.signedUrl) {
       console.error('Error creating signed URL:', error);
