@@ -605,6 +605,10 @@ export default function VagaFunil() {
         onMarkAsLost={handleMarkAsLostFromSheet}
         onAdvanceStage={handleAdvanceStageFromSheet}
         onRate={handleRateFromSheet}
+        onSaveStageEvaluation={async (cardId, stepId, rating, notes) => {
+          const success = await saveRating(cardId, stepId, rating || 0, notes);
+          return success;
+        }}
       />
     </div>
   );
