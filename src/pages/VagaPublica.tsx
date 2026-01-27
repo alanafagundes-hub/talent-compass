@@ -23,6 +23,7 @@ import {
 import { JobSection } from "@/components/public/JobSection";
 import { toast } from "sonner";
 import { usePublicJobs, type PublicJob } from "@/hooks/usePublicJobs";
+import { useLandingPageConfig } from "@/hooks/useLandingPageConfig";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -78,6 +79,7 @@ export default function VagaPublica() {
   const { id } = useParams<{ id: string }>();
   const { setTheme } = useTheme();
   const { fetchJobById } = usePublicJobs();
+  const { config } = useLandingPageConfig();
   
   const [job, setJob] = useState<PublicJob | null>(null);
   const [formFields, setFormFields] = useState<Tables<'form_fields'>[]>([]);
@@ -453,7 +455,7 @@ export default function VagaPublica() {
             <p className="mt-2 text-muted-foreground">
               Esta vaga não existe.
             </p>
-            <Button asChild className="mt-4">
+            <Button asChild className="mt-4" style={{ backgroundColor: config.secondaryColor }}>
               <Link to="/carreiras">Ver outras vagas</Link>
             </Button>
           </CardContent>
@@ -479,7 +481,7 @@ export default function VagaPublica() {
             <p className="mt-2 text-muted-foreground">
               {statusMessages[job.status] || "Esta vaga não está disponível."}
             </p>
-            <Button asChild className="mt-4">
+            <Button asChild className="mt-4" style={{ backgroundColor: config.secondaryColor }}>
               <Link to="/carreiras">Ver outras vagas disponíveis</Link>
             </Button>
           </CardContent>
@@ -501,7 +503,7 @@ export default function VagaPublica() {
               Obrigado por se candidatar à vaga de <strong>{job.title}</strong>.
               Analisaremos seu perfil e entraremos em contato em breve.
             </p>
-            <Button asChild className="mt-6">
+            <Button asChild className="mt-6" style={{ backgroundColor: config.secondaryColor }}>
               <Link to="/carreiras">Voltar para vagas</Link>
             </Button>
           </CardContent>
@@ -725,7 +727,12 @@ export default function VagaPublica() {
                   </div>
                   {errors.lgpdConsent && <p className="text-sm text-destructive">{errors.lgpdConsent}</p>}
 
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isSubmitting}
+                    style={{ backgroundColor: config.secondaryColor }}
+                  >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
