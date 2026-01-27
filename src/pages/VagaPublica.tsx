@@ -311,6 +311,20 @@ export default function VagaPublica() {
           .eq('id', candidateId);
       }
 
+      // 2.5 Check if candidate already applied to this job
+      const { data: existingApplication } = await supabase
+        .from('applications')
+        .select('id')
+        .eq('candidate_id', candidateId)
+        .eq('job_id', job.id)
+        .maybeSingle();
+
+      if (existingApplication) {
+        toast.error("Você já se candidatou a esta vaga.");
+        setIsSubmitting(false);
+        return;
+      }
+
       // 3. Get the first stage of the job's funnel
       const { data: funnel } = await supabase
         .from('funnels')
