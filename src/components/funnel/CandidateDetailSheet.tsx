@@ -10,8 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -23,30 +27,32 @@ import {
   Mail,
   Phone,
   Linkedin,
-  FileText,
   Calendar,
   Star,
-  MessageSquare,
   UserX,
   UserPlus,
   ChevronRight,
-  Download,
+  ChevronDown,
   ExternalLink,
-  Send,
   Briefcase,
   MapPin,
   AlertTriangle,
+  UserCheck,
+  Copy,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import type { KanbanCardData } from "@/hooks/useFunnelData";
-import type { FunnelStep, Job, Area } from "@/types/ats";
-import { RichTextarea } from "@/components/ui/rich-textarea";
+import type { FunnelStep, Job, Area, Tag } from "@/types/ats";
 import StageEvaluationBlock, {
   type StageEvaluation,
   type StageStatus,
 } from "./StageEvaluationBlock";
+import FormResponsesBlock from "./FormResponsesBlock";
+import TagsBlock from "./TagsBlock";
+import ProcessTimelineBlock from "./ProcessTimelineBlock";
+import ResumeBlock from "./ResumeBlock";
 
 interface CandidateDetailSheetProps {
   open: boolean;
@@ -55,9 +61,14 @@ interface CandidateDetailSheetProps {
   steps: FunnelStep[];
   job: Job | null;
   area: Area | undefined;
+  availableTags?: Tag[];
   onMarkAsLost: () => void;
   onAdvanceStage: () => void;
   onRate: () => void;
+  onHire?: () => void;
+  onAddToTalentPool?: () => void;
+  onAddTag?: (cardId: string, tagId: string) => void;
+  onRemoveTag?: (cardId: string, tagId: string) => void;
   onSaveStageEvaluation?: (
     cardId: string,
     stepId: string,
@@ -73,25 +84,30 @@ export default function CandidateDetailSheet({
   steps,
   job,
   area,
+  availableTags = [],
   onMarkAsLost,
   onAdvanceStage,
+  onHire,
+  onAddToTalentPool,
+  onAddTag,
+  onRemoveTag,
   onSaveStageEvaluation,
 }: CandidateDetailSheetProps) {
-  const [newComment, setNewComment] = useState("");
-  const [comments, setComments] = useState<
-    { id: string; author: string; text: string; createdAt: Date }[]
-  >([]);
   const [localEvaluations, setLocalEvaluations] = useState<
     Record<string, StageEvaluation>
   >({});
   const [showAdvanceBlockedDialog, setShowAdvanceBlockedDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set(["stages", "profile", "resume", "form", "tags", "timeline"])
+  );
 
   // All hooks must be called before any early returns
   const currentStep = card ? steps.find((s) => s.id === card.stepId) : undefined;
   const currentStepIndex = card ? steps.findIndex((s) => s.id === card.stepId) : -1;
-  const canAdvance = currentStepIndex >= 0 && currentStepIndex < steps.length - 1;
   const sortedSteps = useMemo(() => [...steps].sort((a, b) => a.order - b.order), [steps]);
+  const isLastStage = currentStepIndex === sortedSteps.length - 1;
+  const canAdvance = currentStepIndex >= 0 && currentStepIndex < sortedSteps.length - 1;
 
   // Build evaluations map from existing ratings + local changes
   const evaluationsMap = useMemo(() => {
@@ -121,14 +137,17 @@ export default function CandidateDetailSheet({
   }, [card, localEvaluations]);
 
   // Get status for each stage
-  const getStageStatus = useCallback((stepIndex: number): StageStatus => {
-    if (stepIndex < currentStepIndex) {
-      return "completed";
-    } else if (stepIndex === currentStepIndex) {
-      return "in_progress";
-    }
-    return "not_started";
-  }, [currentStepIndex]);
+  const getStageStatus = useCallback(
+    (stepIndex: number): StageStatus => {
+      if (stepIndex < currentStepIndex) {
+        return "completed";
+      } else if (stepIndex === currentStepIndex) {
+        return "in_progress";
+      }
+      return "not_started";
+    },
+    [currentStepIndex]
+  );
 
   // Check if current stage has required evaluation
   const currentStageEvaluation = card ? evaluationsMap[card.stepId] : undefined;
@@ -140,31 +159,12 @@ export default function CandidateDetailSheet({
       .filter((e) => e.rating)
       .map((e) => e.rating!);
     if (ratings.length === 0) return null;
-    return Math.round(ratings.reduce((sum, r) => sum + r, 0) / ratings.length);
+    return (ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(1);
   }, [evaluationsMap]);
 
   const formatDate = useCallback((date: Date) => {
     return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   }, []);
-
-  const formatDateTime = useCallback((date: Date) => {
-    return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-  }, []);
-
-  const handleAddComment = useCallback(() => {
-    if (!newComment.trim()) return;
-
-    setComments((prev) => [
-      ...prev,
-      {
-        id: `comment-${Date.now()}`,
-        author: "Você",
-        text: newComment,
-        createdAt: new Date(),
-      },
-    ]);
-    setNewComment("");
-  }, [newComment]);
 
   const handleSaveEvaluation = useCallback(
     async (stepId: string, rating: number | null, notes: string) => {
@@ -203,25 +203,67 @@ export default function CandidateDetailSheet({
     onAdvanceStage();
   }, [hasCurrentStageNotes, onAdvanceStage]);
 
+  const toggleSection = (section: string) => {
+    setExpandedSections((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(section)) {
+        newSet.delete(section);
+      } else {
+        newSet.add(section);
+      }
+      return newSet;
+    });
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copiado!`);
+  };
+
+  const getStatusBadge = () => {
+    if (!card) return null;
+    switch (card.status) {
+      case "contratada":
+        return <Badge className="bg-green-500">Contratado</Badge>;
+      case "incompativel":
+        return <Badge variant="destructive">Incompatível</Badge>;
+      case "desistente":
+        return <Badge variant="secondary">Desistente</Badge>;
+      default:
+        return <Badge variant="secondary">Ativo</Badge>;
+    }
+  };
+
   // Early return AFTER all hooks
   if (!card) return null;
-
 
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-full sm:max-w-xl md:max-w-2xl p-0 flex flex-col">
-          {/* Header - Without Avatar */}
-          <SheetHeader className="px-6 py-4 border-b bg-muted/30">
+        <SheetContent className="w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl p-0 flex flex-col">
+          {/* ========== HEADER (FIXED) ========== */}
+          <SheetHeader className="px-6 py-4 border-b bg-muted/30 shrink-0">
             <div className="flex-1 min-w-0">
+              {/* Candidate Name */}
               <SheetTitle className="text-xl font-bold truncate">
                 {card.candidate.name}
               </SheetTitle>
+
+              {/* Job Title */}
               <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                 <Briefcase className="h-3.5 w-3.5" />
                 <span className="truncate">{job?.title || "Vaga"}</span>
+                {area && (
+                  <>
+                    <span>•</span>
+                    <span>{area.name}</span>
+                  </>
+                )}
               </div>
+
+              {/* Badges Row */}
               <div className="flex items-center gap-2 mt-3 flex-wrap">
+                {/* Current Stage */}
                 <Badge
                   style={{
                     backgroundColor: `${currentStep?.color}20`,
@@ -232,19 +274,49 @@ export default function CandidateDetailSheet({
                 >
                   {currentStep?.name || "Etapa"}
                 </Badge>
-                <Badge variant="secondary">Ativo</Badge>
+
+                {/* Status */}
+                {getStatusBadge()}
+
+                {/* Average Rating */}
                 {averageRating && (
-                  <div className="flex items-center gap-1 text-sm">
+                  <div className="flex items-center gap-1 text-sm bg-muted px-2 py-0.5 rounded">
                     <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                    <span>{averageRating}/5</span>
+                    <span className="font-medium">{averageRating}/5</span>
+                  </div>
+                )}
+
+                {/* Tags Preview */}
+                {card.tags && card.tags.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    {card.tags.slice(0, 2).map((tag) => (
+                      <Badge
+                        key={tag.id}
+                        variant="outline"
+                        style={{
+                          backgroundColor: `${tag.color}15`,
+                          color: tag.color,
+                          borderColor: `${tag.color}50`,
+                        }}
+                        className="text-[10px] px-1.5"
+                      >
+                        {tag.name}
+                      </Badge>
+                    ))}
+                    {card.tags.length > 2 && (
+                      <span className="text-xs text-muted-foreground">
+                        +{card.tags.length - 2}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
             </div>
           </SheetHeader>
 
-          {/* Quick Actions */}
-          <div className="px-6 py-3 border-b bg-background flex items-center gap-2 flex-wrap">
+          {/* ========== QUICK ACTIONS BAR ========== */}
+          <div className="px-6 py-3 border-b bg-background flex items-center gap-2 flex-wrap shrink-0">
+            {/* Advance Stage */}
             {canAdvance && (
               <Button
                 variant={hasCurrentStageNotes ? "default" : "outline"}
@@ -260,10 +332,31 @@ export default function CandidateDetailSheet({
                 )}
               </Button>
             )}
-            <Button variant="outline" size="sm" className="gap-1.5">
+
+            {/* Hire Button - Only on last stage */}
+            {isLastStage && onHire && (
+              <Button
+                size="sm"
+                className="gap-1.5 bg-green-600 hover:bg-green-700"
+                onClick={onHire}
+              >
+                <UserCheck className="h-4 w-4" />
+                Contratar
+              </Button>
+            )}
+
+            {/* Talent Pool */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={onAddToTalentPool}
+            >
               <UserPlus className="h-4 w-4" />
               Banco de Talentos
             </Button>
+
+            {/* Mark as Lost */}
             <Button
               variant="outline"
               size="sm"
@@ -273,44 +366,45 @@ export default function CandidateDetailSheet({
               <UserX className="h-4 w-4" />
               Incompatível
             </Button>
+
+            {/* Quick Links */}
+            <div className="flex items-center gap-1 ml-auto">
+              {card.candidate.linkedinUrl && (
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
+                  <a
+                    href={card.candidate.linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="LinkedIn"
+                  >
+                    <Linkedin className="h-4 w-4" />
+                  </a>
+                </Button>
+              )}
+            </div>
           </div>
 
-          {/* Scrollable Content */}
+          {/* ========== SCROLLABLE CONTENT ========== */}
           <ScrollArea className="flex-1">
-            <div className="p-6 space-y-6">
-              {/* Funnel Stages Section - Mirror of job funnel */}
-              <section>
-                <h3 className="text-sm font-semibold uppercase text-muted-foreground mb-3">
-                  Avaliação por Etapa do Funil
-                </h3>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Preencha o parecer de cada etapa para garantir rastreabilidade.
-                  O comentário é obrigatório para avançar o candidato.
-                </p>
-                <div className="space-y-2">
-                  {sortedSteps.map((step, index) => (
-                    <StageEvaluationBlock
-                      key={step.id}
-                      step={step}
-                      status={getStageStatus(index)}
-                      isCurrentStage={step.id === card.stepId}
-                      evaluation={evaluationsMap[step.id]}
-                      onSaveEvaluation={handleSaveEvaluation}
-                      disabled={getStageStatus(index) === "not_started"}
-                    />
-                  ))}
-                </div>
-              </section>
-
-              <Separator />
-
-              {/* Profile Section */}
-              <section>
-                <h3 className="text-sm font-semibold uppercase text-muted-foreground mb-3">
-                  Perfil do Candidato
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-sm">
+            <div className="p-6 space-y-4">
+              {/* ========== BLOCK 1: CANDIDATE DATA ========== */}
+              <Collapsible
+                open={expandedSections.has("profile")}
+                onOpenChange={() => toggleSection("profile")}
+              >
+                <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:bg-muted/50 rounded -mx-2 px-2">
+                  <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+                    Dados do Candidato
+                  </h3>
+                  {expandedSections.has("profile") ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3 space-y-3">
+                  {/* Email */}
+                  <div className="flex items-center gap-3 text-sm group">
                     <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
                     <a
                       href={`mailto:${card.candidate.email}`}
@@ -318,10 +412,19 @@ export default function CandidateDetailSheet({
                     >
                       {card.candidate.email}
                     </a>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
+                      onClick={() => copyToClipboard(card.candidate.email, "E-mail")}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
                   </div>
 
+                  {/* Phone */}
                   {card.candidate.phone && (
-                    <div className="flex items-center gap-3 text-sm">
+                    <div className="flex items-center gap-3 text-sm group">
                       <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
                       <a
                         href={`tel:${card.candidate.phone}`}
@@ -329,9 +432,18 @@ export default function CandidateDetailSheet({
                       >
                         {card.candidate.phone}
                       </a>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
+                        onClick={() => copyToClipboard(card.candidate.phone!, "Telefone")}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
                     </div>
                   )}
 
+                  {/* LinkedIn */}
                   {card.candidate.linkedinUrl && (
                     <div className="flex items-center gap-3 text-sm">
                       <Linkedin className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -346,152 +458,228 @@ export default function CandidateDetailSheet({
                       </a>
                     </div>
                   )}
-
-                  {card.candidate.resumeUrl && (
-                    <div className="flex items-center gap-3 text-sm">
-                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <a
-                        href={card.candidate.resumeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline flex items-center gap-1"
-                      >
-                        Visualizar currículo
-                        <Download className="h-3 w-3" />
-                      </a>
-                    </div>
-                  )}
-
-                  <Separator className="my-3" />
-
-                  {/* Origin/Tracking Section */}
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-semibold uppercase text-muted-foreground">
-                      Origem da Candidatura
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="flex items-start gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-muted-foreground text-xs">Data</p>
-                          <p className="font-medium">{formatDate(card.enteredAt)}</p>
-                        </div>
-                      </div>
-                      {card.sourceName && (
-                        <div className="flex items-start gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-muted-foreground text-xs">Fonte</p>
-                            <p className="font-medium">{card.sourceName}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Detailed UTM tracking */}
-                    {card.trackingData && (
-                      <div className="mt-2 p-3 rounded-lg bg-muted/30 space-y-2 text-sm">
-                        {card.trackingData.utm_medium && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Mídia</span>
-                            <span className="font-medium">
-                              {card.trackingData.utm_medium}
-                            </span>
-                          </div>
-                        )}
-                        {card.trackingData.utm_campaign && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Campanha</span>
-                            <span className="font-medium">
-                              {card.trackingData.utm_campaign}
-                            </span>
-                          </div>
-                        )}
-                        {card.trackingData.referrer && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Referrer</span>
-                            <span
-                              className="font-medium truncate max-w-[180px]"
-                              title={card.trackingData.referrer}
-                            >
-                              {(() => {
-                                try {
-                                  return new URL(card.trackingData.referrer).hostname;
-                                } catch {
-                                  return card.trackingData.referrer.slice(0, 30);
-                                }
-                              })()}
-                            </span>
-                          </div>
-                        )}
-                        {card.trackingData.landing_page && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Página</span>
-                            <span
-                              className="font-medium truncate max-w-[180px]"
-                              title={card.trackingData.landing_page}
-                            >
-                              {card.trackingData.landing_page.split("?")[0]}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
+                </CollapsibleContent>
+              </Collapsible>
 
               <Separator />
 
-              {/* Comments Section */}
-              <section>
-                <h3 className="text-sm font-semibold uppercase text-muted-foreground mb-3 flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Comentários Gerais
-                </h3>
+              {/* ========== BLOCK 2: APPLICATION SOURCE ========== */}
+              <Collapsible
+                open={expandedSections.has("source")}
+                onOpenChange={() => toggleSection("source")}
+              >
+                <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:bg-muted/50 rounded -mx-2 px-2">
+                  <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+                    Origem da Candidatura
+                  </h3>
+                  {expandedSections.has("source") ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    {/* Application Date */}
+                    <div className="flex items-start gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-muted-foreground text-xs">Data de Inscrição</p>
+                        <p className="font-medium">{formatDate(card.appliedAt)}</p>
+                      </div>
+                    </div>
 
-                {comments.length > 0 ? (
-                  <div className="space-y-3 mb-4">
-                    {comments.map((comment) => (
-                      <div key={comment.id} className="p-3 rounded-lg bg-muted/50">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm">
-                            {comment.author}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDateTime(comment.createdAt)}
+                    {/* Source */}
+                    {card.sourceName && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-muted-foreground text-xs">Fonte</p>
+                          <p className="font-medium">{card.sourceName}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* UTM Details */}
+                  {card.trackingData && (
+                    <div className="mt-3 p-3 rounded-lg bg-muted/30 space-y-2 text-sm">
+                      {card.trackingData.utm_campaign && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Campanha</span>
+                          <span className="font-medium">{card.trackingData.utm_campaign}</span>
+                        </div>
+                      )}
+                      {card.trackingData.utm_medium && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Mídia</span>
+                          <span className="font-medium">{card.trackingData.utm_medium}</span>
+                        </div>
+                      )}
+                      {card.trackingData.referrer && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Referrer</span>
+                          <span className="font-medium truncate max-w-[180px]">
+                            {(() => {
+                              try {
+                                return new URL(card.trackingData.referrer).hostname;
+                              } catch {
+                                return card.trackingData.referrer.slice(0, 30);
+                              }
+                            })()}
                           </span>
                         </div>
-                        <p className="text-sm whitespace-pre-wrap">{comment.text}</p>
-                      </div>
+                      )}
+                    </div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+
+              <Separator />
+
+              {/* ========== BLOCK 3: RESUME ========== */}
+              <Collapsible
+                open={expandedSections.has("resume")}
+                onOpenChange={() => toggleSection("resume")}
+              >
+                <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:bg-muted/50 rounded -mx-2 px-2">
+                  <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+                    Currículo
+                  </h3>
+                  {expandedSections.has("resume") ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3">
+                  <ResumeBlock
+                    resumeUrl={card.candidate.resumeUrl}
+                    candidateName={card.candidate.name}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
+
+              <Separator />
+
+              {/* ========== BLOCK 4: FORM RESPONSES ========== */}
+              <Collapsible
+                open={expandedSections.has("form")}
+                onOpenChange={() => toggleSection("form")}
+              >
+                <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:bg-muted/50 rounded -mx-2 px-2">
+                  <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+                    Respostas do Formulário
+                    {card.formResponses && card.formResponses.length > 0 && (
+                      <Badge variant="secondary" className="ml-2 text-[10px]">
+                        {card.formResponses.length}
+                      </Badge>
+                    )}
+                  </h3>
+                  {expandedSections.has("form") ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3">
+                  <FormResponsesBlock responses={card.formResponses || []} />
+                </CollapsibleContent>
+              </Collapsible>
+
+              <Separator />
+
+              {/* ========== BLOCK 5: TAGS ========== */}
+              <Collapsible
+                open={expandedSections.has("tags")}
+                onOpenChange={() => toggleSection("tags")}
+              >
+                <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:bg-muted/50 rounded -mx-2 px-2">
+                  <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+                    Etiquetas
+                  </h3>
+                  {expandedSections.has("tags") ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3">
+                  <TagsBlock
+                    cardTags={card.tags || []}
+                    availableTags={availableTags}
+                    onAddTag={onAddTag ? (tagId) => onAddTag(card.id, tagId) : undefined}
+                    onRemoveTag={onRemoveTag ? (tagId) => onRemoveTag(card.id, tagId) : undefined}
+                    readOnly={!onAddTag && !onRemoveTag}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
+
+              <Separator />
+
+              {/* ========== BLOCK 6: FUNNEL STAGES (CORE) ========== */}
+              <Collapsible
+                open={expandedSections.has("stages")}
+                onOpenChange={() => toggleSection("stages")}
+                defaultOpen
+              >
+                <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:bg-muted/50 rounded -mx-2 px-2">
+                  <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+                    Avaliação por Etapa do Funil
+                  </h3>
+                  {expandedSections.has("stages") ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3">
+                  <p className="text-xs text-muted-foreground mb-4">
+                    O parecer de cada etapa é obrigatório para avançar o candidato.
+                    Avalie cada etapa para garantir rastreabilidade do processo.
+                  </p>
+                  <div className="space-y-2">
+                    {sortedSteps.map((step, index) => (
+                      <StageEvaluationBlock
+                        key={step.id}
+                        step={step}
+                        status={getStageStatus(index)}
+                        isCurrentStage={step.id === card.stepId}
+                        evaluation={evaluationsMap[step.id]}
+                        onSaveEvaluation={handleSaveEvaluation}
+                        disabled={getStageStatus(index) === "not_started"}
+                      />
                     ))}
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Nenhum comentário geral ainda.
-                  </p>
-                )}
+                </CollapsibleContent>
+              </Collapsible>
 
-                <div className="space-y-2">
-                  <RichTextarea
-                    value={newComment}
-                    onChange={setNewComment}
-                    placeholder="Adicione um comentário geral..."
-                    className="min-h-[80px]"
+              <Separator />
+
+              {/* ========== TIMELINE ========== */}
+              <Collapsible
+                open={expandedSections.has("timeline")}
+                onOpenChange={() => toggleSection("timeline")}
+              >
+                <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:bg-muted/50 rounded -mx-2 px-2">
+                  <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+                    Timeline do Processo
+                  </h3>
+                  {expandedSections.has("timeline") ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3">
+                  <ProcessTimelineBlock
+                    steps={sortedSteps}
+                    currentStepId={card.stepId}
+                    stageHistory={card.stageHistory}
+                    appliedAt={card.appliedAt}
                   />
-                  <div className="flex justify-end">
-                    <Button
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={handleAddComment}
-                      disabled={!newComment.trim()}
-                    >
-                      <Send className="h-4 w-4" />
-                      Enviar
-                    </Button>
-                  </div>
-                </div>
-              </section>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           </ScrollArea>
         </SheetContent>

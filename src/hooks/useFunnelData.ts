@@ -87,10 +87,27 @@ interface DbStageEvaluation {
   evaluated_at: string;
 }
 
+export interface FormResponse {
+  id: string;
+  fieldId: string;
+  label: string;
+  fieldType: string;
+  value: string | null;
+  fileUrl: string | null;
+}
+
+export interface StageHistoryEntry {
+  stepId: string;
+  stepName: string;
+  enteredAt: Date;
+  exitedAt?: Date;
+}
+
 export interface KanbanCardData {
   id: string;
   candidate: Candidate;
   stepId: string;
+  status: 'ativa' | 'contratada' | 'incompativel' | 'desistente';
   sourceId?: string;
   sourceName?: string;
   trackingData?: TrackingData | null;
@@ -98,6 +115,7 @@ export interface KanbanCardData {
   notes?: string;
   tags?: Tag[];
   enteredAt: Date;
+  appliedAt: Date;
   stageRatings?: {
     id: string;
     cardId: string;
@@ -108,6 +126,8 @@ export interface KanbanCardData {
     evaluatedBy: string;
     evaluatedAt: Date;
   }[];
+  formResponses?: FormResponse[];
+  stageHistory?: StageHistoryEntry[];
 }
 
 export function useFunnelData(jobId: string | undefined) {
@@ -168,7 +188,7 @@ export function useFunnelData(jobId: string | undefined) {
 
       setSteps(mappedSteps);
 
-      // 3. Get applications for this job
+      // 3. Get applications for this job with form responses
       const { data: applicationsData, error: applicationsError } = await supabase
         .from('applications')
         .select(`
@@ -178,11 +198,29 @@ export function useFunnelData(jobId: string | undefined) {
             tag_id,
             tags (*)
           ),
-          stage_evaluations (*)
+          stage_evaluations (*),
+          form_responses (
+            id,
+            field_id,
+            value,
+            file_url,
+            form_fields (
+              id,
+              label,
+              field_type
+            )
+          ),
+          application_history (
+            id,
+            from_stage_id,
+            to_stage_id,
+            action,
+            created_at
+          )
         `)
         .eq('job_id', jobId)
         .eq('is_archived', false)
-        .in('status', ['ativa']);
+        .in('status', ['ativa', 'contratada']);
 
       if (applicationsError) throw applicationsError;
 
@@ -228,6 +266,41 @@ export function useFunnelData(jobId: string | undefined) {
           };
         });
 
+        // Map form responses
+        const formResponses: FormResponse[] = (app.form_responses || [])
+          .filter((fr: any) => fr.form_fields)
+          .map((fr: any) => ({
+            id: fr.id,
+            fieldId: fr.field_id,
+            label: fr.form_fields.label,
+            fieldType: fr.form_fields.field_type,
+            value: fr.value,
+            fileUrl: fr.file_url,
+          }));
+
+        // Build stage history from application_history
+        const stageHistory: StageHistoryEntry[] = [];
+        const historyEvents = (app.application_history || [])
+          .filter((h: any) => h.action === 'moved' || h.action === 'applied')
+          .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        
+        for (const event of historyEvents) {
+          if (event.to_stage_id) {
+            const step = mappedSteps.find(s => s.id === event.to_stage_id);
+            if (step) {
+              // Close previous entry
+              if (stageHistory.length > 0 && !stageHistory[stageHistory.length - 1].exitedAt) {
+                stageHistory[stageHistory.length - 1].exitedAt = new Date(event.created_at);
+              }
+              stageHistory.push({
+                stepId: event.to_stage_id,
+                stepName: step.name,
+                enteredAt: new Date(event.created_at),
+              });
+            }
+          }
+        }
+
         // Find the first stage if current_stage_id is null
         const defaultStepId = mappedSteps.length > 0 ? mappedSteps[0].id : '';
         
@@ -235,13 +308,17 @@ export function useFunnelData(jobId: string | undefined) {
           id: app.id,
           candidate,
           stepId: app.current_stage_id || defaultStepId,
+          status: app.status as 'ativa' | 'contratada' | 'incompativel' | 'desistente',
           sourceName: app.source || undefined,
           trackingData: app.tracking_data || undefined,
           rating: app.rating || undefined,
           notes: app.notes || undefined,
           tags: cardTags,
           enteredAt: new Date(app.applied_at),
+          appliedAt: new Date(app.applied_at),
           stageRatings,
+          formResponses,
+          stageHistory,
         };
       });
 
