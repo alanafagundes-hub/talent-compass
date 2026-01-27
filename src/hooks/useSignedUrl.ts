@@ -31,7 +31,9 @@ export function useSignedUrl(publicUrl: string | null | undefined, expiresIn: nu
 
       try {
         // Extract bucket and path from the URL
-        // URL format: https://{project}.supabase.co/storage/v1/object/public/{bucket}/{path}
+        // URL formats:
+        // - Public: https://{project}.supabase.co/storage/v1/object/public/{bucket}/{path}
+        // - Signed: https://{project}.supabase.co/storage/v1/object/sign/{bucket}/{path}
         const urlObj = new URL(publicUrl);
         const pathParts = urlObj.pathname.split('/');
         
@@ -42,8 +44,10 @@ export function useSignedUrl(publicUrl: string | null | undefined, expiresIn: nu
           return;
         }
 
-        // Path structure: /storage/v1/object/public/bucket/path/to/file
-        const bucketAndPath = pathParts.slice(storageIndex + 2); // Skip 'object' and 'public'
+        // Path structure: /storage/v1/object/{public|sign}/bucket/path/to/file
+        // Skip 'object' and the access type ('public' or 'sign')
+        const accessTypeIndex = storageIndex + 1;
+        const bucketAndPath = pathParts.slice(accessTypeIndex + 1);
         const bucket = bucketAndPath[0];
         const filePath = bucketAndPath.slice(1).join('/');
 
@@ -99,7 +103,9 @@ export async function getSignedUrl(publicUrl: string, expiresIn: number = 3600):
     const storageIndex = pathParts.indexOf('object');
     if (storageIndex === -1) return publicUrl;
 
-    const bucketAndPath = pathParts.slice(storageIndex + 2);
+    // Skip 'object' and the access type ('public' or 'sign')
+    const accessTypeIndex = storageIndex + 1;
+    const bucketAndPath = pathParts.slice(accessTypeIndex + 1);
     const bucket = bucketAndPath[0];
     const filePath = bucketAndPath.slice(1).join('/');
 
