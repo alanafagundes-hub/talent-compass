@@ -30,10 +30,21 @@ interface DbApplication {
   rating: number | null;
   notes: string | null;
   source: string | null;
+  tracking_data: TrackingData | null;
   applied_at: string;
   is_archived: boolean;
   created_at: string;
   updated_at: string;
+}
+
+interface TrackingData {
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_content: string | null;
+  utm_term: string | null;
+  referrer: string;
+  landing_page: string;
 }
 
 interface DbCandidate {
@@ -82,6 +93,7 @@ export interface KanbanCardData {
   stepId: string;
   sourceId?: string;
   sourceName?: string;
+  trackingData?: TrackingData | null;
   rating?: number;
   notes?: string;
   tags?: Tag[];
@@ -224,6 +236,7 @@ export function useFunnelData(jobId: string | undefined) {
           candidate,
           stepId: app.current_stage_id || defaultStepId,
           sourceName: app.source || undefined,
+          trackingData: app.tracking_data || undefined,
           rating: app.rating || undefined,
           notes: app.notes || undefined,
           tags: cardTags,

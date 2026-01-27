@@ -120,6 +120,7 @@ export type Database = {
           rejected_at: string | null
           source: string | null
           status: Database["public"]["Enums"]["application_status"]
+          tracking_data: Json | null
           updated_at: string
         }
         Insert: {
@@ -136,6 +137,7 @@ export type Database = {
           rejected_at?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["application_status"]
+          tracking_data?: Json | null
           updated_at?: string
         }
         Update: {
@@ -152,6 +154,7 @@ export type Database = {
           rejected_at?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["application_status"]
+          tracking_data?: Json | null
           updated_at?: string
         }
         Relationships: [
