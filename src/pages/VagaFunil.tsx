@@ -602,6 +602,7 @@ export default function VagaFunil() {
         steps={steps}
         job={job}
         area={area}
+        availableTags={tags}
         onMarkAsLost={handleMarkAsLostFromSheet}
         onAdvanceStage={handleAdvanceStageFromSheet}
         onRate={handleRateFromSheet}
