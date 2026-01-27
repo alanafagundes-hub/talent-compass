@@ -10,7 +10,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   Save, 
   Eye, 
-  Upload, 
   Palette, 
   Type, 
   Building2,
@@ -21,12 +20,11 @@ import {
   ArrowUp,
   ArrowDown,
   Layout,
-  Square,
-  Monitor,
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LogoUpload } from "./LogoUpload";
 import { 
   useLandingPageConfig, 
   defaultLandingPageConfig,
@@ -46,7 +44,7 @@ import {
 
 const iconOptions = Object.keys(iconMap).map(key => ({
   value: key,
-  label: key === "Sparkles" ? "Inovação" : 
+  label: key === "Sparkles" ? "Inovação" :
          key === "Users" ? "Pessoas" :
          key === "Heart" ? "Coração" :
          key === "TrendingUp" ? "Crescimento" :
@@ -236,31 +234,23 @@ export default function LandingPageSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Nome da Empresa</Label>
-              <Input
-                id="companyName"
-                value={config.companyName}
-                onChange={(e) => updateConfig("companyName", e.target.value)}
-                placeholder="Nome exibido na página"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="logoUrl">URL do Logo</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="logoUrl"
-                  value={config.logoUrl}
-                  onChange={(e) => updateConfig("logoUrl", e.target.value)}
-                  placeholder="https://..."
-                />
-                <Button variant="outline" size="icon">
-                  <Upload className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="companyName">Nome da Empresa</Label>
+            <Input
+              id="companyName"
+              value={config.companyName}
+              onChange={(e) => updateConfig("companyName", e.target.value)}
+              placeholder="Nome exibido na página"
+            />
           </div>
+
+          <Separator />
+
+          {/* Logo Upload */}
+          <LogoUpload
+            currentLogoUrl={config.logoUrl}
+            onLogoChange={(url) => updateConfig("logoUrl", url)}
+          />
 
           <Separator />
 
