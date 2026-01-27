@@ -49,6 +49,8 @@ export default function VagaFunil() {
     saveRating, 
     markAsLost, 
     saveSteps,
+    addTag,
+    removeTag,
     setCards 
   } = useFunnelData(jobId);
 
@@ -608,6 +610,28 @@ export default function VagaFunil() {
         onRate={handleRateFromSheet}
         onSaveStageEvaluation={async (cardId, stepId, rating, notes) => {
           const success = await saveRating(cardId, stepId, rating || 0, notes);
+          return success;
+        }}
+        onAddTag={async (cardId, tagId) => {
+          const success = await addTag(cardId, tagId);
+          if (success) {
+            // Update the selected card's tags locally
+            const tag = tags.find(t => t.id === tagId);
+            if (tag && selectedCardForDetail) {
+              setSelectedCardForDetail(prev => 
+                prev ? { ...prev, tags: [...(prev.tags || []), tag] } : null
+              );
+            }
+          }
+          return success;
+        }}
+        onRemoveTag={async (cardId, tagId) => {
+          const success = await removeTag(cardId, tagId);
+          if (success && selectedCardForDetail) {
+            setSelectedCardForDetail(prev => 
+              prev ? { ...prev, tags: (prev.tags || []).filter(t => t.id !== tagId) } : null
+            );
+          }
           return success;
         }}
       />

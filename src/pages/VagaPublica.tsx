@@ -196,6 +196,34 @@ export default function VagaPublica() {
         .maybeSingle();
 
       let candidateId = existingCandidate?.id;
+      let resumeUrl: string | null = null;
+
+      // Upload resume to Supabase Storage if provided
+      if (formData.resumeFile) {
+        const file = formData.resumeFile;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        // We'll use a temp folder first, then move after we have candidateId
+        const tempPath = `temp/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('resumes')
+          .upload(tempPath, file, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('Resume upload error:', uploadError);
+          // Continue without resume if upload fails
+        } else {
+          // Get the public URL
+          const { data: urlData } = supabase.storage
+            .from('resumes')
+            .getPublicUrl(tempPath);
+          resumeUrl = urlData.publicUrl;
+        }
+      }
 
       if (!candidateId) {
         const { data: newCandidate, error: candidateError } = await supabase
@@ -206,12 +234,19 @@ export default function VagaPublica() {
             phone: formData.phone.trim(),
             linkedin_url: formData.linkedin.trim(),
             source: sourceName,
+            resume_url: resumeUrl,
           })
           .select('id')
           .single();
 
         if (candidateError) throw candidateError;
         candidateId = newCandidate.id;
+      } else if (resumeUrl) {
+        // Update existing candidate with new resume
+        await supabase
+          .from('candidates')
+          .update({ resume_url: resumeUrl })
+          .eq('id', candidateId);
       }
 
       // 2. Get the first stage of the job's funnel
