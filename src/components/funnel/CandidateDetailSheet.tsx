@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -70,14 +70,6 @@ export default function CandidateDetailSheet({
   const currentStepIndex = steps.findIndex((s) => s.id === card.stepId);
   const canAdvance = currentStepIndex < steps.length - 1;
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   const formatDate = (date: Date) => {
     return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
@@ -113,41 +105,34 @@ export default function CandidateDetailSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-xl md:max-w-2xl p-0 flex flex-col">
-        {/* Header */}
+        {/* Header - Without Avatar */}
         <SheetHeader className="px-6 py-4 border-b bg-muted/30">
-          <div className="flex items-start gap-4">
-            <Avatar className="h-14 w-14 shrink-0">
-              <AvatarFallback className="text-lg bg-primary/10 text-primary">
-                {getInitials(card.candidate.name)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <SheetTitle className="text-xl font-bold truncate">
-                {card.candidate.name}
-              </SheetTitle>
-              <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                <Briefcase className="h-3.5 w-3.5" />
-                <span className="truncate">{job?.title || "Vaga"}</span>
-              </div>
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <Badge
-                  style={{
-                    backgroundColor: `${currentStep?.color}20`,
-                    color: currentStep?.color,
-                    borderColor: currentStep?.color,
-                  }}
-                  variant="outline"
-                >
-                  {currentStep?.name || "Etapa"}
-                </Badge>
-                <Badge variant="secondary">Ativo</Badge>
-                {averageRating && (
-                  <div className="flex items-center gap-1 text-sm">
-                    <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                    <span>{averageRating}/5</span>
-                  </div>
-                )}
-              </div>
+          <div className="flex-1 min-w-0">
+            <SheetTitle className="text-xl font-bold truncate">
+              {card.candidate.name}
+            </SheetTitle>
+            <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+              <Briefcase className="h-3.5 w-3.5" />
+              <span className="truncate">{job?.title || "Vaga"}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-3 flex-wrap">
+              <Badge
+                style={{
+                  backgroundColor: `${currentStep?.color}20`,
+                  color: currentStep?.color,
+                  borderColor: currentStep?.color,
+                }}
+                variant="outline"
+              >
+                {currentStep?.name || "Etapa"}
+              </Badge>
+              <Badge variant="secondary">Ativo</Badge>
+              {averageRating && (
+                <div className="flex items-center gap-1 text-sm">
+                  <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                  <span>{averageRating}/5</span>
+                </div>
+              )}
             </div>
           </div>
         </SheetHeader>
@@ -447,11 +432,6 @@ export default function CandidateDetailSheet({
                       className="p-3 rounded-lg bg-muted/50"
                     >
                       <div className="flex items-center gap-2 mb-1">
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-xs">
-                            {getInitials(comment.author)}
-                          </AvatarFallback>
-                        </Avatar>
                         <span className="font-medium text-sm">
                           {comment.author}
                         </span>
