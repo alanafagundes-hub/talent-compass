@@ -259,7 +259,7 @@ export default function VagasPublicas() {
       </section>
 
       {/* Statistics Section (Employer Branding) */}
-      {config.showStatisticsSection && config.statistics.length > 0 && (
+      {config.showStatisticsSection && (config.statistics.length > 0 || jobs.length > 0) && (
         <section className={cn("py-20 relative overflow-hidden", getSectionBg(true))}>
           {/* Background */}
           <div 
@@ -282,44 +282,66 @@ export default function VagasPublicas() {
               )}
             </div>
             
-            <div className={`grid gap-6 ${
-              config.statistics.length === 1 ? 'grid-cols-1 max-w-md mx-auto' :
-              config.statistics.length === 2 ? 'grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto' :
-              config.statistics.length === 3 ? 'grid-cols-1 sm:grid-cols-3' :
-              'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
-            }`}>
-              {config.statistics.map((stat) => (
-                <Card 
-                  key={stat.id}
-                  className={cn(
-                    getCardClasses("relative overflow-hidden text-center group hover:shadow-xl")
-                  )}
-                >
-                  {/* Accent line */}
-                  <div 
-                    className="absolute top-0 left-0 right-0 h-1"
-                    style={{ backgroundColor: config.primaryColor }}
-                  />
-                  
-                  <CardContent className="p-8">
-                    <p 
-                      className="text-4xl sm:text-5xl font-bold tracking-tight mb-2"
-                      style={{ color: config.primaryColor }}
+            {/* Build combined statistics: automatic "Vagas Abertas" + manual stats */}
+            {(() => {
+              // Automatic stat: only show if there are published jobs (never show 0)
+              const autoJobsStat = jobs.length > 0 ? {
+                id: "auto-vagas",
+                title: "Vagas Abertas",
+                value: jobs.length.toString(),
+                description: "oportunidades disponíveis"
+              } : null;
+              
+              // Combine: auto stat first (if exists), then manual stats
+              const allStats = [
+                ...(autoJobsStat ? [autoJobsStat] : []),
+                ...config.statistics
+              ];
+              
+              // Only render if there are stats to show
+              if (allStats.length === 0) return null;
+              
+              return (
+                <div className={`grid gap-6 ${
+                  allStats.length === 1 ? 'grid-cols-1 max-w-md mx-auto' :
+                  allStats.length === 2 ? 'grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto' :
+                  allStats.length === 3 ? 'grid-cols-1 sm:grid-cols-3' :
+                  'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+                }`}>
+                  {allStats.map((stat) => (
+                    <Card 
+                      key={stat.id}
+                      className={cn(
+                        getCardClasses("relative overflow-hidden text-center group hover:shadow-xl")
+                      )}
                     >
-                      {stat.value}
-                    </p>
-                    <h3 className="text-lg font-semibold text-foreground mb-1">
-                      {stat.title}
-                    </h3>
-                    {stat.description && (
-                      <p className="text-sm text-muted-foreground">
-                        {stat.description}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      {/* Accent line */}
+                      <div 
+                        className="absolute top-0 left-0 right-0 h-1"
+                        style={{ backgroundColor: config.primaryColor }}
+                      />
+                      
+                      <CardContent className="p-8">
+                        <p 
+                          className="text-4xl sm:text-5xl font-bold tracking-tight mb-2"
+                          style={{ color: config.primaryColor }}
+                        >
+                          {stat.value}
+                        </p>
+                        <h3 className="text-lg font-semibold text-foreground mb-1">
+                          {stat.title}
+                        </h3>
+                        {stat.description && (
+                          <p className="text-sm text-muted-foreground">
+                            {stat.description}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </section>
       )}

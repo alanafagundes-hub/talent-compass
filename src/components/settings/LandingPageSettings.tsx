@@ -518,9 +518,23 @@ export default function LandingPageSettings() {
 
               <Separator />
 
+              {/* Automatic Stats Notice */}
+              <Alert className="bg-muted/50">
+                <BarChart3 className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Vagas Abertas</strong> é exibida automaticamente com base nas vagas publicadas no ATS. 
+                  Ela aparece apenas quando há vagas ativas e não pode ser editada manualmente.
+                </AlertDescription>
+              </Alert>
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label>Estatísticas</Label>
+                  <div>
+                    <Label>Estatísticas Institucionais</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Dados manuais para employer branding (ex: colaboradores, anos de mercado)
+                    </p>
+                  </div>
                   <Button variant="outline" size="sm" onClick={addStatistic} className="gap-2">
                     <Plus className="h-4 w-4" />
                     Adicionar
