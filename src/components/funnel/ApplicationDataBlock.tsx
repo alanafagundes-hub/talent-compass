@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,10 +18,12 @@ import {
   Phone,
   Linkedin,
   User,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { FormResponse } from "@/hooks/useFunnelData";
 import type { Candidate } from "@/types/ats";
+import { getSignedUrl } from "@/hooks/useSignedUrl";
 
 interface ApplicationDataBlockProps {
   responses: FormResponse[];
@@ -30,7 +32,6 @@ interface ApplicationDataBlockProps {
 
 export default function ApplicationDataBlock({ responses, candidate }: ApplicationDataBlockProps) {
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // If we have form responses, show them
   const hasFormResponses = responses && responses.length > 0;
@@ -91,10 +92,28 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
     }
   };
 
-  const renderFileField = (response: FormResponse) => {
-    const fileUrl = response.fileUrl || response.value;
+  const FileFieldRenderer = ({ fileUrl: originalUrl }: { fileUrl: string | null }) => {
+    const [signedUrl, setSignedUrl] = useState<string | null>(null);
+    const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
     
-    if (!fileUrl) {
+    useEffect(() => {
+      const loadSignedUrl = async () => {
+        if (!originalUrl) return;
+        setIsLoadingUrl(true);
+        try {
+          const url = await getSignedUrl(originalUrl);
+          setSignedUrl(url);
+        } catch {
+          setSignedUrl(originalUrl);
+        } finally {
+          setIsLoadingUrl(false);
+        }
+      };
+      loadSignedUrl();
+    }, [originalUrl]);
+
+    if (!originalUrl) {
       return (
         <span className="text-muted-foreground italic text-sm">
           Nenhum arquivo anexado
@@ -102,8 +121,9 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
       );
     }
 
-    const fileName = getFileName(fileUrl);
-    const isPdf = isPdfFile(fileUrl);
+    const fileName = getFileName(originalUrl);
+    const isPdf = isPdfFile(originalUrl);
+    const displayUrl = signedUrl || originalUrl;
 
     return (
       <div className="space-y-3">
@@ -122,15 +142,26 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
               variant="ghost"
               size="sm"
               className="h-8 gap-1.5"
-              onClick={() => setPreviewUrl(previewUrl === fileUrl ? null : fileUrl)}
+              onClick={() => setShowPreview(!showPreview)}
+              disabled={isLoadingUrl}
             >
-              <Eye className="h-4 w-4" />
-              {previewUrl === fileUrl ? 'Ocultar' : 'Visualizar'}
+              {isLoadingUrl ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+              {showPreview ? 'Ocultar' : 'Visualizar'}
             </Button>
             {/* External Link */}
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              disabled={isLoadingUrl || !signedUrl}
+              asChild
+            >
               <a
-                href={fileUrl}
+                href={displayUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Abrir em nova aba"
@@ -139,8 +170,14 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
               </a>
             </Button>
             {/* Download */}
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
-              <a href={fileUrl} download title="Baixar arquivo">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              disabled={isLoadingUrl || !signedUrl}
+              asChild
+            >
+              <a href={displayUrl} download title="Baixar arquivo">
                 <Download className="h-4 w-4" />
               </a>
             </Button>
@@ -148,24 +185,32 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
         </div>
 
         {/* PDF Preview */}
-        {previewUrl === fileUrl && isPdf && (
+        {showPreview && isPdf && signedUrl && (
           <div className="border rounded-lg overflow-hidden bg-muted/30">
             <iframe
-              src={`${fileUrl}#view=FitH`}
+              src={`${signedUrl}#view=FitH`}
               className="w-full h-[400px]"
               title={`Preview de ${fileName}`}
             />
           </div>
         )}
 
+        {/* Loading state for preview */}
+        {showPreview && isLoadingUrl && (
+          <div className="p-4 text-center border rounded-lg bg-muted/30">
+            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Carregando arquivo...</p>
+          </div>
+        )}
+
         {/* Non-PDF File Preview Message */}
-        {previewUrl === fileUrl && !isPdf && (
+        {showPreview && !isPdf && signedUrl && (
           <div className="p-4 text-center border rounded-lg bg-muted/30">
             <p className="text-sm text-muted-foreground">
               Visualização não disponível para este tipo de arquivo.
               <br />
               <a
-                href={fileUrl}
+                href={signedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
@@ -177,6 +222,11 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
         )}
       </div>
     );
+  };
+
+  const renderFileField = (response: FormResponse) => {
+    const fileUrl = response.fileUrl || response.value;
+    return <FileFieldRenderer fileUrl={fileUrl} />;
   };
 
   const renderTextValue = (response: FormResponse) => {
@@ -432,53 +482,7 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
               )}
               
               {field.type === 'file' && field.value && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-                    <FileText className="h-8 w-8 text-primary shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{getFileName(field.value)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {isPdfFile(field.value) ? 'Documento PDF' : 'Arquivo anexado'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 gap-1.5"
-                        onClick={() => setPreviewUrl(previewUrl === field.value ? null : field.value!)}
-                      >
-                        <Eye className="h-4 w-4" />
-                        {previewUrl === field.value ? 'Ocultar' : 'Visualizar'}
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
-                        <a
-                          href={field.value}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Abrir em nova aba"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
-                        <a href={field.value} download title="Baixar arquivo">
-                          <Download className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    </div>
-                  </div>
-
-                  {previewUrl === field.value && isPdfFile(field.value) && (
-                    <div className="border rounded-lg overflow-hidden bg-muted/30">
-                      <iframe
-                        src={`${field.value}#view=FitH`}
-                        className="w-full h-[400px]"
-                        title={`Preview de ${getFileName(field.value)}`}
-                      />
-                    </div>
-                  )}
-                </div>
+                <FileFieldRenderer fileUrl={field.value} />
               )}
             </div>
           );
