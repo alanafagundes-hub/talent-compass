@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   Plus,
   Search,
   Filter,
@@ -21,105 +35,102 @@ import {
   Linkedin,
   MoreHorizontal,
   ExternalLink,
+  Briefcase,
+  Archive,
+  Tag,
+  Loader2,
 } from "lucide-react";
-import { CandidateStatus } from "@/types/ats";
-
-interface CandidateListItem {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  linkedinUrl?: string;
-  tags: string[];
-  status: CandidateStatus;
-  appliedJobs: number;
-  lastActivity: string;
-  createdAt: string;
-}
-
-const mockCandidates: CandidateListItem[] = [
-  {
-    id: "1",
-    name: "Ana Carolina Silva",
-    email: "ana.silva@email.com",
-    phone: "(11) 98765-4321",
-    linkedinUrl: "https://linkedin.com/in/anasilva",
-    tags: ["Frontend", "React", "Senior"],
-    status: "ativo",
-    appliedJobs: 2,
-    lastActivity: "2024-01-15",
-    createdAt: "2024-01-10",
-  },
-  {
-    id: "2",
-    name: "Carlos Eduardo Santos",
-    email: "carlos.santos@email.com",
-    phone: "(21) 99876-5432",
-    linkedinUrl: "https://linkedin.com/in/carlossantos",
-    tags: ["Backend", "Node.js", "Pleno"],
-    status: "ativo",
-    appliedJobs: 1,
-    lastActivity: "2024-01-14",
-    createdAt: "2024-01-08",
-  },
-  {
-    id: "3",
-    name: "Maria Fernanda Oliveira",
-    email: "maria.oliveira@email.com",
-    tags: ["UX Design", "Figma"],
-    status: "ativo",
-    appliedJobs: 3,
-    lastActivity: "2024-01-13",
-    createdAt: "2024-01-05",
-  },
-  {
-    id: "4",
-    name: "Pedro Henrique Costa",
-    email: "pedro.costa@email.com",
-    phone: "(11) 91234-5678",
-    tags: ["Comercial", "B2B"],
-    status: "arquivado",
-    appliedJobs: 1,
-    lastActivity: "2024-01-10",
-    createdAt: "2023-12-20",
-  },
-  {
-    id: "5",
-    name: "Julia Lima Souza",
-    email: "julia.lima@email.com",
-    linkedinUrl: "https://linkedin.com/in/julialima",
-    tags: ["Marketing", "Growth"],
-    status: "ativo",
-    appliedJobs: 2,
-    lastActivity: "2024-01-12",
-    createdAt: "2024-01-02",
-  },
-];
-
-const statusLabels: Record<CandidateStatus, string> = {
-  ativo: "Ativo",
-  arquivado: "Arquivado",
-  perdido: "Perdido",
-};
-
-const statusColors: Record<CandidateStatus, string> = {
-  ativo: "bg-success/10 text-success border-success/20",
-  arquivado: "bg-muted text-muted-foreground border-muted",
-  perdido: "bg-destructive/10 text-destructive border-destructive/20",
-};
+import { toast } from "sonner";
+import { useTalentPool, type TalentPoolCandidate } from "@/hooks/useTalentPool";
+import AvailabilityBadge from "@/components/talent/AvailabilityBadge";
+import AvailabilitySelect from "@/components/talent/AvailabilitySelect";
+import FitCulturalBadge from "@/components/talent/FitCulturalBadge";
+import CandidateHistoryTimeline from "@/components/talent/CandidateHistoryTimeline";
+import LinkToJobDialog from "@/components/talent/LinkToJobDialog";
+import type { CandidateAvailability, Tag as TagType } from "@/types/ats";
 
 export default function Talentos() {
+  const { 
+    candidates, 
+    tags, 
+    isLoading, 
+    updateAvailability, 
+    archiveCandidate,
+    linkToJob 
+  } = useTalentPool();
+  
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
+  const [tagFilter, setTagFilter] = useState<string>("all");
+  
+  // Detail sheet state
+  const [selectedCandidate, setSelectedCandidate] = useState<TalentPoolCandidate | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  
+  // Link to job dialog state
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkingCandidate, setLinkingCandidate] = useState<TalentPoolCandidate | null>(null);
 
-  const filteredCandidates = mockCandidates.filter((candidate) => {
-    const matchesSearch =
-      candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      candidate.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || candidate.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredCandidates = useMemo(() => {
+    return candidates.filter((candidate) => {
+      const matchesSearch =
+        candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        candidate.email.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesAvailability =
+        availabilityFilter === "all" || 
+        candidate.availability === availabilityFilter;
+      
+      const matchesTag =
+        tagFilter === "all" ||
+        candidate.tags.some((t) => t.id === tagFilter);
+      
+      return matchesSearch && matchesAvailability && matchesTag;
+    });
+  }, [candidates, searchTerm, availabilityFilter, tagFilter]);
+
+  const handleViewDetails = (candidate: TalentPoolCandidate) => {
+    setSelectedCandidate(candidate);
+    setIsSheetOpen(true);
+  };
+
+  const handleLinkToJob = (candidate: TalentPoolCandidate) => {
+    setLinkingCandidate(candidate);
+    setLinkDialogOpen(true);
+  };
+
+  const handleArchive = async (candidate: TalentPoolCandidate) => {
+    const success = await archiveCandidate(candidate.id);
+    if (success) {
+      toast.success(`${candidate.name} arquivado com sucesso`);
+    } else {
+      toast.error("Erro ao arquivar candidato");
+    }
+  };
+
+  const handleAvailabilityChange = async (
+    candidateId: string, 
+    availability: CandidateAvailability
+  ) => {
+    const success = await updateAvailability(candidateId, availability);
+    if (success) {
+      toast.success("Disponibilidade atualizada");
+      // Update selected candidate if it's the one being updated
+      if (selectedCandidate?.id === candidateId) {
+        setSelectedCandidate(prev => prev ? { ...prev, availability } : null);
+      }
+    } else {
+      toast.error("Erro ao atualizar disponibilidade");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -127,15 +138,12 @@ export default function Talentos() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Banco de Talentos</h1>
           <p className="text-muted-foreground">
-            Gerencie todos os candidatos do sistema
+            {candidates.length} candidatos no banco de talentos
           </p>
         </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Candidato
-        </Button>
       </div>
 
+      {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -147,26 +155,51 @@ export default function Talentos() {
           />
         </div>
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px]">
+          {/* Availability Filter */}
+          <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
+            <SelectTrigger className="w-[200px]">
               <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder="Disponibilidade" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              <SelectItem value="ativo">Ativo</SelectItem>
-              <SelectItem value="arquivado">Arquivado</SelectItem>
-              <SelectItem value="perdido">Perdido</SelectItem>
+              <SelectItem value="all">Todas disponibilidades</SelectItem>
+              <SelectItem value="actively_seeking">🔥 Ativamente buscando</SelectItem>
+              <SelectItem value="open_to_opportunities">🙂 Aberto a oportunidades</SelectItem>
+              <SelectItem value="not_interested">❄️ Sem interesse</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Tag Filter */}
+          <Select value={tagFilter} onValueChange={setTagFilter}>
+            <SelectTrigger className="w-[180px]">
+              <Tag className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Etiqueta" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas etiquetas</SelectItem>
+              {tags.map((tag) => (
+                <SelectItem key={tag.id} value={tag.id}>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="h-2.5 w-2.5 rounded-full" 
+                      style={{ backgroundColor: tag.color }} 
+                    />
+                    {tag.name}
+                  </div>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
       </div>
 
+      {/* Candidates List */}
       <div className="grid gap-4">
         {filteredCandidates.map((candidate) => (
           <Card
             key={candidate.id}
-            className="transition-all hover:shadow-md hover:border-primary/30"
+            className="transition-all hover:shadow-md hover:border-primary/30 cursor-pointer"
+            onClick={() => handleViewDetails(candidate)}
           >
             <CardContent className="p-4">
               <div className="flex items-start gap-4">
@@ -181,12 +214,17 @@ export default function Talentos() {
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-semibold">{candidate.name}</h3>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold truncate">{candidate.name}</h3>
+                        {candidate.fitCultural && (
+                          <FitCulturalBadge rating={candidate.fitCultural} size="sm" />
+                        )}
+                      </div>
                       <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Mail className="h-3.5 w-3.5" />
-                          <span>{candidate.email}</span>
+                          <span className="truncate max-w-[200px]">{candidate.email}</span>
                         </div>
                         {candidate.phone && (
                           <div className="flex items-center gap-1">
@@ -200,6 +238,7 @@ export default function Talentos() {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <Linkedin className="h-3.5 w-3.5" />
                             <span>LinkedIn</span>
@@ -208,28 +247,66 @@ export default function Talentos() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className={statusColors[candidate.status]}
-                      >
-                        {statusLabels[candidate.status]}
-                      </Badge>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      {candidate.availability && (
+                        <AvailabilityBadge 
+                          availability={candidate.availability} 
+                        />
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewDetails(candidate)}>
+                            Ver detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleLinkToJob(candidate)}>
+                            <Briefcase className="mr-2 h-4 w-4" />
+                            Vincular a vaga
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleArchive(candidate)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Archive className="mr-2 h-4 w-4" />
+                            Arquivar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
+                  
+                  {/* Tags */}
                   <div className="flex flex-wrap items-center gap-2 mt-3">
-                    {candidate.tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
+                    {candidate.tags.slice(0, 5).map((tag) => (
+                      <Badge 
+                        key={tag.id} 
+                        variant="outline" 
+                        className="text-xs"
+                        style={{ 
+                          backgroundColor: `${tag.color}15`,
+                          color: tag.color,
+                          borderColor: `${tag.color}40`,
+                        }}
+                      >
+                        {tag.name}
                       </Badge>
                     ))}
+                    {candidate.tags.length > 5 && (
+                      <Badge variant="secondary" className="text-xs">
+                        +{candidate.tags.length - 5}
+                      </Badge>
+                    )}
                   </div>
+                  
+                  {/* Stats */}
                   <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                     <span>
-                      {candidate.appliedJobs} vaga(s) aplicada(s)
+                      {candidate.appliedJobsCount} vaga(s) aplicada(s)
                     </span>
                     <span>•</span>
                     <span>
@@ -250,11 +327,142 @@ export default function Talentos() {
               Nenhum candidato encontrado
             </h3>
             <p className="text-muted-foreground">
-              Tente ajustar os filtros ou adicionar um novo candidato.
+              Tente ajustar os filtros ou aguarde novos candidatos.
             </p>
           </div>
         )}
       </div>
+
+      {/* Candidate Detail Sheet */}
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+          {selectedCandidate && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                  {selectedCandidate.name}
+                  {selectedCandidate.fitCultural && (
+                    <FitCulturalBadge rating={selectedCandidate.fitCultural} />
+                  )}
+                </SheetTitle>
+                <SheetDescription>
+                  {selectedCandidate.email}
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="mt-6 space-y-6">
+                {/* Availability */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Disponibilidade</label>
+                  <AvailabilitySelect
+                    value={selectedCandidate.availability || 'open_to_opportunities'}
+                    onValueChange={(value) => 
+                      handleAvailabilityChange(selectedCandidate.id, value)
+                    }
+                  />
+                </div>
+
+                {/* Contact Info */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Contato</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span>{selectedCandidate.email}</span>
+                    </div>
+                    {selectedCandidate.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span>{selectedCandidate.phone}</span>
+                      </div>
+                    )}
+                    {selectedCandidate.linkedinUrl && (
+                      <a
+                        href={selectedCandidate.linkedinUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-primary hover:underline"
+                      >
+                        <Linkedin className="h-4 w-4" />
+                        Ver LinkedIn
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tags */}
+                {selectedCandidate.tags.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Etiquetas</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCandidate.tags.map((tag) => (
+                        <Badge 
+                          key={tag.id}
+                          variant="outline"
+                          style={{ 
+                            backgroundColor: `${tag.color}15`,
+                            color: tag.color,
+                            borderColor: `${tag.color}40`,
+                          }}
+                        >
+                          {tag.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* History Timeline */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Histórico de Candidaturas</h4>
+                  <CandidateHistoryTimeline 
+                    jobsHistory={selectedCandidate.jobsHistory} 
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => {
+                      setLinkingCandidate(selectedCandidate);
+                      setLinkDialogOpen(true);
+                    }}
+                  >
+                    <Briefcase className="mr-2 h-4 w-4" />
+                    Vincular a Vaga
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => {
+                      handleArchive(selectedCandidate);
+                      setIsSheetOpen(false);
+                    }}
+                  >
+                    <Archive className="mr-2 h-4 w-4" />
+                    Arquivar
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Link to Job Dialog */}
+      {linkingCandidate && (
+        <LinkToJobDialog
+          open={linkDialogOpen}
+          onOpenChange={setLinkDialogOpen}
+          candidateName={linkingCandidate.name}
+          candidateId={linkingCandidate.id}
+          excludeJobIds={linkingCandidate.jobsHistory.map(j => j.jobId)}
+          onConfirm={(jobId) => linkToJob(linkingCandidate.id, jobId)}
+        />
+      )}
     </div>
   );
 }

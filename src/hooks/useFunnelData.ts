@@ -57,6 +57,7 @@ interface DbCandidate {
   resume_url: string | null;
   notes: string | null;
   source: string | null;
+  availability: string | null;
   is_in_talent_pool: boolean;
   is_archived: boolean;
   created_at: string;
@@ -235,9 +236,11 @@ export function useFunnelData(jobId: string | undefined) {
           portfolioUrl: app.candidates.portfolio_url || undefined,
           resumeUrl: app.candidates.resume_url || undefined,
           notes: app.candidates.notes || undefined,
+          availability: app.candidates.availability || undefined,
           tags: [],
           status: 'ativo',
           isArchived: app.candidates.is_archived,
+          isInTalentPool: app.candidates.is_in_talent_pool,
           createdAt: new Date(app.candidates.created_at),
           updatedAt: new Date(app.candidates.updated_at),
         };
