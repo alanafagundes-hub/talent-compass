@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,12 +18,10 @@ import {
   Phone,
   Linkedin,
   User,
-  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { FormResponse } from "@/hooks/useFunnelData";
 import type { Candidate } from "@/types/ats";
-import { getSignedUrl } from "@/hooks/useSignedUrl";
 
 interface ApplicationDataBlockProps {
   responses: FormResponse[];
@@ -92,28 +90,10 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
     }
   };
 
-  const FileFieldRenderer = ({ fileUrl: originalUrl }: { fileUrl: string | null }) => {
-    const [signedUrl, setSignedUrl] = useState<string | null>(null);
-    const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+  const FileFieldRenderer = ({ fileUrl }: { fileUrl: string | null }) => {
     const [showPreview, setShowPreview] = useState(false);
-    
-    useEffect(() => {
-      const loadSignedUrl = async () => {
-        if (!originalUrl) return;
-        setIsLoadingUrl(true);
-        try {
-          const url = await getSignedUrl(originalUrl);
-          setSignedUrl(url);
-        } catch {
-          setSignedUrl(originalUrl);
-        } finally {
-          setIsLoadingUrl(false);
-        }
-      };
-      loadSignedUrl();
-    }, [originalUrl]);
 
-    if (!originalUrl) {
+    if (!fileUrl) {
       return (
         <span className="text-muted-foreground italic text-sm">
           Nenhum arquivo anexado
@@ -121,9 +101,8 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
       );
     }
 
-    const fileName = getFileName(originalUrl);
-    const isPdf = isPdfFile(originalUrl);
-    const displayUrl = signedUrl || originalUrl;
+    const fileName = getFileName(fileUrl);
+    const isPdf = isPdfFile(fileUrl);
 
     return (
       <div className="space-y-3">
@@ -143,13 +122,8 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
               size="sm"
               className="h-8 gap-1.5"
               onClick={() => setShowPreview(!showPreview)}
-              disabled={isLoadingUrl}
             >
-              {isLoadingUrl ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
+              <Eye className="h-4 w-4" />
               {showPreview ? 'Ocultar' : 'Visualizar'}
             </Button>
             {/* External Link */}
@@ -157,11 +131,10 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
               variant="ghost" 
               size="sm" 
               className="h-8 w-8 p-0" 
-              disabled={isLoadingUrl || !signedUrl}
               asChild
             >
               <a
-                href={displayUrl}
+                href={fileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Abrir em nova aba"
@@ -174,21 +147,20 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
               variant="ghost" 
               size="sm" 
               className="h-8 w-8 p-0" 
-              disabled={isLoadingUrl || !signedUrl}
               asChild
             >
-              <a href={displayUrl} download title="Baixar arquivo">
+              <a href={fileUrl} download title="Baixar arquivo">
                 <Download className="h-4 w-4" />
               </a>
             </Button>
           </div>
         </div>
 
-        {/* PDF Preview - Use object tag instead of iframe to avoid Chrome blocking */}
-        {showPreview && isPdf && signedUrl && (
+        {/* PDF Preview */}
+        {showPreview && isPdf && (
           <div className="border rounded-lg overflow-hidden bg-muted/30">
             <object
-              data={signedUrl}
+              data={fileUrl}
               type="application/pdf"
               className="w-full h-[400px]"
               title={`Preview de ${fileName}`}
@@ -198,7 +170,7 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
                   Não foi possível exibir o PDF no navegador.
                 </p>
                 <a
-                  href={signedUrl}
+                  href={fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
@@ -210,22 +182,14 @@ export default function ApplicationDataBlock({ responses, candidate }: Applicati
           </div>
         )}
 
-        {/* Loading state for preview */}
-        {showPreview && isLoadingUrl && (
-          <div className="p-4 text-center border rounded-lg bg-muted/30">
-            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">Carregando arquivo...</p>
-          </div>
-        )}
-
         {/* Non-PDF File Preview Message */}
-        {showPreview && !isPdf && signedUrl && (
+        {showPreview && !isPdf && (
           <div className="p-4 text-center border rounded-lg bg-muted/30">
             <p className="text-sm text-muted-foreground">
               Visualização não disponível para este tipo de arquivo.
               <br />
               <a
-                href={signedUrl}
+                href={fileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
