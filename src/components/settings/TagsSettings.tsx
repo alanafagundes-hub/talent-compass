@@ -12,80 +12,102 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Archive, ArchiveRestore } from "lucide-react";
-import type { Tag } from "@/types/ats";
+import { Plus, Pencil, Archive, ArchiveRestore, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
-const initialTags: Tag[] = [
-  { id: "1", name: "Senior", color: "#3B82F6", isArchived: false, createdAt: new Date() },
-  { id: "2", name: "Pleno", color: "#8B5CF6", isArchived: false, createdAt: new Date() },
-  { id: "3", name: "Junior", color: "#22C55E", isArchived: false, createdAt: new Date() },
-  { id: "4", name: "React", color: "#06B6D4", isArchived: false, createdAt: new Date() },
-  { id: "5", name: "Node.js", color: "#84CC16", isArchived: false, createdAt: new Date() },
-  { id: "6", name: "Design", color: "#F43F5E", isArchived: false, createdAt: new Date() },
-  { id: "7", name: "Remoto", color: "#F59E0B", isArchived: false, createdAt: new Date() },
-];
+import { useTags } from "@/hooks/useTags";
 
 const colorOptions = [
   "#3B82F6", "#8B5CF6", "#22C55E", "#06B6D4", "#84CC16", 
   "#F43F5E", "#F59E0B", "#EC4899", "#6366F1", "#14B8A6",
-  "#EF4444", "#10B981", "#F97316", "#8B5CF6", "#64748B"
+  "#EF4444", "#10B981", "#F97316", "#64748B"
 ];
 
 export default function TagsSettings() {
-  const [tags, setTags] = useState<Tag[]>(initialTags);
+  const { 
+    activeTags, 
+    archivedTags, 
+    isLoading, 
+    createTag, 
+    updateTag, 
+    archiveTag, 
+    restoreTag 
+  } = useTags();
+  
   const [showArchived, setShowArchived] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingTag, setEditingTag] = useState<Tag | null>(null);
+  const [editingTagId, setEditingTagId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: "", color: colorOptions[0] });
+  const [isSaving, setIsSaving] = useState(false);
 
-  const filteredTags = tags.filter(tag => showArchived ? tag.isArchived : !tag.isArchived);
+  const displayedTags = showArchived ? archivedTags : activeTags;
 
   const openCreateDialog = () => {
-    setEditingTag(null);
+    setEditingTagId(null);
     setFormData({ name: "", color: colorOptions[0] });
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (tag: Tag) => {
-    setEditingTag(tag);
+  const openEditDialog = (tag: { id: string; name: string; color: string }) => {
+    setEditingTagId(tag.id);
     setFormData({ name: tag.name, color: tag.color });
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name.trim()) {
       toast.error("Nome é obrigatório");
       return;
     }
 
-    if (editingTag) {
-      setTags(tags.map(t => 
-        t.id === editingTag.id 
-          ? { ...t, name: formData.name, color: formData.color }
-          : t
-      ));
-      toast.success("Etiqueta atualizada!");
+    setIsSaving(true);
+
+    if (editingTagId) {
+      const success = await updateTag(editingTagId, formData.name, formData.color);
+      if (success) {
+        toast.success("Etiqueta atualizada!");
+      } else {
+        toast.error("Erro ao atualizar etiqueta");
+      }
     } else {
-      const newTag: Tag = {
-        id: Date.now().toString(),
-        name: formData.name,
-        color: formData.color,
-        isArchived: false,
-        createdAt: new Date(),
-      };
-      setTags([...tags, newTag]);
-      toast.success("Etiqueta criada!");
+      const newTag = await createTag(formData.name, formData.color);
+      if (newTag) {
+        toast.success("Etiqueta criada!");
+      } else {
+        toast.error("Erro ao criar etiqueta");
+      }
     }
+
+    setIsSaving(false);
     setIsDialogOpen(false);
   };
 
-  const toggleArchive = (tag: Tag) => {
-    setTags(tags.map(t => 
-      t.id === tag.id ? { ...t, isArchived: !t.isArchived } : t
-    ));
-    toast.success(tag.isArchived ? "Etiqueta restaurada!" : "Etiqueta arquivada!");
+  const handleToggleArchive = async (tag: { id: string; name: string; isArchived: boolean }) => {
+    if (tag.isArchived) {
+      const success = await restoreTag(tag.id);
+      if (success) {
+        toast.success("Etiqueta restaurada!");
+      } else {
+        toast.error("Erro ao restaurar etiqueta");
+      }
+    } else {
+      const success = await archiveTag(tag.id);
+      if (success) {
+        toast.success("Etiqueta arquivada!");
+      } else {
+        toast.error("Erro ao arquivar etiqueta");
+      }
+    }
   };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -112,13 +134,13 @@ export default function TagsSettings() {
           </div>
         </CardHeader>
         <CardContent>
-          {filteredTags.length === 0 ? (
+          {displayedTags.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               {showArchived ? "Nenhuma etiqueta arquivada" : "Nenhuma etiqueta criada"}
             </div>
           ) : (
             <div className="flex flex-wrap gap-3">
-              {filteredTags.map((tag) => (
+              {displayedTags.map((tag) => (
                 <div
                   key={tag.id}
                   className="group relative"
@@ -147,7 +169,7 @@ export default function TagsSettings() {
                       variant="ghost" 
                       size="icon" 
                       className="h-6 w-6"
-                      onClick={() => toggleArchive(tag)}
+                      onClick={() => handleToggleArchive(tag)}
                     >
                       {tag.isArchived ? (
                         <ArchiveRestore className="h-3 w-3" />
@@ -167,7 +189,7 @@ export default function TagsSettings() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingTag ? "Editar Etiqueta" : "Nova Etiqueta"}
+              {editingTagId ? "Editar Etiqueta" : "Nova Etiqueta"}
             </DialogTitle>
             <DialogDescription>
               Configure o nome e a cor da etiqueta
@@ -222,8 +244,15 @@ export default function TagsSettings() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSave}>
-              {editingTag ? "Salvar" : "Criar"}
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                editingTagId ? "Salvar" : "Criar"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
