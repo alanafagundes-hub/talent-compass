@@ -1,180 +1,79 @@
 
-# Plano: Formulário Dinâmico Baseado nos Templates de Configurações
+# Plano: Corrigir Visualização de Arquivos
 
-## Visão Geral
+## Diagnóstico
 
-Atualmente, o formulário de candidatura na página pública (`VagaPublica.tsx`) possui campos fixos e hardcoded (Nome, E-mail, Telefone, LinkedIn, Currículo). Este plano vai transformar esse formulário para renderizar **dinamicamente** os campos definidos nos templates de formulário criados em Configurações.
+O problema ocorre porque:
+1. O bucket `resumes` está configurado como **privado**
+2. As URLs são salvas com o formato `/object/public/` que não funciona em buckets privados
+3. O Chrome possui políticas de segurança (CSP/CORS) que bloqueiam a exibição inline de PDFs de domínios externos, mesmo com URLs válidas
+
+## Solução Proposta
+
+### Opção 1 (Recomendada): Tornar o Bucket Público
+
+A forma mais simples e confiável de resolver o problema:
+
+**Migração SQL:**
+```sql
+UPDATE storage.buckets 
+SET public = true 
+WHERE id = 'resumes';
+```
+
+**Vantagens:**
+- URLs funcionam imediatamente sem necessidade de assinatura
+- Não há dependência de tokens temporários
+- Download e visualização funcionam em qualquer navegador
+- Os arquivos já possuem nomes randomizados (ex: `1769542926740-vl80nl.pdf`), tornando praticamente impossível adivinhar URLs
+
+**Desvantagens:**
+- Tecnicamente qualquer pessoa com a URL exata pode acessar o arquivo
+- Dado que as URLs são randomizadas, o risco é mínimo
+
+### Opção 2: Manter Privado e Melhorar UX
+
+Se preferir manter o bucket privado por compliance (LGPD):
+
+1. **Remover preview inline**: Eliminar a tentativa de exibir PDF embutido (que o Chrome bloqueia)
+2. **Focar em Download/Nova Aba**: Oferecer apenas botões de "Baixar" e "Abrir em nova aba" com URLs assinadas
+3. **Validar geração de URL**: Garantir que as signed URLs estão sendo geradas corretamente
 
 ---
 
-## Arquitetura Proposta
+## Implementação Recomendada (Opção 1)
 
-```text
-+---------------------------+       +-----------------------+       +---------------------------+
-|   Configurações           |       |   Edição de Vaga      |       |   Página Pública          |
-|   (FormTemplates)         |       |   (JobFormDialog)     |       |   (VagaPublica)           |
-+---------------------------+       +-----------------------+       +---------------------------+
-|                           |       |                       |       |                           |
-|  Criar/Editar Templates   | ----> |  Selecionar Template  | ----> |  Renderizar Campos        |
-|  com campos dinâmicos     |       |  para a vaga          |       |  do Template selecionado  |
-|                           |       |                       |       |                           |
-+---------------------------+       +-----------------------+       +---------------------------+
-                                              |
-                                              v
-                                    +---------------------+
-                                    |    Banco de Dados   |
-                                    +---------------------+
-                                    | jobs.form_template_id|
-                                    | form_fields.*        |
-                                    | form_responses.*     |
-                                    +---------------------+
-```
+### Passo 1: Atualizar Bucket para Público
+
+Executar migração SQL para tornar o bucket público.
+
+### Passo 2: Simplificar Código de Exibição
+
+Atualizar `ApplicationDataBlock.tsx`:
+- Remover lógica de signed URLs (não será mais necessária)
+- Usar a URL diretamente para download e links externos
+- Manter preview com `<object>` tag para PDFs (funcionará melhor com bucket público)
+
+### Passo 3: Manter Políticas RLS de Upload
+
+As políticas de upload continuam funcionando normalmente - apenas a leitura se torna pública.
 
 ---
 
-## Mudanças Necessárias
+## Arquivos a Modificar
 
-### 1. Atualizar a Página Pública (`src/pages/VagaPublica.tsx`)
-
-**Problema Atual:** 
-- Campos fixos (Nome, E-mail, Telefone, LinkedIn, Currículo) renderizados diretamente no JSX
-- Template carrega `form_fields` mas são tratados como campos "extras" após os fixos
-
-**Solução:**
-- **Remover todos os campos fixos do formulário**
-- **Renderizar APENAS os campos vindos do `form_fields`** associado ao `form_template_id` da vaga
-- Se a vaga não tiver template associado, exibir mensagem de erro ou campos mínimos obrigatórios
-
-**Mudanças no código:**
-- Remover linhas 672-733 (campos hardcoded de nome, email, phone, linkedin, resume)
-- Modificar a seção do formulário para iterar sobre `formFields` e renderizar cada campo dinamicamente
-- Atualizar o estado `formData` para ser completamente dinâmico (sem campos fixos pré-definidos)
-- Ajustar `validateForm()` para validar campos obrigatórios do template
-- Ajustar `handleSubmit()` para salvar todas as respostas na tabela `form_responses`
-
-### 2. Adicionar Suporte a Todos os Tipos de Campo
-
-O sistema já suporta os tipos:
-- `short_text` - Input de texto simples
-- `long_text` - Textarea
-- `yes_no` - Radio buttons Sim/Não
-- `multiple_choice` - Checkboxes
-
-**Adicionar suporte a:**
-- `file_upload` - Upload de arquivo (currículo, portfólio, etc.)
-
-**Implementação:**
-```typescript
-case "file_upload":
-  return (
-    <div key={field.id} className="space-y-2">
-      <Label htmlFor={field.id}>
-        {field.label} {field.is_required && <span className="text-destructive">*</span>}
-      </Label>
-      <Input
-        id={field.id}
-        type="file"
-        accept=".pdf,.doc,.docx"
-        onChange={(e) => handleFileField(field.id, e.target.files?.[0])}
-      />
-      {error && <p className="text-sm text-destructive">{error}</p>}
-    </div>
-  );
-```
-
-### 3. Atualizar Estrutura de Dados do Formulário
-
-**Estado atual:**
-```typescript
-interface ApplicationFormData {
-  name: string;           // REMOVER
-  email: string;          // REMOVER
-  phone: string;          // REMOVER
-  linkedin: string;       // REMOVER
-  resumeFile: File | null; // REMOVER
-  lgpdConsent: boolean;
-  customFields: Record<string, string | string[] | boolean>;
-}
-```
-
-**Estado proposto:**
-```typescript
-interface ApplicationFormData {
-  fields: Record<string, string | string[] | boolean | null>;
-  files: Record<string, File | null>;
-  lgpdConsent: boolean;
-}
-```
-
-### 4. Atualizar Lógica de Submissão
-
-A submissão deve:
-1. Extrair campos essenciais (nome, email) do `formData.fields` para criar/atualizar o `candidate`
-2. Fazer upload de todos os arquivos para o Storage
-3. Salvar TODAS as respostas na tabela `form_responses` (incluindo URLs dos arquivos)
-
-**Identificação de campos essenciais:**
-- Nome: Buscar campo com label contendo "nome" ou tipo especial (pode ser definido no template)
-- E-mail: Buscar campo com label contendo "email" ou validar formato de email
-- Isso requer uma convenção ou marcação especial nos campos do template
-
-### 5. Tratamento de Vaga sem Template
-
-Se a vaga não tiver `form_template_id`:
-- Exibir mensagem: "Esta vaga ainda não possui um formulário de candidatura configurado"
-- Ou: Usar um template padrão (se existir um marcado como `is_default`)
-
----
-
-## Resumo dos Arquivos a Modificar
-
-| Arquivo | Alterações |
-|---------|------------|
-| `src/pages/VagaPublica.tsx` | Remover campos fixos, renderizar apenas campos do template, adicionar suporte a `file_upload`, atualizar validação e submissão |
-| `src/components/settings/FormTemplatesSettings.tsx` | Adicionar opção para marcar campos como "essenciais" (nome, email) - **opcional** |
+| Arquivo | Alteração |
+|---------|-----------|
+| Migração SQL | Tornar bucket `resumes` público |
+| `src/components/funnel/ApplicationDataBlock.tsx` | Simplificar lógica de URLs, remover signed URL calls |
+| `src/hooks/useSignedUrl.ts` | Pode ser mantido para uso futuro, mas não será necessário para currículos |
 
 ---
 
 ## Resultado Esperado
 
-1. Ao criar um template em Configurações com campos específicos (ex: Nome, E-mail, Portfolio, Pretensão Salarial)
-2. Ao selecionar esse template na edição da vaga
-3. A página pública da vaga renderizará **exatamente** esses campos na mesma ordem
-4. As respostas serão salvas em `form_responses` e exibidas no painel do candidato
-
----
-
-## Detalhes Técnicos
-
-### Convenção para Campos Essenciais
-
-Para identificar campos que mapeiam para a tabela `candidates`, podemos usar convenções baseadas no **label** do campo:
-
-- **Nome**: Label contém "nome" (case insensitive)
-- **E-mail**: Label contém "email" ou "e-mail"
-- **Telefone**: Label contém "telefone" ou "phone"
-- **LinkedIn**: Label contém "linkedin"
-- **Currículo**: Tipo `file_upload` com label contendo "currículo" ou "resume"
-
-### Fluxo de Submissão Atualizado
-
-```text
-1. Usuário preenche formulário dinâmico
-2. Validar campos obrigatórios
-3. Identificar campos essenciais pelo label
-4. Criar/atualizar registro em `candidates` com dados essenciais
-5. Upload de arquivos para Storage
-6. Criar registro em `applications`
-7. Salvar TODAS as respostas em `form_responses` (incluindo URLs de arquivos)
-8. Criar registro em `application_history`
-```
-
-### Mapeamento de Tipos
-
-| Tipo no Template | Componente React | Valor Salvo |
-|-----------------|------------------|-------------|
-| `short_text` | `<Input>` | string |
-| `long_text` | `<Textarea>` | string |
-| `yes_no` | `<RadioGroup>` | "sim" / "nao" |
-| `multiple_choice` | `<Checkbox>` | array de strings (JSON) |
-| `file_upload` | `<Input type="file">` | URL do arquivo no Storage |
+Após a implementação:
+- Arquivos carregarão instantaneamente sem espera por assinatura
+- Preview de PDF funcionará corretamente no Chrome
+- Download funcionará em qualquer navegador
+- Abrir em nova aba funcionará normalmente
