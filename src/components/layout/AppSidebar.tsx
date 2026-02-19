@@ -85,7 +85,7 @@ export function AppSidebar() {
         <NavLink
           to={item.url}
           className={cn(
-            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
+            "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] transition-all",
             isActive(item.url)
               ? "bg-sidebar-accent text-primary font-medium"
               : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
@@ -100,16 +100,16 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="border-b border-sidebar-border px-4 py-6">
+      <SidebarHeader className="border-b border-sidebar-border px-3 py-4">
         <div className="flex items-center justify-center">
-          <img src={logoDot} alt="DOT" className={cn("w-auto object-contain", isCollapsed ? "h-9" : "h-12")} />
+          <img src={logoDot} alt="DOT" className={cn("w-auto object-contain", isCollapsed ? "h-7" : "h-9")} />
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-3 py-4">
+      <SidebarContent className="px-2 py-3">
         {/* Recrutamento e Seleção */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-muted text-[11px] uppercase tracking-wider font-medium mb-3 px-3">
+          <SidebarGroupLabel className="text-sidebar-muted text-[0.625rem] uppercase tracking-wider font-medium mb-2 px-2">
             Recrutamento e Seleção
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -121,8 +121,8 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* HCM Section */}
-        <SidebarGroup className="mt-6">
-          <SidebarGroupLabel className="text-sidebar-muted text-[11px] uppercase tracking-wider font-medium mb-3 px-3 flex items-center gap-2">
+        <SidebarGroup className="mt-4">
+          <SidebarGroupLabel className="text-sidebar-muted text-[0.625rem] uppercase tracking-wider font-medium mb-2 px-2 flex items-center gap-2">
             People e Performance
             {!isCollapsed && (
               <span className="ml-auto text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-semibold">
@@ -142,7 +142,7 @@ export function AppSidebar() {
                       tooltip="Gestão"
                       isActive={isActive("/hcm/gestao")}
                       className={cn(
-                        "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm transition-all w-full",
+                        "flex items-center justify-between gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] transition-all w-full",
                         isActive("/hcm/gestao")
                           ? "bg-sidebar-accent text-primary font-medium"
                           : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
@@ -165,7 +165,7 @@ export function AppSidebar() {
                             <NavLink
                               to={subItem.url}
                               className={cn(
-                                "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm transition-all",
+                                "flex items-center gap-2.5 rounded-md px-2.5 py-1 text-[0.8125rem] transition-all",
                                 isActive(subItem.url) ? "text-primary font-medium" : "text-sidebar-muted hover:text-sidebar-foreground"
                               )}
                             >
@@ -184,8 +184,8 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Conta Section */}
-        <SidebarGroup className="mt-6">
-          <SidebarGroupLabel className="text-sidebar-muted text-[11px] uppercase tracking-wider font-medium mb-3 px-3">
+        <SidebarGroup className="mt-4">
+          <SidebarGroupLabel className="text-sidebar-muted text-[0.625rem] uppercase tracking-wider font-medium mb-2 px-2">
             Conta
           </SidebarGroupLabel>
           <SidebarGroupContent>
