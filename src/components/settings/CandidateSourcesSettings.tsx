@@ -23,10 +23,10 @@ import {
   Globe,
   Building,
   GraduationCap,
-  Megaphone
+  Megaphone,
+  Loader2
 } from "lucide-react";
-import type { CandidateSource } from "@/types/ats";
-import { toast } from "sonner";
+import { useCandidateSources } from "@/hooks/useCandidateSources";
 
 const iconOptions = [
   { id: "linkedin", icon: <Linkedin className="h-4 w-4" />, label: "LinkedIn" },
@@ -43,71 +43,51 @@ const getIconComponent = (iconId?: string) => {
   return iconConfig?.icon || <Link2 className="h-4 w-4" />;
 };
 
-const initialSources: CandidateSource[] = [
-  { id: "1", name: "LinkedIn", icon: "linkedin", isArchived: false, createdAt: new Date() },
-  { id: "2", name: "Indicação Interna", icon: "users", isArchived: false, createdAt: new Date() },
-  { id: "3", name: "Site Carreiras", icon: "globe", isArchived: false, createdAt: new Date() },
-  { id: "4", name: "Indeed", icon: "link", isArchived: false, createdAt: new Date() },
-  { id: "5", name: "Glassdoor", icon: "link", isArchived: false, createdAt: new Date() },
-  { id: "6", name: "Gupy", icon: "link", isArchived: false, createdAt: new Date() },
-  { id: "7", name: "Feira de Carreiras", icon: "graduation", isArchived: false, createdAt: new Date() },
-  { id: "8", name: "Instagram", icon: "megaphone", isArchived: false, createdAt: new Date() },
-];
-
 export default function CandidateSourcesSettings() {
-  const [sources, setSources] = useState<CandidateSource[]>(initialSources);
+  const { activeSources, archivedSources, isLoading, createSource, updateSource, toggleArchive } = useCandidateSources();
+  
   const [showArchived, setShowArchived] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingSource, setEditingSource] = useState<CandidateSource | null>(null);
+  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: "", icon: "link" });
+  const [isSaving, setIsSaving] = useState(false);
 
-  const filteredSources = sources.filter(s => showArchived ? s.isArchived : !s.isArchived);
+  const displayedSources = showArchived ? archivedSources : activeSources;
 
   const openCreateDialog = () => {
-    setEditingSource(null);
+    setEditingSourceId(null);
     setFormData({ name: "", icon: "link" });
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (source: CandidateSource) => {
-    setEditingSource(source);
+  const openEditDialog = (source: { id: string; name: string; icon?: string }) => {
+    setEditingSourceId(source.id);
     setFormData({ name: source.name, icon: source.icon || "link" });
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (!formData.name.trim()) {
-      toast.error("Nome é obrigatório");
-      return;
-    }
+  const handleSave = async () => {
+    if (!formData.name.trim()) return;
 
-    if (editingSource) {
-      setSources(sources.map(s => 
-        s.id === editingSource.id 
-          ? { ...s, name: formData.name, icon: formData.icon }
-          : s
-      ));
-      toast.success("Fonte atualizada!");
+    setIsSaving(true);
+    if (editingSourceId) {
+      await updateSource(editingSourceId, formData.name, formData.icon);
     } else {
-      const newSource: CandidateSource = {
-        id: Date.now().toString(),
-        name: formData.name,
-        icon: formData.icon,
-        isArchived: false,
-        createdAt: new Date(),
-      };
-      setSources([...sources, newSource]);
-      toast.success("Fonte criada!");
+      await createSource(formData.name, formData.icon);
     }
+    setIsSaving(false);
     setIsDialogOpen(false);
   };
 
-  const toggleArchive = (source: CandidateSource) => {
-    setSources(sources.map(s => 
-      s.id === source.id ? { ...s, isArchived: !s.isArchived } : s
-    ));
-    toast.success(source.isArchived ? "Fonte restaurada!" : "Fonte arquivada!");
-  };
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -120,11 +100,7 @@ export default function CandidateSourcesSettings() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setShowArchived(!showArchived)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)}>
               {showArchived ? "Ver Ativas" : "Ver Arquivadas"}
             </Button>
             <Button onClick={openCreateDialog} className="gap-2">
@@ -134,7 +110,7 @@ export default function CandidateSourcesSettings() {
           </div>
         </CardHeader>
         <CardContent>
-          {filteredSources.length === 0 ? (
+          {displayedSources.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
               <Link2 className="h-12 w-12 text-muted-foreground/50" />
               <h3 className="mt-4 text-lg font-semibold">
@@ -152,7 +128,7 @@ export default function CandidateSourcesSettings() {
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredSources.map((source) => (
+              {displayedSources.map((source) => (
                 <div
                   key={source.id}
                   className={`flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50 ${source.isArchived ? 'opacity-60' : ''}`}
@@ -165,25 +141,11 @@ export default function CandidateSourcesSettings() {
                     <p className="font-medium">{source.name}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      onClick={() => openEditDialog(source)}
-                    >
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(source)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      onClick={() => toggleArchive(source)}
-                    >
-                      {source.isArchived ? (
-                        <ArchiveRestore className="h-4 w-4" />
-                      ) : (
-                        <Archive className="h-4 w-4" />
-                      )}
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleArchive(source.id)}>
+                      {source.isArchived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>
@@ -196,22 +158,13 @@ export default function CandidateSourcesSettings() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {editingSource ? "Editar Fonte" : "Nova Fonte de Candidatura"}
-            </DialogTitle>
-            <DialogDescription>
-              Configure uma fonte de onde candidatos se aplicam
-            </DialogDescription>
+            <DialogTitle>{editingSourceId ? "Editar Fonte" : "Nova Fonte de Candidatura"}</DialogTitle>
+            <DialogDescription>Configure uma fonte de onde candidatos se aplicam</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nome da Fonte</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ex: LinkedIn, Indeed, Indicação..."
-              />
+              <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ex: LinkedIn, Indeed, Indicação..." />
             </div>
             <div className="space-y-2">
               <Label>Ícone</Label>
@@ -242,11 +195,9 @@ export default function CandidateSourcesSettings() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave}>
-              {editingSource ? "Salvar" : "Criar"}
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</>) : (editingSourceId ? "Salvar" : "Criar")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -19,34 +19,21 @@ import {
   ArchiveRestore, 
   GripVertical,
   Building2,
-  Briefcase
+  Briefcase,
+  Loader2
 } from "lucide-react";
 import type { Area } from "@/types/ats";
+import { useAreas } from "@/hooks/useAreas";
 import { toast } from "sonner";
 
-const initialAreas: Area[] = [
-  { id: "1", name: "Tech", description: "Desenvolvimento, infraestrutura e dados", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "2", name: "Comercial", description: "Vendas e relacionamento com clientes", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "3", name: "Criação", description: "Design, UX/UI e produção visual", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "4", name: "Marketing", description: "Comunicação, branding e growth", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "5", name: "RH", description: "Pessoas, cultura e desenvolvimento", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-  { id: "6", name: "Financeiro", description: "Finanças, contabilidade e fiscal", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
-];
-
-interface AreasSettingsProps {
-  areas?: Area[];
-  onAreasChange?: (areas: Area[]) => void;
-}
-
-export default function AreasSettings({ areas: externalAreas, onAreasChange }: AreasSettingsProps) {
-  const [internalAreas, setInternalAreas] = useState<Area[]>(initialAreas);
-  const areas = externalAreas || internalAreas;
-  const setAreas = onAreasChange || setInternalAreas;
+export default function AreasSettings() {
+  const { areas, isLoading, createArea, updateArea, toggleArchive } = useAreas();
 
   const [showArchived, setShowArchived] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingArea, setEditingArea] = useState<Area | null>(null);
   const [formData, setFormData] = useState({ name: "", description: "" });
+  const [isSaving, setIsSaving] = useState(false);
 
   const filteredAreas = areas.filter(a => showArchived ? a.isArchived : !a.isArchived);
 
@@ -62,46 +49,53 @@ export default function AreasSettings({ areas: externalAreas, onAreasChange }: A
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name.trim()) {
       toast.error("Nome é obrigatório");
       return;
     }
 
-    if (editingArea) {
-      setAreas(areas.map(a => 
-        a.id === editingArea.id 
-          ? { ...a, name: formData.name, description: formData.description, updatedAt: new Date() }
-          : a
-      ));
-      toast.success("Área atualizada!");
-    } else {
-      const newArea: Area = {
-        id: Date.now().toString(),
-        name: formData.name,
-        description: formData.description,
-        isArchived: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setAreas([...areas, newArea]);
-      toast.success("Área criada!");
+    setIsSaving(true);
+    try {
+      if (editingArea) {
+        const result = await updateArea(editingArea.id, { 
+          name: formData.name, 
+          description: formData.description 
+        });
+        if (!result) {
+          toast.error("Erro ao atualizar área");
+          return;
+        }
+      } else {
+        const result = await createArea({ 
+          name: formData.name, 
+          description: formData.description, 
+          isArchived: false 
+        });
+        if (!result) {
+          toast.error("Erro ao criar área");
+          return;
+        }
+      }
+      setIsDialogOpen(false);
+    } finally {
+      setIsSaving(false);
     }
-    setIsDialogOpen(false);
   };
 
-  const toggleArchive = (area: Area) => {
-    setAreas(areas.map(a => 
-      a.id === area.id ? { ...a, isArchived: !a.isArchived, updatedAt: new Date() } : a
-    ));
-    toast.success(area.isArchived ? "Área restaurada!" : "Área arquivada!");
+  const handleToggleArchive = async (area: Area) => {
+    await toggleArchive(area.id);
   };
 
-  // Count jobs per area (mock for now)
-  const getJobsCount = (areaId: string) => {
-    const mockCounts: Record<string, number> = { "1": 5, "2": 3, "3": 2, "4": 4, "5": 1, "6": 0 };
-    return mockCounts[areaId] || 0;
-  };
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -163,33 +157,27 @@ export default function AreasSettings({ areas: externalAreas, onAreasChange }: A
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Briefcase className="h-4 w-4" />
-                      <span>{getJobsCount(area.id)} vaga(s)</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8"
-                        onClick={() => openEditDialog(area)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8"
-                        onClick={() => toggleArchive(area)}
-                      >
-                        {area.isArchived ? (
-                          <ArchiveRestore className="h-4 w-4" />
-                        ) : (
-                          <Archive className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => openEditDialog(area)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleToggleArchive(area)}
+                    >
+                      {area.isArchived ? (
+                        <ArchiveRestore className="h-4 w-4" />
+                      ) : (
+                        <Archive className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -230,11 +218,18 @@ export default function AreasSettings({ areas: externalAreas, onAreasChange }: A
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>
               Cancelar
             </Button>
-            <Button onClick={handleSave}>
-              {editingArea ? "Salvar" : "Criar"}
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                editingArea ? "Salvar" : "Criar"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

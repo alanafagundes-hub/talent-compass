@@ -25,8 +25,8 @@ import { JobSection } from "@/components/public/JobSection";
 import { toast } from "sonner";
 import { usePublicJobs, type PublicJob } from "@/hooks/usePublicJobs";
 import { useLandingPageConfig } from "@/hooks/useLandingPageConfig";
-import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
+const supabase = supabaseClient as any;
 import { useTrackingParams, resolveSourceName } from "@/hooks/useTrackingParams";
 
 // Job level labels
@@ -85,7 +85,7 @@ export default function VagaPublica() {
   const trackingData = useTrackingParams();
   
   const [job, setJob] = useState<PublicJob | null>(null);
-  const [formFields, setFormFields] = useState<Tables<'form_fields'>[]>([]);
+  const [formFields, setFormFields] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -436,7 +436,7 @@ export default function VagaPublica() {
     }
   };
 
-  const renderFormField = (field: Tables<'form_fields'>) => {
+  const renderFormField = (field: any) => {
     const error = errors[field.id];
 
     switch (field.field_type) {

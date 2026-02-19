@@ -634,6 +634,33 @@ export type Database = {
           },
         ]
       }
+      candidate_sources: {
+        Row: {
+          created_at: string | null
+          icon: string | null
+          id: string
+          is_archived: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_archived?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_archived?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       celebration_templates: {
         Row: {
           audio_url: string
@@ -2394,6 +2421,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          body: string
+          created_at: string | null
+          id: string
+          is_archived: boolean | null
+          is_default: boolean | null
+          name: string
+          subject: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          id?: string
+          is_archived?: boolean | null
+          is_default?: boolean | null
+          name: string
+          subject: string
+          type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          id?: string
+          is_archived?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          subject?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       form_fields: {
         Row: {
           created_at: string | null
@@ -2463,6 +2526,33 @@ export type Database = {
           id?: string
           is_archived?: boolean | null
           is_default?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      incompatibility_reasons: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_archived: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
           name?: string
           updated_at?: string | null
         }

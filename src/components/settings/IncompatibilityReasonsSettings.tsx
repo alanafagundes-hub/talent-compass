@@ -18,78 +18,56 @@ import {
   Archive, 
   ArchiveRestore, 
   GripVertical,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from "lucide-react";
-import type { IncompatibilityReason } from "@/types/ats";
-import { toast } from "sonner";
-
-const initialReasons: IncompatibilityReason[] = [
-  { id: "1", name: "Pretensão salarial acima do orçamento", description: "Candidato solicita salário além da faixa disponível", isArchived: false, createdAt: new Date() },
-  { id: "2", name: "Perfil técnico incompatível", description: "Habilidades técnicas não atendem aos requisitos", isArchived: false, createdAt: new Date() },
-  { id: "3", name: "Indisponibilidade de horário", description: "Candidato não pode cumprir o horário da vaga", isArchived: false, createdAt: new Date() },
-  { id: "4", name: "Localização incompatível", description: "Candidato não pode trabalhar na localidade exigida", isArchived: false, createdAt: new Date() },
-  { id: "5", name: "Desistência do candidato", description: "Candidato desistiu do processo seletivo", isArchived: false, createdAt: new Date() },
-  { id: "6", name: "Aceite de outra proposta", description: "Candidato aceitou proposta de outra empresa", isArchived: false, createdAt: new Date() },
-  { id: "7", name: "Sem retorno do candidato", description: "Candidato não respondeu às tentativas de contato", isArchived: false, createdAt: new Date() },
-  { id: "8", name: "Reprovado no teste técnico", description: "Candidato não atingiu pontuação mínima no teste", isArchived: false, createdAt: new Date() },
-  { id: "9", name: "Reprovado na entrevista", description: "Candidato não aprovado na etapa de entrevista", isArchived: false, createdAt: new Date() },
-  { id: "10", name: "Fit cultural inadequado", description: "Perfil comportamental não alinha com a cultura da empresa", isArchived: false, createdAt: new Date() },
-];
+import { useIncompatibilityReasons } from "@/hooks/useIncompatibilityReasons";
 
 export default function IncompatibilityReasonsSettings() {
-  const [reasons, setReasons] = useState<IncompatibilityReason[]>(initialReasons);
+  const { activeReasons, archivedReasons, isLoading, createReason, updateReason, toggleArchive } = useIncompatibilityReasons();
+  
   const [showArchived, setShowArchived] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingReason, setEditingReason] = useState<IncompatibilityReason | null>(null);
+  const [editingReasonId, setEditingReasonId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: "", description: "" });
+  const [isSaving, setIsSaving] = useState(false);
 
-  const filteredReasons = reasons.filter(r => showArchived ? r.isArchived : !r.isArchived);
+  const displayedReasons = showArchived ? archivedReasons : activeReasons;
 
   const openCreateDialog = () => {
-    setEditingReason(null);
+    setEditingReasonId(null);
     setFormData({ name: "", description: "" });
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (reason: IncompatibilityReason) => {
-    setEditingReason(reason);
+  const openEditDialog = (reason: { id: string; name: string; description?: string }) => {
+    setEditingReasonId(reason.id);
     setFormData({ name: reason.name, description: reason.description || "" });
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (!formData.name.trim()) {
-      toast.error("Nome é obrigatório");
-      return;
-    }
+  const handleSave = async () => {
+    if (!formData.name.trim()) return;
 
-    if (editingReason) {
-      setReasons(reasons.map(r => 
-        r.id === editingReason.id 
-          ? { ...r, name: formData.name, description: formData.description }
-          : r
-      ));
-      toast.success("Motivo atualizado!");
+    setIsSaving(true);
+    if (editingReasonId) {
+      await updateReason(editingReasonId, formData.name, formData.description);
     } else {
-      const newReason: IncompatibilityReason = {
-        id: Date.now().toString(),
-        name: formData.name,
-        description: formData.description,
-        isArchived: false,
-        createdAt: new Date(),
-      };
-      setReasons([...reasons, newReason]);
-      toast.success("Motivo criado!");
+      await createReason(formData.name, formData.description);
     }
+    setIsSaving(false);
     setIsDialogOpen(false);
   };
 
-  const toggleArchive = (reason: IncompatibilityReason) => {
-    setReasons(reasons.map(r => 
-      r.id === reason.id ? { ...r, isArchived: !r.isArchived } : r
-    ));
-    toast.success(reason.isArchived ? "Motivo restaurado!" : "Motivo arquivado!");
-  };
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -116,7 +94,7 @@ export default function IncompatibilityReasonsSettings() {
           </div>
         </CardHeader>
         <CardContent>
-          {filteredReasons.length === 0 ? (
+          {displayedReasons.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
               <AlertCircle className="h-12 w-12 text-muted-foreground/50" />
               <h3 className="mt-4 text-lg font-semibold">
@@ -134,7 +112,7 @@ export default function IncompatibilityReasonsSettings() {
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredReasons.map((reason) => (
+              {displayedReasons.map((reason) => (
                 <div
                   key={reason.id}
                   className={`flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50 ${reason.isArchived ? 'opacity-60' : ''}`}
@@ -161,7 +139,7 @@ export default function IncompatibilityReasonsSettings() {
                       variant="ghost" 
                       size="icon" 
                       className="h-8 w-8"
-                      onClick={() => toggleArchive(reason)}
+                      onClick={() => toggleArchive(reason.id)}
                     >
                       {reason.isArchived ? (
                         <ArchiveRestore className="h-4 w-4" />
@@ -181,7 +159,7 @@ export default function IncompatibilityReasonsSettings() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingReason ? "Editar Motivo" : "Novo Motivo de Incompatibilidade"}
+              {editingReasonId ? "Editar Motivo" : "Novo Motivo de Incompatibilidade"}
             </DialogTitle>
             <DialogDescription>
               Defina um motivo padrão para reprovação de candidatos
@@ -209,11 +187,18 @@ export default function IncompatibilityReasonsSettings() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>
               Cancelar
             </Button>
-            <Button onClick={handleSave}>
-              {editingReason ? "Salvar" : "Criar"}
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                editingReasonId ? "Salvar" : "Criar"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
