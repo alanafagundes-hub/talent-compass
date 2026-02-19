@@ -18,16 +18,8 @@ import {
   UserX,
   FileText,
   Award,
-  Briefcase,
-  Tags,
-  Archive
+  User
 } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import type { Candidate, Tag, CardStageRating } from "@/types/ats";
 
 interface KanbanCardData {
@@ -48,20 +40,9 @@ interface KanbanCardProps {
   onViewDetails?: (card: KanbanCardData) => void;
   onMarkAsLost?: (card: KanbanCardData) => void;
   onRate?: (card: KanbanCardData) => void;
-  onLinkToJob?: (card: KanbanCardData) => void;
-  onManageTags?: (card: KanbanCardData) => void;
-  onArchive?: (card: KanbanCardData) => void;
 }
 
-export default function KanbanCard({ 
-  card, 
-  onViewDetails, 
-  onMarkAsLost, 
-  onRate,
-  onLinkToJob,
-  onManageTags,
-  onArchive 
-}: KanbanCardProps) {
+export default function KanbanCard({ card, onViewDetails, onMarkAsLost, onRate }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -83,27 +64,6 @@ export default function KanbanCard({
           card.stageRatings.length
       )
     : card.rating || null;
-
-  // Get Fit Cultural (rating from "Entrevista RH" stage)
-  const fitCultural = card.stageRatings?.find(
-    r => r.stepName.toLowerCase().includes('entrevista rh')
-  )?.rating || null;
-
-  const fitCulturalColor = fitCultural ? ({
-    1: '#ef4444',
-    2: '#f97316',
-    3: '#eab308',
-    4: '#22c55e',
-    5: '#10b981',
-  } as Record<number, string>)[fitCultural] : undefined;
-
-  const fitCulturalTooltip = fitCultural ? ({
-    1: 'Fit Cultural Baixo',
-    2: 'Fit Cultural Abaixo da Média',
-    3: 'Fit Cultural Médio',
-    4: 'Fit Cultural Bom',
-    5: 'Fit Cultural Excelente',
-  } as Record<number, string>)[fitCultural] : undefined;
 
   const formatTimeInStage = (enteredAt: Date) => {
     const now = new Date();
@@ -167,25 +127,6 @@ export default function KanbanCard({
                 Avaliar nesta Etapa
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              {onLinkToJob && (
-                <DropdownMenuItem onClick={() => onLinkToJob(card)}>
-                  <Briefcase className="mr-2 h-4 w-4" />
-                  Vincular a outra vaga
-                </DropdownMenuItem>
-              )}
-              {onManageTags && (
-                <DropdownMenuItem onClick={() => onManageTags(card)}>
-                  <Tags className="mr-2 h-4 w-4" />
-                  Gerenciar etiquetas
-                </DropdownMenuItem>
-              )}
-              {onArchive && (
-                <DropdownMenuItem onClick={() => onArchive(card)}>
-                  <Archive className="mr-2 h-4 w-4" />
-                  Arquivar candidato
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={() => onMarkAsLost?.(card)}
                 className="text-destructive focus:text-destructive"
@@ -197,39 +138,11 @@ export default function KanbanCard({
           </DropdownMenu>
         </div>
 
-        {/* Status Badge and Ratings */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Status Badge */}
+        <div className="flex items-center gap-1.5">
           <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
             Ativo
           </Badge>
-          
-          {/* Fit Cultural Badge */}
-          {fitCultural && fitCulturalColor && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div 
-                    className="flex items-center gap-0.5 text-[10px] px-1.5 py-0 rounded-full cursor-help"
-                    style={{
-                      backgroundColor: `${fitCulturalColor}15`,
-                      color: fitCulturalColor,
-                    }}
-                  >
-                    <Star className="h-2.5 w-2.5" fill={fitCulturalColor} />
-                    <span className="font-semibold">FC {fitCultural}</span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="font-medium">{fitCulturalTooltip}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Baseado na avaliação da Entrevista RH
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          
-          {/* Average Rating */}
           {averageRating && (
             <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
               <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />

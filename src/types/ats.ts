@@ -34,9 +34,6 @@ export type FormFieldType = 'short_text' | 'long_text' | 'multiple_choice' | 'ye
 
 export type EmailTemplateType = 'confirmation' | 'rejection' | 'interview_invite' | 'offer' | 'custom';
 
-// Availability status for candidates
-export type CandidateAvailability = 'actively_seeking' | 'open_to_opportunities' | 'not_interested';
-
 // Entidades principais
 
 export interface Area {
@@ -60,9 +57,7 @@ export interface Candidate {
   tags: string[];
   sourceId?: string;
   status: CandidateStatus;
-  availability?: CandidateAvailability;
   isArchived: boolean;
-  isInTalentPool?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -316,16 +311,4 @@ export const jobStatusLabels: Record<JobStatus, string> = {
   publicada: 'Publicada',
   pausada: 'Pausada',
   encerrada: 'Encerrada',
-};
-
-export const availabilityLabels: Record<CandidateAvailability, string> = {
-  actively_seeking: '🔥 Ativamente buscando',
-  open_to_opportunities: '🙂 Aberto a oportunidades',
-  not_interested: '❄️ Sem interesse',
-};
-
-export const availabilityColors: Record<CandidateAvailability, string> = {
-  actively_seeking: '#ef4444',
-  open_to_opportunities: '#22c55e',
-  not_interested: '#94a3b8',
 };

@@ -12,30 +12,41 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, ArchiveRestore, GripVertical, Building2, Loader2 } from "lucide-react";
+import { 
+  Plus, 
+  Pencil, 
+  Archive, 
+  ArchiveRestore, 
+  GripVertical,
+  Building2,
+  Briefcase
+} from "lucide-react";
 import type { Area } from "@/types/ats";
-import { useAreas } from "@/hooks/useAreas";
 import { toast } from "sonner";
 
-export default function AreasSettings() {
-  const { areas, isLoading, createArea, updateArea, toggleArchive } = useAreas();
+const initialAreas: Area[] = [
+  { id: "1", name: "Tech", description: "Desenvolvimento, infraestrutura e dados", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
+  { id: "2", name: "Comercial", description: "Vendas e relacionamento com clientes", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
+  { id: "3", name: "Criação", description: "Design, UX/UI e produção visual", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
+  { id: "4", name: "Marketing", description: "Comunicação, branding e growth", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
+  { id: "5", name: "RH", description: "Pessoas, cultura e desenvolvimento", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
+  { id: "6", name: "Financeiro", description: "Finanças, contabilidade e fiscal", isArchived: false, createdAt: new Date(), updatedAt: new Date() },
+];
+
+interface AreasSettingsProps {
+  areas?: Area[];
+  onAreasChange?: (areas: Area[]) => void;
+}
+
+export default function AreasSettings({ areas: externalAreas, onAreasChange }: AreasSettingsProps) {
+  const [internalAreas, setInternalAreas] = useState<Area[]>(initialAreas);
+  const areas = externalAreas || internalAreas;
+  const setAreas = onAreasChange || setInternalAreas;
 
   const [showArchived, setShowArchived] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingArea, setEditingArea] = useState<Area | null>(null);
   const [formData, setFormData] = useState({ name: "", description: "" });
-  const [isSaving, setIsSaving] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const filteredAreas = areas.filter(a => showArchived ? a.isArchived : !a.isArchived);
 
@@ -51,42 +62,46 @@ export default function AreasSettings() {
     setIsDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!formData.name.trim()) {
       toast.error("Nome é obrigatório");
       return;
     }
-    setIsSaving(true);
-    try {
-      if (editingArea) {
-        const result = await updateArea(editingArea.id, { name: formData.name, description: formData.description });
-        if (!result) { toast.error("Erro ao atualizar área"); return; }
-      } else {
-        const result = await createArea({ name: formData.name, description: formData.description, isArchived: false });
-        if (!result) { toast.error("Erro ao criar área"); return; }
-      }
-      setIsDialogOpen(false);
-    } finally {
-      setIsSaving(false);
+
+    if (editingArea) {
+      setAreas(areas.map(a => 
+        a.id === editingArea.id 
+          ? { ...a, name: formData.name, description: formData.description, updatedAt: new Date() }
+          : a
+      ));
+      toast.success("Área atualizada!");
+    } else {
+      const newArea: Area = {
+        id: Date.now().toString(),
+        name: formData.name,
+        description: formData.description,
+        isArchived: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      setAreas([...areas, newArea]);
+      toast.success("Área criada!");
     }
+    setIsDialogOpen(false);
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    await toggleArchive(deleteTarget.id);
-    toast.success("Área excluída!");
-    setDeleteTarget(null);
+  const toggleArchive = (area: Area) => {
+    setAreas(areas.map(a => 
+      a.id === area.id ? { ...a, isArchived: !a.isArchived, updatedAt: new Date() } : a
+    ));
+    toast.success(area.isArchived ? "Área restaurada!" : "Área arquivada!");
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </CardContent>
-      </Card>
-    );
-  }
+  // Count jobs per area (mock for now)
+  const getJobsCount = (areaId: string) => {
+    const mockCounts: Record<string, number> = { "1": 5, "2": 3, "3": 2, "4": 4, "5": 1, "6": 0 };
+    return mockCounts[areaId] || 0;
+  };
 
   return (
     <>
@@ -94,10 +109,16 @@ export default function AreasSettings() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Áreas da Empresa</CardTitle>
-            <CardDescription>Organize as vagas por áreas ou departamentos</CardDescription>
+            <CardDescription>
+              Organize as vagas por áreas ou departamentos
+            </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)}>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowArchived(!showArchived)}
+            >
               {showArchived ? "Ver Ativas" : "Ver Arquivadas"}
             </Button>
             <Button onClick={openCreateDialog} className="gap-2">
@@ -142,19 +163,33 @@ export default function AreasSettings() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(area)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    {area.isArchived ? (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleArchive(area.id)}>
-                        <ArchiveRestore className="h-4 w-4" />
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Briefcase className="h-4 w-4" />
+                      <span>{getJobsCount(area.id)} vaga(s)</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => openEditDialog(area)}
+                      >
+                        <Pencil className="h-4 w-4" />
                       </Button>
-                    ) : (
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: area.id, name: area.name })}>
-                        <Trash2 className="h-4 w-4" />
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => toggleArchive(area)}
+                      >
+                        {area.isArchived ? (
+                          <ArchiveRestore className="h-4 w-4" />
+                        ) : (
+                          <Archive className="h-4 w-4" />
+                        )}
                       </Button>
-                    )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -163,47 +198,47 @@ export default function AreasSettings() {
         </CardContent>
       </Card>
 
-      {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingArea ? "Editar Área" : "Nova Área"}</DialogTitle>
-            <DialogDescription>Áreas são usadas para organizar e agrupar vagas</DialogDescription>
+            <DialogTitle>
+              {editingArea ? "Editar Área" : "Nova Área"}
+            </DialogTitle>
+            <DialogDescription>
+              Áreas são usadas para organizar e agrupar vagas
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nome da Área *</Label>
-              <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ex: Tech, Comercial, Marketing..." />
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Ex: Tech, Comercial, Marketing..."
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Descrição</Label>
-              <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Descreva brevemente a área..." rows={3} />
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Descreva brevemente a área..."
+                rows={3}
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</>) : (editingArea ? "Salvar" : "Criar")}
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave}>
+              {editingArea ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir área</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir a área <strong>"{deleteTarget?.name}"</strong>? Ela será arquivada e poderá ser restaurada posteriormente.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

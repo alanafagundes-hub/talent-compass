@@ -12,107 +12,80 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Archive, ArchiveRestore, Loader2 } from "lucide-react";
+import { Plus, Pencil, Archive, ArchiveRestore } from "lucide-react";
+import type { Tag } from "@/types/ats";
 import { toast } from "sonner";
-import { useTags } from "@/hooks/useTags";
+
+const initialTags: Tag[] = [
+  { id: "1", name: "Senior", color: "#3B82F6", isArchived: false, createdAt: new Date() },
+  { id: "2", name: "Pleno", color: "#8B5CF6", isArchived: false, createdAt: new Date() },
+  { id: "3", name: "Junior", color: "#22C55E", isArchived: false, createdAt: new Date() },
+  { id: "4", name: "React", color: "#06B6D4", isArchived: false, createdAt: new Date() },
+  { id: "5", name: "Node.js", color: "#84CC16", isArchived: false, createdAt: new Date() },
+  { id: "6", name: "Design", color: "#F43F5E", isArchived: false, createdAt: new Date() },
+  { id: "7", name: "Remoto", color: "#F59E0B", isArchived: false, createdAt: new Date() },
+];
 
 const colorOptions = [
   "#3B82F6", "#8B5CF6", "#22C55E", "#06B6D4", "#84CC16", 
   "#F43F5E", "#F59E0B", "#EC4899", "#6366F1", "#14B8A6",
-  "#EF4444", "#10B981", "#F97316", "#64748B"
+  "#EF4444", "#10B981", "#F97316", "#8B5CF6", "#64748B"
 ];
 
 export default function TagsSettings() {
-  const { 
-    activeTags, 
-    archivedTags, 
-    isLoading, 
-    createTag, 
-    updateTag, 
-    archiveTag, 
-    restoreTag 
-  } = useTags();
-  
+  const [tags, setTags] = useState<Tag[]>(initialTags);
   const [showArchived, setShowArchived] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingTagId, setEditingTagId] = useState<string | null>(null);
+  const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [formData, setFormData] = useState({ name: "", color: colorOptions[0] });
-  const [isSaving, setIsSaving] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
-  const displayedTags = showArchived ? archivedTags : activeTags;
+  const filteredTags = tags.filter(tag => showArchived ? tag.isArchived : !tag.isArchived);
 
   const openCreateDialog = () => {
-    setEditingTagId(null);
+    setEditingTag(null);
     setFormData({ name: "", color: colorOptions[0] });
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (tag: { id: string; name: string; color: string }) => {
-    setEditingTagId(tag.id);
+  const openEditDialog = (tag: Tag) => {
+    setEditingTag(tag);
     setFormData({ name: tag.name, color: tag.color });
     setIsDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!formData.name.trim()) {
       toast.error("Nome é obrigatório");
       return;
     }
 
-    setIsSaving(true);
-    if (editingTagId) {
-      const success = await updateTag(editingTagId, formData.name, formData.color);
-      if (success) toast.success("Etiqueta atualizada!");
-      else toast.error("Erro ao atualizar etiqueta");
+    if (editingTag) {
+      setTags(tags.map(t => 
+        t.id === editingTag.id 
+          ? { ...t, name: formData.name, color: formData.color }
+          : t
+      ));
+      toast.success("Etiqueta atualizada!");
     } else {
-      const newTag = await createTag(formData.name, formData.color);
-      if (newTag) toast.success("Etiqueta criada!");
-      else toast.error("Erro ao criar etiqueta");
+      const newTag: Tag = {
+        id: Date.now().toString(),
+        name: formData.name,
+        color: formData.color,
+        isArchived: false,
+        createdAt: new Date(),
+      };
+      setTags([...tags, newTag]);
+      toast.success("Etiqueta criada!");
     }
-    setIsSaving(false);
     setIsDialogOpen(false);
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    const success = await archiveTag(deleteTarget.id);
-    if (success) toast.success("Etiqueta excluída!");
-    else toast.error("Erro ao excluir etiqueta");
-    setDeleteTarget(null);
+  const toggleArchive = (tag: Tag) => {
+    setTags(tags.map(t => 
+      t.id === tag.id ? { ...t, isArchived: !t.isArchived } : t
+    ));
+    toast.success(tag.isArchived ? "Etiqueta restaurada!" : "Etiqueta arquivada!");
   };
-
-  const handleToggleArchive = async (tag: { id: string; name: string; isArchived: boolean }) => {
-    if (tag.isArchived) {
-      const success = await restoreTag(tag.id);
-      if (success) toast.success("Etiqueta restaurada!");
-      else toast.error("Erro ao restaurar etiqueta");
-    } else {
-      const success = await archiveTag(tag.id);
-      if (success) toast.success("Etiqueta arquivada!");
-      else toast.error("Erro ao arquivar etiqueta");
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <>
@@ -120,10 +93,16 @@ export default function TagsSettings() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Etiquetas</CardTitle>
-            <CardDescription>Crie etiquetas para categorizar candidatos</CardDescription>
+            <CardDescription>
+              Crie etiquetas para categorizar candidatos
+            </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)}>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowArchived(!showArchived)}
+            >
               {showArchived ? "Ver Ativas" : "Ver Arquivadas"}
             </Button>
             <Button onClick={openCreateDialog} className="gap-2">
@@ -133,35 +112,49 @@ export default function TagsSettings() {
           </div>
         </CardHeader>
         <CardContent>
-          {displayedTags.length === 0 ? (
+          {filteredTags.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               {showArchived ? "Nenhuma etiqueta arquivada" : "Nenhuma etiqueta criada"}
             </div>
           ) : (
             <div className="flex flex-wrap gap-3">
-              {displayedTags.map((tag) => (
-                <div key={tag.id} className="group relative">
+              {filteredTags.map((tag) => (
+                <div
+                  key={tag.id}
+                  className="group relative"
+                >
                   <Badge
                     variant="outline"
-                    className={`gap-2 py-2 px-4 pr-20 cursor-pointer transition-all hover:shadow-md ${tag.isArchived ? 'opacity-60' : ''}`}
+                    className={`gap-2 py-2 px-4 pr-16 cursor-pointer transition-all hover:shadow-md ${tag.isArchived ? 'opacity-60' : ''}`}
                     style={{ borderColor: tag.color }}
                   >
-                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: tag.color }} />
+                    <div
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: tag.color }}
+                    />
                     {tag.name}
                   </Badge>
-                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog(tag)}>
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6"
+                      onClick={() => openEditDialog(tag)}
+                    >
                       <Pencil className="h-3 w-3" />
                     </Button>
-                    {tag.isArchived ? (
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleToggleArchive(tag)}>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6"
+                      onClick={() => toggleArchive(tag)}
+                    >
+                      {tag.isArchived ? (
                         <ArchiveRestore className="h-3 w-3" />
-                      </Button>
-                    ) : (
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: tag.id, name: tag.name })}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
+                      ) : (
+                        <Archive className="h-3 w-3" />
+                      )}
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -170,17 +163,25 @@ export default function TagsSettings() {
         </CardContent>
       </Card>
 
-      {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingTagId ? "Editar Etiqueta" : "Nova Etiqueta"}</DialogTitle>
-            <DialogDescription>Configure o nome e a cor da etiqueta</DialogDescription>
+            <DialogTitle>
+              {editingTag ? "Editar Etiqueta" : "Nova Etiqueta"}
+            </DialogTitle>
+            <DialogDescription>
+              Configure o nome e a cor da etiqueta
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nome</Label>
-              <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ex: Senior, React, Urgente" />
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Ex: Senior, React, Urgente"
+              />
             </div>
             <div className="space-y-2">
               <Label>Cor</Label>
@@ -189,7 +190,11 @@ export default function TagsSettings() {
                   <button
                     key={color}
                     type="button"
-                    className={`h-8 w-8 rounded-full border-2 transition-all ${formData.color === color ? 'ring-2 ring-offset-2 ring-primary' : 'border-transparent'}`}
+                    className={`h-8 w-8 rounded-full border-2 transition-all ${
+                      formData.color === color 
+                        ? 'ring-2 ring-offset-2 ring-primary' 
+                        : 'border-transparent'
+                    }`}
                     style={{ backgroundColor: color }}
                     onClick={() => setFormData({ ...formData, color })}
                   />
@@ -199,39 +204,30 @@ export default function TagsSettings() {
             <div className="pt-2">
               <Label>Preview</Label>
               <div className="mt-2">
-                <Badge variant="outline" className="gap-2 py-2 px-4" style={{ borderColor: formData.color }}>
-                  <div className="h-3 w-3 rounded-full" style={{ backgroundColor: formData.color }} />
+                <Badge
+                  variant="outline"
+                  className="gap-2 py-2 px-4"
+                  style={{ borderColor: formData.color }}
+                >
+                  <div
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: formData.color }}
+                  />
                   {formData.name || "Nome da etiqueta"}
                 </Badge>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</>) : (editingTagId ? "Salvar" : "Criar")}
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave}>
+              {editingTag ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir etiqueta</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir a etiqueta <strong>"{deleteTarget?.name}"</strong>? Ela será arquivada e poderá ser restaurada posteriormente.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

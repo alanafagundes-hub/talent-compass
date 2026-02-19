@@ -19,14 +19,13 @@ import {
   ArrowLeft,
   Loader2,
   DollarSign,
-  AlertCircle,
 } from "lucide-react";
 import { JobSection } from "@/components/public/JobSection";
 import { toast } from "sonner";
 import { usePublicJobs, type PublicJob } from "@/hooks/usePublicJobs";
 import { useLandingPageConfig } from "@/hooks/useLandingPageConfig";
-import { supabase as supabaseClient } from "@/integrations/supabase/client";
-const supabase = supabaseClient as any;
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { useTrackingParams, resolveSourceName } from "@/hooks/useTrackingParams";
 
 // Job level labels
@@ -57,24 +56,24 @@ const workModelLabels: Record<string, string> = {
   hibrido: "Híbrido",
 };
 
-// Dynamic form data structure - all fields come from the template
-interface ApplicationFormData {
-  fields: Record<string, string | string[] | boolean | null>;
-  files: Record<string, File | null>;
-  lgpdConsent: boolean;
+interface FormField {
+  id: string;
+  label: string;
+  type: string;
+  required: boolean;
+  order: number;
+  placeholder?: string;
+  options?: string[];
 }
 
-// Helper to identify essential fields by label convention
-const ESSENTIAL_FIELD_PATTERNS = {
-  name: /^(nome|name|nome completo|full name)/i,
-  email: /^(e-?mail|email)/i,
-  phone: /^(telefone|phone|celular|whatsapp)/i,
-  linkedin: /^(linkedin)/i,
-  resume: /^(curr[ií]culo|resume|cv)/i,
-};
-
-function matchesEssentialField(label: string, pattern: RegExp): boolean {
-  return pattern.test(label.trim());
+interface ApplicationFormData {
+  name: string;
+  email: string;
+  phone: string;
+  linkedin: string;
+  resumeFile: File | null;
+  lgpdConsent: boolean;
+  customFields: Record<string, string | string[] | boolean>;
 }
 
 export default function VagaPublica() {
@@ -85,16 +84,19 @@ export default function VagaPublica() {
   const trackingData = useTrackingParams();
   
   const [job, setJob] = useState<PublicJob | null>(null);
-  const [formFields, setFormFields] = useState<any[]>([]);
+  const [formFields, setFormFields] = useState<Tables<'form_fields'>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [hasNoTemplate, setHasNoTemplate] = useState(false);
   
   const [formData, setFormData] = useState<ApplicationFormData>({
-    fields: {},
-    files: {},
+    name: "",
+    email: "",
+    phone: "",
+    linkedin: "",
+    resumeFile: null,
     lgpdConsent: false,
+    customFields: {},
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -121,28 +123,6 @@ export default function VagaPublica() {
             .order('order_index', { ascending: true });
           
           setFormFields(fields || []);
-          setHasNoTemplate(false);
-        } else {
-          // Try to find default template
-          const { data: defaultTemplate } = await supabase
-            .from('form_templates')
-            .select('id')
-            .eq('is_default', true)
-            .eq('is_archived', false)
-            .maybeSingle();
-          
-          if (defaultTemplate) {
-            const { data: fields } = await supabase
-              .from('form_fields')
-              .select('*')
-              .eq('template_id', defaultTemplate.id)
-              .order('order_index', { ascending: true });
-            
-            setFormFields(fields || []);
-            setHasNoTemplate(false);
-          } else {
-            setHasNoTemplate(true);
-          }
         }
       }
       setIsLoading(false);
@@ -151,79 +131,44 @@ export default function VagaPublica() {
     loadData();
   }, [id, fetchJobById]);
 
-  // Extract essential candidate data from form fields
-  const extractEssentialData = () => {
-    let name = "";
-    let email = "";
-    let phone = "";
-    let linkedin = "";
-    let resumeUrl: string | null = null;
-
-    formFields.forEach((field) => {
-      const label = field.label;
-      const value = formData.fields[field.id];
-      
-      if (matchesEssentialField(label, ESSENTIAL_FIELD_PATTERNS.name) && typeof value === "string") {
-        name = value.trim();
-      } else if (matchesEssentialField(label, ESSENTIAL_FIELD_PATTERNS.email) && typeof value === "string") {
-        email = value.trim().toLowerCase();
-      } else if (matchesEssentialField(label, ESSENTIAL_FIELD_PATTERNS.phone) && typeof value === "string") {
-        phone = value.trim();
-      } else if (matchesEssentialField(label, ESSENTIAL_FIELD_PATTERNS.linkedin) && typeof value === "string") {
-        linkedin = value.trim();
-      }
-    });
-
-    return { name, email, phone, linkedin, resumeUrl };
-  };
-
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Validate all required fields from template
-    formFields.forEach((field) => {
-      if (field.is_required) {
-        if (field.field_type === 'file_upload') {
-          const file = formData.files[field.id];
-          if (!file) {
-            newErrors[field.id] = `${field.label} é obrigatório`;
-          }
-        } else {
-          const value = formData.fields[field.id];
-          if (!value || (typeof value === "string" && !value.trim()) || (Array.isArray(value) && value.length === 0)) {
-            newErrors[field.id] = `${field.label} é obrigatório`;
-          }
-        }
-      }
-      
-      // Validate email format
-      if (matchesEssentialField(field.label, ESSENTIAL_FIELD_PATTERNS.email)) {
-        const value = formData.fields[field.id];
-        if (value && typeof value === "string" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          newErrors[field.id] = "E-mail inválido";
-        }
-      }
-    });
+    if (!formData.name.trim()) {
+      newErrors.name = "Nome é obrigatório";
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "E-mail é obrigatório";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "E-mail inválido";
+    }
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Telefone é obrigatório";
+    }
+
+    if (!formData.linkedin.trim()) {
+      newErrors.linkedin = "LinkedIn é obrigatório";
+    }
+
+    if (!formData.resumeFile) {
+      newErrors.resumeFile = "Currículo é obrigatório";
+    }
 
     if (!formData.lgpdConsent) {
       newErrors.lgpdConsent = "Você precisa aceitar os termos para continuar";
     }
 
-    // Validate we have essential fields (name and email)
-    const essential = extractEssentialData();
-    if (!essential.name) {
-      // Find the name field to attach error
-      const nameField = formFields.find(f => matchesEssentialField(f.label, ESSENTIAL_FIELD_PATTERNS.name));
-      if (nameField && !newErrors[nameField.id]) {
-        newErrors[nameField.id] = "Nome é obrigatório";
+    // Validate custom required fields
+    formFields.forEach((field) => {
+      if (field.is_required) {
+        const value = formData.customFields[field.id];
+        if (!value || (typeof value === "string" && !value.trim())) {
+          newErrors[`custom_${field.id}`] = `${field.label} é obrigatório`;
+        }
       }
-    }
-    if (!essential.email) {
-      const emailField = formFields.find(f => matchesEssentialField(f.label, ESSENTIAL_FIELD_PATTERNS.email));
-      if (emailField && !newErrors[emailField.id]) {
-        newErrors[emailField.id] = "E-mail é obrigatório";
-      }
-    }
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -242,90 +187,69 @@ export default function VagaPublica() {
     try {
       // Resolve source name using tracking data (UTM → referrer → direct)
       const sourceName = resolveSourceName(trackingData);
-      
-      // Extract essential data from form fields
-      const essential = extractEssentialData();
 
-      // 1. Upload all files first
-      const fileUrls: Record<string, string> = {};
-      for (const field of formFields) {
-        if (field.field_type === 'file_upload') {
-          const file = formData.files[field.id];
-          if (file) {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-            const tempPath = `temp/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-              .from('resumes')
-              .upload(tempPath, file, {
-                cacheControl: '3600',
-                upsert: false,
-              });
-
-            if (!uploadError) {
-              const { data: urlData } = supabase.storage
-                .from('resumes')
-                .getPublicUrl(tempPath);
-              fileUrls[field.id] = urlData.publicUrl;
-              
-              // If this is the resume field, set it for candidate
-              if (matchesEssentialField(field.label, ESSENTIAL_FIELD_PATTERNS.resume)) {
-                essential.resumeUrl = urlData.publicUrl;
-              }
-            }
-          }
-        }
-      }
-
-      // 2. Create or find candidate
+      // 1. Create or find candidate
       const { data: existingCandidate } = await supabase
         .from('candidates')
         .select('id')
-        .eq('email', essential.email)
+        .eq('email', formData.email.trim().toLowerCase())
         .maybeSingle();
 
       let candidateId = existingCandidate?.id;
+      let resumeUrl: string | null = null;
+
+      // Upload resume to Supabase Storage if provided
+      if (formData.resumeFile) {
+        const file = formData.resumeFile;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        // We'll use a temp folder first, then move after we have candidateId
+        const tempPath = `temp/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('resumes')
+          .upload(tempPath, file, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('Resume upload error:', uploadError);
+          // Continue without resume if upload fails
+        } else {
+          // Get the public URL
+          const { data: urlData } = supabase.storage
+            .from('resumes')
+            .getPublicUrl(tempPath);
+          resumeUrl = urlData.publicUrl;
+        }
+      }
 
       if (!candidateId) {
         const { data: newCandidate, error: candidateError } = await supabase
           .from('candidates')
           .insert({
-            name: essential.name,
-            email: essential.email,
-            phone: essential.phone || null,
-            linkedin_url: essential.linkedin || null,
+            name: formData.name.trim(),
+            email: formData.email.trim().toLowerCase(),
+            phone: formData.phone.trim(),
+            linkedin_url: formData.linkedin.trim(),
             source: sourceName,
-            resume_url: essential.resumeUrl,
+            resume_url: resumeUrl,
           })
           .select('id')
           .single();
 
         if (candidateError) throw candidateError;
         candidateId = newCandidate.id;
-      } else if (essential.resumeUrl) {
+      } else if (resumeUrl) {
         // Update existing candidate with new resume
         await supabase
           .from('candidates')
-          .update({ resume_url: essential.resumeUrl })
+          .update({ resume_url: resumeUrl })
           .eq('id', candidateId);
       }
 
-      // 2.5 Check if candidate already applied to this job
-      const { data: existingApplication } = await supabase
-        .from('applications')
-        .select('id')
-        .eq('candidate_id', candidateId)
-        .eq('job_id', job.id)
-        .maybeSingle();
-
-      if (existingApplication) {
-        toast.error("Você já se candidatou a esta vaga.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // 3. Get the first stage of the job's funnel
+      // 2. Get the first stage of the job's funnel
       const { data: funnel } = await supabase
         .from('funnels')
         .select('id')
@@ -347,7 +271,7 @@ export default function VagaPublica() {
         firstStageId = firstStage?.id;
       }
 
-      // 4. Create application with tracking data
+      // 3. Create application with tracking data
       const { data: application, error: appError } = await supabase
         .from('applications')
         .insert({
@@ -363,40 +287,22 @@ export default function VagaPublica() {
 
       if (appError) throw appError;
 
-      // 5. Save ALL form responses
+      // 4. Save form responses
       if (formFields.length > 0 && application) {
         const responses = formFields
-          .filter(field => {
-            if (field.field_type === 'file_upload') {
-              return !!fileUrls[field.id];
-            }
-            const value = formData.fields[field.id];
-            return value !== undefined && value !== null && value !== '';
-          })
-          .map(field => {
-            if (field.field_type === 'file_upload') {
-              return {
-                application_id: application.id,
-                field_id: field.id,
-                value: null,
-                file_url: fileUrls[field.id],
-              };
-            }
-            const value = formData.fields[field.id];
-            return {
-              application_id: application.id,
-              field_id: field.id,
-              value: Array.isArray(value) ? JSON.stringify(value) : String(value),
-              file_url: null,
-            };
-          });
+          .filter(field => formData.customFields[field.id])
+          .map(field => ({
+            application_id: application.id,
+            field_id: field.id,
+            value: String(formData.customFields[field.id]),
+          }));
 
         if (responses.length > 0) {
           await supabase.from('form_responses').insert(responses);
         }
       }
 
-      // 6. Record history
+      // 5. Record history
       if (application && firstStageId) {
         await supabase.from('application_history').insert({
           application_id: application.id,
@@ -416,28 +322,30 @@ export default function VagaPublica() {
     }
   };
 
-  const handleFileChange = (fieldId: string, file: File | undefined) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       const allowedTypes = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
       const maxSize = 5 * 1024 * 1024;
 
       if (!allowedTypes.includes(file.type)) {
-        setErrors({ ...errors, [fieldId]: "Apenas arquivos PDF ou Word são aceitos" });
+        setErrors({ ...errors, resumeFile: "Apenas arquivos PDF ou Word são aceitos" });
         return;
       }
 
       if (file.size > maxSize) {
-        setErrors({ ...errors, [fieldId]: "O arquivo deve ter no máximo 5MB" });
+        setErrors({ ...errors, resumeFile: "O arquivo deve ter no máximo 5MB" });
         return;
       }
 
-      setFormData({ ...formData, files: { ...formData.files, [fieldId]: file } });
-      setErrors({ ...errors, [fieldId]: "" });
+      setFormData({ ...formData, resumeFile: file });
+      setErrors({ ...errors, resumeFile: "" });
     }
   };
 
-  const renderFormField = (field: any) => {
-    const error = errors[field.id];
+  const renderCustomField = (field: Tables<'form_fields'>) => {
+    const value = formData.customFields[field.id] || "";
+    const error = errors[`custom_${field.id}`];
 
     switch (field.field_type) {
       case "short_text":
@@ -448,11 +356,11 @@ export default function VagaPublica() {
             </Label>
             <Input
               id={field.id}
-              value={(formData.fields[field.id] as string) || ""}
+              value={value as string}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  fields: { ...formData.fields, [field.id]: e.target.value },
+                  customFields: { ...formData.customFields, [field.id]: e.target.value },
                 })
               }
               placeholder={field.placeholder || undefined}
@@ -469,11 +377,11 @@ export default function VagaPublica() {
             </Label>
             <Textarea
               id={field.id}
-              value={(formData.fields[field.id] as string) || ""}
+              value={value as string}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  fields: { ...formData.fields, [field.id]: e.target.value },
+                  customFields: { ...formData.customFields, [field.id]: e.target.value },
                 })
               }
               placeholder={field.placeholder || undefined}
@@ -490,11 +398,11 @@ export default function VagaPublica() {
               {field.label} {field.is_required && <span className="text-destructive">*</span>}
             </Label>
             <RadioGroup
-              value={(formData.fields[field.id] as string) || ""}
+              value={value as string}
               onValueChange={(v) =>
                 setFormData({
                   ...formData,
-                  fields: { ...formData.fields, [field.id]: v },
+                  customFields: { ...formData.customFields, [field.id]: v },
                 })
               }
             >
@@ -513,7 +421,6 @@ export default function VagaPublica() {
 
       case "multiple_choice":
         const options = (field.options as string[]) || [];
-        const selectedValues = (formData.fields[field.id] as string[]) || [];
         return (
           <div key={field.id} className="space-y-2">
             <Label>
@@ -524,14 +431,15 @@ export default function VagaPublica() {
                 <div key={option} className="flex items-center space-x-2">
                   <Checkbox
                     id={`${field.id}-${option}`}
-                    checked={selectedValues.includes(option)}
+                    checked={(value as string[] || []).includes(option)}
                     onCheckedChange={(checked) => {
+                      const current = (formData.customFields[field.id] as string[]) || [];
                       const updated = checked
-                        ? [...selectedValues, option]
-                        : selectedValues.filter((v) => v !== option);
+                        ? [...current, option]
+                        : current.filter((v) => v !== option);
                       setFormData({
                         ...formData,
-                        fields: { ...formData.fields, [field.id]: updated },
+                        customFields: { ...formData.customFields, [field.id]: updated },
                       });
                     }}
                   />
@@ -539,27 +447,6 @@ export default function VagaPublica() {
                 </div>
               ))}
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-          </div>
-        );
-
-      case "file_upload":
-        const uploadedFile = formData.files[field.id];
-        return (
-          <div key={field.id} className="space-y-2">
-            <Label htmlFor={field.id}>
-              {field.label} {field.is_required && <span className="text-destructive">*</span>}
-            </Label>
-            <Input
-              id={field.id}
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={(e) => handleFileChange(field.id, e.target.files?.[0])}
-              className="cursor-pointer"
-            />
-            {uploadedFile && (
-              <p className="text-sm text-muted-foreground">{uploadedFile.name}</p>
-            )}
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
         );
@@ -782,52 +669,102 @@ export default function VagaPublica() {
                   <h2 className="text-lg font-semibold">Candidatar-se</h2>
                 </div>
 
-                {hasNoTemplate ? (
-                  <div className="text-center py-8">
-                    <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground/50" />
-                    <p className="mt-4 text-muted-foreground">
-                      Esta vaga ainda não possui um formulário de candidatura configurado.
-                    </p>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nome completo *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Seu nome"
+                    />
+                    {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                   </div>
-                ) : (
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Dynamic form fields from template */}
-                    {formFields.map(renderFormField)}
 
-                    <Separator className="my-4" />
+                  <div className="space-y-2">
+                    <Label htmlFor="email">E-mail *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="seu@email.com"
+                    />
+                    {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                  </div>
 
-                    <div className="flex items-start space-x-2">
-                      <Checkbox
-                        id="lgpd"
-                        checked={formData.lgpdConsent}
-                        onCheckedChange={(checked) => 
-                          setFormData({ ...formData, lgpdConsent: checked as boolean })
-                        }
-                      />
-                      <Label htmlFor="lgpd" className="text-sm leading-relaxed">
-                        Concordo com o tratamento dos meus dados pessoais para fins de
-                        processo seletivo, conforme a LGPD. *
-                      </Label>
-                    </div>
-                    {errors.lgpdConsent && <p className="text-sm text-destructive">{errors.lgpdConsent}</p>}
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Telefone *</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="(11) 99999-9999"
+                    />
+                    {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+                  </div>
 
-                    <Button 
-                      type="submit" 
-                      className="w-full" 
-                      disabled={isSubmitting}
-                      style={{ backgroundColor: config.secondaryColor }}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Enviando...
-                        </>
-                      ) : (
-                        "Enviar candidatura"
-                      )}
-                    </Button>
-                  </form>
-                )}
+                  <div className="space-y-2">
+                    <Label htmlFor="linkedin">LinkedIn *</Label>
+                    <Input
+                      id="linkedin"
+                      value={formData.linkedin}
+                      onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
+                      placeholder="linkedin.com/in/seuperfil"
+                    />
+                    {errors.linkedin && <p className="text-sm text-destructive">{errors.linkedin}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="resume">Currículo (PDF ou Word) *</Label>
+                    <Input
+                      id="resume"
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleFileChange}
+                      className="cursor-pointer"
+                    />
+                    {formData.resumeFile && (
+                      <p className="text-sm text-muted-foreground">{formData.resumeFile.name}</p>
+                    )}
+                    {errors.resumeFile && <p className="text-sm text-destructive">{errors.resumeFile}</p>}
+                  </div>
+
+                  {formFields.map(renderCustomField)}
+
+                  <Separator className="my-4" />
+
+                  <div className="flex items-start space-x-2">
+                    <Checkbox
+                      id="lgpd"
+                      checked={formData.lgpdConsent}
+                      onCheckedChange={(checked) => 
+                        setFormData({ ...formData, lgpdConsent: checked as boolean })
+                      }
+                    />
+                    <Label htmlFor="lgpd" className="text-sm leading-relaxed">
+                      Concordo com o tratamento dos meus dados pessoais para fins de
+                      processo seletivo, conforme a LGPD. *
+                    </Label>
+                  </div>
+                  {errors.lgpdConsent && <p className="text-sm text-destructive">{errors.lgpdConsent}</p>}
+
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isSubmitting}
+                    style={{ backgroundColor: config.secondaryColor }}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Enviando...
+                      </>
+                    ) : (
+                      "Enviar candidatura"
+                    )}
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           </div>

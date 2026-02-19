@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase as supabaseClient } from '@/integrations/supabase/client';
-const supabase = supabaseClient as any;
+import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 
-export type PublicJob = any;
+export type PublicJob = Tables<'jobs'> & {
+  area?: Tables<'areas'> | null;
+};
 
 /**
  * Hook for public pages to fetch published jobs directly from Supabase.
@@ -115,7 +117,7 @@ export function usePublicJobs() {
  * Hook for public pages to fetch areas from Supabase
  */
 export function usePublicAreas() {
-  const [areas, setAreas] = useState<any[]>([]);
+  const [areas, setAreas] = useState<Tables<'areas'>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -143,7 +145,7 @@ export function usePublicAreas() {
     fetchAreas();
   }, []);
 
-  const getAreaById = useCallback((id: string | null): any | undefined => {
+  const getAreaById = useCallback((id: string | null): Tables<'areas'> | undefined => {
     if (!id) return undefined;
     return areas.find(area => area.id === id);
   }, [areas]);

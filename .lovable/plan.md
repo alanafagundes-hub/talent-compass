@@ -1,96 +1,180 @@
 
+# Plano: Formulário Dinâmico Baseado nos Templates de Configurações
 
-# Plano: Isolamento Completo do ATS
+## Visão Geral
 
-## Resumo do Problema
+Atualmente, o formulário de candidatura na página pública (`VagaPublica.tsx`) possui campos fixos e hardcoded (Nome, E-mail, Telefone, LinkedIn, Currículo). Este plano vai transformar esse formulário para renderizar **dinamicamente** os campos definidos nos templates de formulário criados em Configurações.
 
-O ATS compartilha tabelas e funcoes com o CRM legado, causando conflitos graves:
+---
 
-- O enum `app_role` so tem valores do CRM (`admin`, `sdr`, `closer`, `manager`, `custom`), mas o ATS tenta gravar `rh`, `head`, `viewer` -- o que causa erro no banco
-- A tela de "Perfis de Acesso" mostra 23 modulos do CRM (Copy, CSM, Churn, etc.) em vez de modulos de recrutamento
-- O trigger `handle_new_user()` cria usuarios na tabela `profiles` (CRM), nao em `user_profiles` (ATS)
-- As funcoes de banco (`get_current_user_role`, `user_has_module_permission`) consultam apenas `profiles` do CRM
-
-## Solucao em 3 Etapas
-
-### Etapa 1 -- Corrigir o enum `app_role`
-
-Adicionar os valores que o ATS precisa (`rh`, `head`, `viewer`) ao enum existente. Isso permite que a tabela `user_roles` aceite as roles do recrutamento sem quebrar o CRM.
-
-### Etapa 2 -- Cadastrar modulos de recrutamento
-
-Inserir modulos especificos do ATS na tabela `modules`:
-- Dashboard Recrutamento
-- Vagas
-- Banco de Talentos
-- Perdidos
-- Configuracoes de Recrutamento
-- Configuracoes Gerais (admin)
-
-Esses modulos precisam ficar sem `workspace_id` (isolados do CRM).
-
-### Etapa 3 -- Isolar o codigo frontend
-
-- **AccessProfilesTab**: Filtrar `modules` para mostrar apenas modulos de recrutamento (nao os 23 do CRM)
-- **AccessProfilesTab**: Trocar as opcoes de "Perfil Base" de `admin/sdr/closer/custom` para `admin/rh/head/viewer`
-- **useUsers.createUser**: Remover dependencia do `signUp` (que aciona o trigger CRM) e criar logica propria com edge function para criar usuario + profile ATS em uma unica operacao
-- **AuthContext**: Ja esta correto, consulta apenas `user_roles`
-
-## Detalhes Tecnicos
-
-### Migracao SQL
+## Arquitetura Proposta
 
 ```text
--- 1. Expandir enum
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'rh';
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'head';
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'viewer';
-
--- 2. Inserir modulos de recrutamento
-INSERT INTO public.modules (name, display_name, icon, is_active)
-VALUES
-  ('ats_dashboard',     'Dashboard',                 'LayoutDashboard', true),
-  ('ats_vagas',         'Vagas',                     'Briefcase',       true),
-  ('ats_talentos',      'Banco de Talentos',         'Users',           true),
-  ('ats_perdidos',      'Perdidos',                  'UserX',           true),
-  ('ats_config',        'Config. Recrutamento',      'Settings',        true),
-  ('ats_admin',         'Configuracoes Gerais',      'Cog',             true);
++---------------------------+       +-----------------------+       +---------------------------+
+|   Configurações           |       |   Edição de Vaga      |       |   Página Pública          |
+|   (FormTemplates)         |       |   (JobFormDialog)     |       |   (VagaPublica)           |
++---------------------------+       +-----------------------+       +---------------------------+
+|                           |       |                       |       |                           |
+|  Criar/Editar Templates   | ----> |  Selecionar Template  | ----> |  Renderizar Campos        |
+|  com campos dinâmicos     |       |  para a vaga          |       |  do Template selecionado  |
+|                           |       |                       |       |                           |
++---------------------------+       +-----------------------+       +---------------------------+
+                                              |
+                                              v
+                                    +---------------------+
+                                    |    Banco de Dados   |
+                                    +---------------------+
+                                    | jobs.form_template_id|
+                                    | form_fields.*        |
+                                    | form_responses.*     |
+                                    +---------------------+
 ```
 
-### Alteracoes no Codigo
+---
 
-1. **`src/hooks/useAccessProfiles.ts`**
-   - Filtrar modulos com prefixo `ats_` no fetch ou via WHERE no Supabase
+## Mudanças Necessárias
 
-2. **`src/components/admin/AccessProfilesTab.tsx`**
-   - Trocar opcoes do Select de base_role para admin/rh/head/viewer
-   - Atualizar labels correspondentes
+### 1. Atualizar a Página Pública (`src/pages/VagaPublica.tsx`)
 
-3. **`src/hooks/useUsers.ts`**
-   - Criar edge function `create-ats-user` que usa service_role para:
-     - Criar usuario no auth
-     - Inserir em `user_profiles` (ATS)
-     - Inserir em `user_roles` (ATS)
-     - NAO aciona `handle_new_user` do CRM
-   - Alterar `createUser` para chamar a edge function em vez de `signUp`
+**Problema Atual:** 
+- Campos fixos (Nome, E-mail, Telefone, LinkedIn, Currículo) renderizados diretamente no JSX
+- Template carrega `form_fields` mas são tratados como campos "extras" após os fixos
 
-4. **`src/pages/MeuPerfil.tsx`**
-   - Nenhuma alteracao necessaria (ja usa `user_profiles`)
+**Solução:**
+- **Remover todos os campos fixos do formulário**
+- **Renderizar APENAS os campos vindos do `form_fields`** associado ao `form_template_id` da vaga
+- Se a vaga não tiver template associado, exibir mensagem de erro ou campos mínimos obrigatórios
 
-### Edge Function: `create-ats-user`
+**Mudanças no código:**
+- Remover linhas 672-733 (campos hardcoded de nome, email, phone, linkedin, resume)
+- Modificar a seção do formulário para iterar sobre `formFields` e renderizar cada campo dinamicamente
+- Atualizar o estado `formData` para ser completamente dinâmico (sem campos fixos pré-definidos)
+- Ajustar `validateForm()` para validar campos obrigatórios do template
+- Ajustar `handleSubmit()` para salvar todas as respostas na tabela `form_responses`
 
-Recebe `{ email, password, name, role, areaIds }` e:
-- Valida que o chamador e admin (via token JWT)
-- Cria usuario com `supabase.auth.admin.createUser`
-- Insere profile em `user_profiles`
-- Insere role em `user_roles`
-- Insere areas em `user_area_assignments`
-- Retorna o usuario criado
+### 2. Adicionar Suporte a Todos os Tipos de Campo
 
-### O que NAO sera alterado
+O sistema já suporta os tipos:
+- `short_text` - Input de texto simples
+- `long_text` - Textarea
+- `yes_no` - Radio buttons Sim/Não
+- `multiple_choice` - Checkboxes
 
-- Tabela `profiles` e suas 27 entradas (CRM intocado)
-- Funcoes do CRM (`get_current_user_role`, etc.)
-- Trigger `handle_new_user` (continua criando profiles CRM para novos signups normais)
-- Modulos existentes do CRM na tabela `modules`
+**Adicionar suporte a:**
+- `file_upload` - Upload de arquivo (currículo, portfólio, etc.)
 
+**Implementação:**
+```typescript
+case "file_upload":
+  return (
+    <div key={field.id} className="space-y-2">
+      <Label htmlFor={field.id}>
+        {field.label} {field.is_required && <span className="text-destructive">*</span>}
+      </Label>
+      <Input
+        id={field.id}
+        type="file"
+        accept=".pdf,.doc,.docx"
+        onChange={(e) => handleFileField(field.id, e.target.files?.[0])}
+      />
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  );
+```
+
+### 3. Atualizar Estrutura de Dados do Formulário
+
+**Estado atual:**
+```typescript
+interface ApplicationFormData {
+  name: string;           // REMOVER
+  email: string;          // REMOVER
+  phone: string;          // REMOVER
+  linkedin: string;       // REMOVER
+  resumeFile: File | null; // REMOVER
+  lgpdConsent: boolean;
+  customFields: Record<string, string | string[] | boolean>;
+}
+```
+
+**Estado proposto:**
+```typescript
+interface ApplicationFormData {
+  fields: Record<string, string | string[] | boolean | null>;
+  files: Record<string, File | null>;
+  lgpdConsent: boolean;
+}
+```
+
+### 4. Atualizar Lógica de Submissão
+
+A submissão deve:
+1. Extrair campos essenciais (nome, email) do `formData.fields` para criar/atualizar o `candidate`
+2. Fazer upload de todos os arquivos para o Storage
+3. Salvar TODAS as respostas na tabela `form_responses` (incluindo URLs dos arquivos)
+
+**Identificação de campos essenciais:**
+- Nome: Buscar campo com label contendo "nome" ou tipo especial (pode ser definido no template)
+- E-mail: Buscar campo com label contendo "email" ou validar formato de email
+- Isso requer uma convenção ou marcação especial nos campos do template
+
+### 5. Tratamento de Vaga sem Template
+
+Se a vaga não tiver `form_template_id`:
+- Exibir mensagem: "Esta vaga ainda não possui um formulário de candidatura configurado"
+- Ou: Usar um template padrão (se existir um marcado como `is_default`)
+
+---
+
+## Resumo dos Arquivos a Modificar
+
+| Arquivo | Alterações |
+|---------|------------|
+| `src/pages/VagaPublica.tsx` | Remover campos fixos, renderizar apenas campos do template, adicionar suporte a `file_upload`, atualizar validação e submissão |
+| `src/components/settings/FormTemplatesSettings.tsx` | Adicionar opção para marcar campos como "essenciais" (nome, email) - **opcional** |
+
+---
+
+## Resultado Esperado
+
+1. Ao criar um template em Configurações com campos específicos (ex: Nome, E-mail, Portfolio, Pretensão Salarial)
+2. Ao selecionar esse template na edição da vaga
+3. A página pública da vaga renderizará **exatamente** esses campos na mesma ordem
+4. As respostas serão salvas em `form_responses` e exibidas no painel do candidato
+
+---
+
+## Detalhes Técnicos
+
+### Convenção para Campos Essenciais
+
+Para identificar campos que mapeiam para a tabela `candidates`, podemos usar convenções baseadas no **label** do campo:
+
+- **Nome**: Label contém "nome" (case insensitive)
+- **E-mail**: Label contém "email" ou "e-mail"
+- **Telefone**: Label contém "telefone" ou "phone"
+- **LinkedIn**: Label contém "linkedin"
+- **Currículo**: Tipo `file_upload` com label contendo "currículo" ou "resume"
+
+### Fluxo de Submissão Atualizado
+
+```text
+1. Usuário preenche formulário dinâmico
+2. Validar campos obrigatórios
+3. Identificar campos essenciais pelo label
+4. Criar/atualizar registro em `candidates` com dados essenciais
+5. Upload de arquivos para Storage
+6. Criar registro em `applications`
+7. Salvar TODAS as respostas em `form_responses` (incluindo URLs de arquivos)
+8. Criar registro em `application_history`
+```
+
+### Mapeamento de Tipos
+
+| Tipo no Template | Componente React | Valor Salvo |
+|-----------------|------------------|-------------|
+| `short_text` | `<Input>` | string |
+| `long_text` | `<Textarea>` | string |
+| `yes_no` | `<RadioGroup>` | "sim" / "nao" |
+| `multiple_choice` | `<Checkbox>` | array de strings (JSON) |
+| `file_upload` | `<Input type="file">` | URL do arquivo no Storage |

@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase as supabaseClient } from '@/integrations/supabase/client';
-const supabase = supabaseClient as any;
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export interface UserProfile {

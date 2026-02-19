@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase as supabaseClient } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import type { FormTemplate, FormField, FormFieldType } from '@/types/ats';
-
-const supabase = supabaseClient as any;
+import type { Tables } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
 interface DbFormTemplate {

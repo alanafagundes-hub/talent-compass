@@ -15,25 +15,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, ArchiveRestore, Mail, Copy, Eye, Loader2 } from "lucide-react";
-import type { EmailTemplateType } from "@/types/ats";
-import { useEmailTemplates } from "@/hooks/useEmailTemplates";
+import { 
+  Plus, 
+  Pencil, 
+  Archive, 
+  ArchiveRestore, 
+  Mail,
+  Copy,
+  Eye
+} from "lucide-react";
+import type { EmailTemplate, EmailTemplateType } from "@/types/ats";
+import { toast } from "sonner";
 
 const emailTypeConfig: Record<EmailTemplateType, { label: string; color: string }> = {
   confirmation: { label: "Confirmação", color: "bg-green-500" },
@@ -42,6 +40,51 @@ const emailTypeConfig: Record<EmailTemplateType, { label: string; color: string 
   offer: { label: "Proposta", color: "bg-purple-500" },
   custom: { label: "Personalizado", color: "bg-gray-500" },
 };
+
+const initialTemplates: EmailTemplate[] = [
+  {
+    id: "1",
+    name: "Confirmação de Inscrição",
+    type: "confirmation",
+    subject: "Recebemos sua candidatura - {{vaga}}",
+    body: `Olá {{candidato}},
+
+Agradecemos seu interesse em fazer parte do time DOT!
+
+Recebemos sua candidatura para a vaga de {{vaga}} e ela está sendo analisada pela nossa equipe de recrutamento.
+
+Em breve entraremos em contato com mais informações sobre as próximas etapas do processo seletivo.
+
+Atenciosamente,
+Equipe DOT`,
+    isDefault: true,
+    isArchived: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "2",
+    name: "Reprovação Padrão",
+    type: "rejection",
+    subject: "Atualização sobre sua candidatura - {{vaga}}",
+    body: `Olá {{candidato}},
+
+Agradecemos o tempo que você dedicou ao nosso processo seletivo para a vaga de {{vaga}}.
+
+Após uma análise cuidadosa, decidimos seguir com outros candidatos cujos perfis estão mais alinhados com as necessidades atuais da posição.
+
+Isso não diminui suas qualificações. Encorajamos você a acompanhar nossas futuras oportunidades.
+
+Desejamos sucesso em sua jornada profissional!
+
+Atenciosamente,
+Equipe DOT`,
+    isDefault: true,
+    isArchived: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
 
 const variablesList = [
   { key: "{{candidato}}", description: "Nome do candidato" },
@@ -52,44 +95,116 @@ const variablesList = [
 ];
 
 export default function EmailTemplatesSettings() {
-  const { activeTemplates, archivedTemplates, isLoading, createTemplate, updateTemplate, toggleArchive, duplicateTemplate } = useEmailTemplates();
-  
+  const [templates, setTemplates] = useState<EmailTemplate[]>(initialTemplates);
   const [showArchived, setShowArchived] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
-  const [previewTemplate, setPreviewTemplate] = useState<{ subject: string; body: string } | null>(null);
-  const [formData, setFormData] = useState({ name: "", type: "custom" as EmailTemplateType, subject: "", body: "", isDefault: false });
-  const [isSaving, setIsSaving] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+  const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    type: "custom" as EmailTemplateType,
+    subject: "",
+    body: "",
+    isDefault: false,
+  });
 
-  const displayedTemplates = showArchived ? archivedTemplates : activeTemplates;
+  const filteredTemplates = templates.filter(t => showArchived ? t.isArchived : !t.isArchived);
 
   const openCreateDialog = () => {
-    setEditingTemplateId(null);
-    setFormData({ name: "", type: "custom", subject: "", body: "", isDefault: false });
+    setEditingTemplate(null);
+    setFormData({
+      name: "",
+      type: "custom",
+      subject: "",
+      body: "",
+      isDefault: false,
+    });
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (template: any) => {
-    setEditingTemplateId(template.id);
-    setFormData({ name: template.name, type: template.type, subject: template.subject, body: template.body, isDefault: template.isDefault });
+  const openEditDialog = (template: EmailTemplate) => {
+    setEditingTemplate(template);
+    setFormData({
+      name: template.name,
+      type: template.type,
+      subject: template.subject,
+      body: template.body,
+      isDefault: template.isDefault,
+    });
     setIsDialogOpen(true);
   };
 
-  const handleSave = async () => {
-    if (!formData.name.trim() || !formData.subject.trim() || !formData.body.trim()) return;
-    setIsSaving(true);
-    if (editingTemplateId) await updateTemplate(editingTemplateId, formData);
-    else await createTemplate(formData);
-    setIsSaving(false);
+  const openPreview = (template: EmailTemplate) => {
+    setPreviewTemplate(template);
+    setIsPreviewOpen(true);
+  };
+
+  const duplicateTemplate = (template: EmailTemplate) => {
+    const newTemplate: EmailTemplate = {
+      ...template,
+      id: Date.now().toString(),
+      name: `${template.name} (Cópia)`,
+      isDefault: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    setTemplates([...templates, newTemplate]);
+    toast.success("Template duplicado!");
+  };
+
+  const handleSave = () => {
+    if (!formData.name.trim()) {
+      toast.error("Nome é obrigatório");
+      return;
+    }
+    if (!formData.subject.trim()) {
+      toast.error("Assunto é obrigatório");
+      return;
+    }
+    if (!formData.body.trim()) {
+      toast.error("Corpo do e-mail é obrigatório");
+      return;
+    }
+
+    if (editingTemplate) {
+      setTemplates(templates.map(t => 
+        t.id === editingTemplate.id 
+          ? { 
+              ...t, 
+              ...formData,
+              updatedAt: new Date(),
+            }
+          : formData.isDefault && formData.type === t.type ? { ...t, isDefault: false } : t
+      ));
+      toast.success("Template atualizado!");
+    } else {
+      const newTemplate: EmailTemplate = {
+        id: Date.now().toString(),
+        ...formData,
+        isArchived: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      if (formData.isDefault) {
+        setTemplates([
+          ...templates.map(t => t.type === formData.type ? { ...t, isDefault: false } : t), 
+          newTemplate
+        ]);
+      } else {
+        setTemplates([...templates, newTemplate]);
+      }
+      toast.success("Template criado!");
+    }
     setIsDialogOpen(false);
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    await toggleArchive(deleteTarget.id);
-    setDeleteTarget(null);
+  const toggleArchive = (template: EmailTemplate) => {
+    setTemplates(templates.map(t => 
+      t.id === template.id ? { ...t, isArchived: !t.isArchived } : t
+    ));
+    toast.success(template.isArchived ? "Template restaurado!" : "Template arquivado!");
   };
 
   const getPreviewContent = (content: string) => {
@@ -101,63 +216,110 @@ export default function EmailTemplatesSettings() {
       .replace(/{{data}}/g, new Date().toLocaleDateString("pt-BR"));
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Templates de E-mail</CardTitle>
-            <CardDescription>Configure e-mails automáticos para candidatos</CardDescription>
+            <CardDescription>
+              Configure e-mails automáticos para candidatos
+            </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)}>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowArchived(!showArchived)}
+            >
               {showArchived ? "Ver Ativos" : "Ver Arquivados"}
             </Button>
-            <Button onClick={openCreateDialog} className="gap-2"><Plus className="h-4 w-4" />Novo Template</Button>
+            <Button onClick={openCreateDialog} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Novo Template
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {displayedTemplates.length === 0 ? (
+          {filteredTemplates.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
               <Mail className="h-12 w-12 text-muted-foreground/50" />
-              <h3 className="mt-4 text-lg font-semibold">{showArchived ? "Nenhum template arquivado" : "Nenhum template criado"}</h3>
-              <p className="text-muted-foreground text-center max-w-sm">Crie templates de e-mail para automatizar comunicações</p>
-              {!showArchived && <Button onClick={openCreateDialog} className="mt-4 gap-2"><Plus className="h-4 w-4" />Criar Primeiro Template</Button>}
+              <h3 className="mt-4 text-lg font-semibold">
+                {showArchived ? "Nenhum template arquivado" : "Nenhum template criado"}
+              </h3>
+              <p className="text-muted-foreground text-center max-w-sm">
+                Crie templates de e-mail para automatizar comunicações
+              </p>
+              {!showArchived && (
+                <Button onClick={openCreateDialog} className="mt-4 gap-2">
+                  <Plus className="h-4 w-4" />
+                  Criar Primeiro Template
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
-              {displayedTemplates.map((template) => (
-                <div key={template.id} className={`flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50 ${template.isArchived ? 'opacity-60' : ''}`}>
+              {filteredTemplates.map((template) => (
+                <div
+                  key={template.id}
+                  className={`flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50 ${template.isArchived ? 'opacity-60' : ''}`}
+                >
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${emailTypeConfig[template.type].color}/10`}><Mail className="h-5 w-5" /></div>
+                    <div className={`p-2 rounded-lg ${emailTypeConfig[template.type].color}/10`}>
+                      <Mail className={`h-5 w-5 text-${emailTypeConfig[template.type].color.replace('bg-', '')}`} />
+                    </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-medium">{template.name}</p>
-                        <Badge variant="outline" className="text-xs">{emailTypeConfig[template.type].label}</Badge>
-                        {template.isDefault && <Badge variant="secondary" className="text-xs">Padrão</Badge>}
+                        <Badge variant="outline" className="text-xs">
+                          {emailTypeConfig[template.type].label}
+                        </Badge>
+                        {template.isDefault && (
+                          <Badge variant="secondary" className="text-xs">Padrão</Badge>
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground truncate max-w-md">{template.subject}</p>
+                      <p className="text-sm text-muted-foreground truncate max-w-md">
+                        {template.subject}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setPreviewTemplate(template); setIsPreviewOpen(true); }}><Eye className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicateTemplate(template.id)}><Copy className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(template)}><Pencil className="h-4 w-4" /></Button>
-                    {template.isArchived ? (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleArchive(template.id)}><ArchiveRestore className="h-4 w-4" /></Button>
-                    ) : (
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: template.id, name: template.name })}><Trash2 className="h-4 w-4" /></Button>
-                    )}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => openPreview(template)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => duplicateTemplate(template)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => openEditDialog(template)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => toggleArchive(template)}
+                    >
+                      {template.isArchived ? (
+                        <ArchiveRestore className="h-4 w-4" />
+                      ) : (
+                        <Archive className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -170,50 +332,97 @@ export default function EmailTemplatesSettings() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingTemplateId ? "Editar Template" : "Novo Template de E-mail"}</DialogTitle>
-            <DialogDescription>Configure o template de e-mail com variáveis dinâmicas</DialogDescription>
+            <DialogTitle>
+              {editingTemplate ? "Editar Template" : "Novo Template de E-mail"}
+            </DialogTitle>
+            <DialogDescription>
+              Configure o template de e-mail com variáveis dinâmicas
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Nome do Template</Label>
-                <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ex: Confirmação de Inscrição" />
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Ex: Confirmação de Inscrição"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="type">Tipo</Label>
-                <Select value={formData.type} onValueChange={(value: EmailTemplateType) => setFormData({ ...formData, type: value })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{Object.entries(emailTypeConfig).map(([type, config]) => <SelectItem key={type} value={type}>{config.label}</SelectItem>)}</SelectContent>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value: EmailTemplateType) => setFormData({ ...formData, type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(emailTypeConfig).map(([type, config]) => (
+                      <SelectItem key={type} value={type}>
+                        {config.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
             </div>
+
             <div className="flex items-center space-x-2">
-              <Switch id="isDefault" checked={formData.isDefault} onCheckedChange={(checked) => setFormData({ ...formData, isDefault: checked })} />
+              <Switch
+                id="isDefault"
+                checked={formData.isDefault}
+                onCheckedChange={(checked) => setFormData({ ...formData, isDefault: checked })}
+              />
               <Label htmlFor="isDefault">Definir como padrão para este tipo</Label>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="subject">Assunto</Label>
-              <Input id="subject" value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} placeholder="Ex: Recebemos sua candidatura - {{vaga}}" />
+              <Input
+                id="subject"
+                value={formData.subject}
+                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                placeholder="Ex: Recebemos sua candidatura - {{vaga}}"
+              />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="body">Corpo do E-mail</Label>
-              <Textarea id="body" value={formData.body} onChange={(e) => setFormData({ ...formData, body: e.target.value })} placeholder="Escreva o conteúdo do e-mail..." className="min-h-[200px] font-mono text-sm" />
+              <Textarea
+                id="body"
+                value={formData.body}
+                onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+                placeholder="Escreva o conteúdo do e-mail..."
+                className="min-h-[200px] font-mono text-sm"
+              />
             </div>
+
             <div className="rounded-lg bg-muted p-4">
               <Label className="text-sm font-medium">Variáveis Disponíveis</Label>
               <div className="mt-2 flex flex-wrap gap-2">
                 {variablesList.map((v) => (
-                  <Badge key={v.key} variant="outline" className="cursor-pointer hover:bg-primary/10" onClick={() => setFormData({ ...formData, body: formData.body + v.key })}>
-                    {v.key}<span className="ml-1 text-muted-foreground">- {v.description}</span>
+                  <Badge 
+                    key={v.key} 
+                    variant="outline" 
+                    className="cursor-pointer hover:bg-primary/10"
+                    onClick={() => setFormData({ ...formData, body: formData.body + v.key })}
+                  >
+                    {v.key}
+                    <span className="ml-1 text-muted-foreground">- {v.description}</span>
                   </Badge>
                 ))}
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</>) : (editingTemplateId ? "Salvar" : "Criar")}
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave}>
+              {editingTemplate ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -224,7 +433,9 @@ export default function EmailTemplatesSettings() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Preview do E-mail</DialogTitle>
-            <DialogDescription>Visualize como o e-mail será exibido para o candidato</DialogDescription>
+            <DialogDescription>
+              Visualize como o e-mail será exibido para o candidato
+            </DialogDescription>
           </DialogHeader>
           {previewTemplate && (
             <div className="space-y-4 py-4">
@@ -233,29 +444,17 @@ export default function EmailTemplatesSettings() {
                   <p className="text-sm text-muted-foreground">Assunto:</p>
                   <p className="font-medium">{getPreviewContent(previewTemplate.subject)}</p>
                 </div>
-                <div className="whitespace-pre-wrap text-sm">{getPreviewContent(previewTemplate.body)}</div>
+                <div className="whitespace-pre-wrap text-sm">
+                  {getPreviewContent(previewTemplate.body)}
+                </div>
               </div>
             </div>
           )}
-          <DialogFooter><Button onClick={() => setIsPreviewOpen(false)}>Fechar</Button></DialogFooter>
+          <DialogFooter>
+            <Button onClick={() => setIsPreviewOpen(false)}>Fechar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir template de e-mail</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o template <strong>"{deleteTarget?.name}"</strong>? Ele será arquivado e poderá ser restaurado posteriormente.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
