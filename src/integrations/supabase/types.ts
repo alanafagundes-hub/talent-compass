@@ -2460,6 +2460,254 @@ export type Database = {
         }
         Relationships: []
       }
+      facebook_connections: {
+        Row: {
+          access_token: string
+          ad_account_id: string | null
+          app_id: string | null
+          app_secret: string | null
+          connected_by: string | null
+          created_at: string
+          facebook_user_id: string | null
+          facebook_user_name: string | null
+          form_ids: string[] | null
+          id: string
+          last_insights_sync_at: string | null
+          last_lead_sync_at: string | null
+          last_sync_at: string | null
+          page_ids: string[] | null
+          status: string
+          token_expires_at: string | null
+          updated_at: string
+          webhook_verify_token: string | null
+          workspace_id: string
+        }
+        Insert: {
+          access_token: string
+          ad_account_id?: string | null
+          app_id?: string | null
+          app_secret?: string | null
+          connected_by?: string | null
+          created_at?: string
+          facebook_user_id?: string | null
+          facebook_user_name?: string | null
+          form_ids?: string[] | null
+          id?: string
+          last_insights_sync_at?: string | null
+          last_lead_sync_at?: string | null
+          last_sync_at?: string | null
+          page_ids?: string[] | null
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          webhook_verify_token?: string | null
+          workspace_id: string
+        }
+        Update: {
+          access_token?: string
+          ad_account_id?: string | null
+          app_id?: string | null
+          app_secret?: string | null
+          connected_by?: string | null
+          created_at?: string
+          facebook_user_id?: string | null
+          facebook_user_name?: string | null
+          form_ids?: string[] | null
+          id?: string
+          last_insights_sync_at?: string | null
+          last_lead_sync_at?: string | null
+          last_sync_at?: string | null
+          page_ids?: string[] | null
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          webhook_verify_token?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facebook_insights: {
+        Row: {
+          ad_id: string | null
+          ad_name: string | null
+          adset_id: string | null
+          adset_name: string | null
+          campaign_id: string | null
+          campaign_name: string | null
+          clicks: number | null
+          connection_id: string
+          created_at: string
+          date_start: string
+          date_stop: string
+          id: string
+          impressions: number | null
+          spend: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          clicks?: number | null
+          connection_id: string
+          created_at?: string
+          date_start: string
+          date_stop: string
+          id?: string
+          impressions?: number | null
+          spend?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          clicks?: number | null
+          connection_id?: string
+          created_at?: string
+          date_start?: string
+          date_stop?: string
+          id?: string
+          impressions?: number | null
+          spend?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_insights_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facebook_insights_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facebook_leads: {
+        Row: {
+          ad_id: string | null
+          ad_name: string | null
+          adset_id: string | null
+          adset_name: string | null
+          campaign_id: string | null
+          campaign_name: string | null
+          connection_id: string
+          created_at: string
+          created_time: string | null
+          crm_card_id: string | null
+          email: string | null
+          field_data: Json | null
+          form_id: string | null
+          form_name: string | null
+          id: string
+          is_synced_to_crm: boolean | null
+          lead_id: string
+          nome: string | null
+          telefone: string | null
+          updated_at: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          workspace_id: string
+        }
+        Insert: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          connection_id: string
+          created_at?: string
+          created_time?: string | null
+          crm_card_id?: string | null
+          email?: string | null
+          field_data?: Json | null
+          form_id?: string | null
+          form_name?: string | null
+          id?: string
+          is_synced_to_crm?: boolean | null
+          lead_id: string
+          nome?: string | null
+          telefone?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          workspace_id: string
+        }
+        Update: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          connection_id?: string
+          created_at?: string
+          created_time?: string | null
+          crm_card_id?: string | null
+          email?: string | null
+          field_data?: Json | null
+          form_id?: string | null
+          form_name?: string | null
+          id?: string
+          is_synced_to_crm?: boolean | null
+          lead_id?: string
+          nome?: string | null
+          telefone?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_leads_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facebook_leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_fields: {
         Row: {
           created_at: string | null
