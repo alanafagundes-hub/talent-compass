@@ -4567,6 +4567,35 @@ export type Database = {
           },
         ]
       }
+      user_area_assignments: {
+        Row: {
+          area_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          area_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          area_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_area_assignments_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_export_permissions: {
         Row: {
           can_export: boolean
@@ -4664,23 +4693,32 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
+          email: string
           id: string
           is_active: boolean | null
+          name: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
+          email?: string
           id?: string
           is_active?: boolean | null
+          name?: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
+          email?: string
           id?: string
           is_active?: boolean | null
+          name?: string
           updated_at?: string | null
           user_id?: string
         }
@@ -4688,16 +4726,19 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          created_at: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          created_at?: string | null
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
