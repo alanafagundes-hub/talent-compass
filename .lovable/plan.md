@@ -1,49 +1,96 @@
 
 
-## Problema
+# Plano: Isolamento Completo do ATS
 
-O modulo ATS ja possui tabelas separadas (`user_profiles` e `user_roles`) da tabela principal `profiles` (que tem os 27 usuarios existentes). Porem, a tabela `user_profiles` esta incompleta -- faltam colunas essenciais que o codigo espera (`name`, `email`, `avatar_url`) -- e a tabela `user_area_assignments` nao existe. Isso impede a criacao e gestao de usuarios dentro do ATS.
+## Resumo do Problema
 
-O `AuthContext` ja verifica apenas `user_roles` para determinar se alguem e usuario interno do ATS, entao os 27 usuarios existentes na tabela `profiles` nao aparecem e nao tem acesso ao ATS. A separacao logica ja esta correta; so falta corrigir o esquema do banco.
+O ATS compartilha tabelas e funcoes com o CRM legado, causando conflitos graves:
 
-## Solucao
+- O enum `app_role` so tem valores do CRM (`admin`, `sdr`, `closer`, `manager`, `custom`), mas o ATS tenta gravar `rh`, `head`, `viewer` -- o que causa erro no banco
+- A tela de "Perfis de Acesso" mostra 23 modulos do CRM (Copy, CSM, Churn, etc.) em vez de modulos de recrutamento
+- O trigger `handle_new_user()` cria usuarios na tabela `profiles` (CRM), nao em `user_profiles` (ATS)
+- As funcoes de banco (`get_current_user_role`, `user_has_module_permission`) consultam apenas `profiles` do CRM
 
-Executar uma migracao SQL para:
+## Solucao em 3 Etapas
 
-1. Adicionar as colunas faltantes na tabela `user_profiles` (`name`, `email`, `avatar_url`)
-2. Criar a tabela `user_area_assignments` com referencia a `areas`
-3. Adicionar as politicas de RLS necessarias para ambas as tabelas
-4. Adicionar um `created_at` na tabela `user_roles` (o codigo espera esse campo)
+### Etapa 1 -- Corrigir o enum `app_role`
 
-Nenhuma alteracao de codigo e necessaria, pois o hook `useUsers` e o `AuthContext` ja referenciam estas tabelas com estas colunas.
+Adicionar os valores que o ATS precisa (`rh`, `head`, `viewer`) ao enum existente. Isso permite que a tabela `user_roles` aceite as roles do recrutamento sem quebrar o CRM.
+
+### Etapa 2 -- Cadastrar modulos de recrutamento
+
+Inserir modulos especificos do ATS na tabela `modules`:
+- Dashboard Recrutamento
+- Vagas
+- Banco de Talentos
+- Perdidos
+- Configuracoes de Recrutamento
+- Configuracoes Gerais (admin)
+
+Esses modulos precisam ficar sem `workspace_id` (isolados do CRM).
+
+### Etapa 3 -- Isolar o codigo frontend
+
+- **AccessProfilesTab**: Filtrar `modules` para mostrar apenas modulos de recrutamento (nao os 23 do CRM)
+- **AccessProfilesTab**: Trocar as opcoes de "Perfil Base" de `admin/sdr/closer/custom` para `admin/rh/head/viewer`
+- **useUsers.createUser**: Remover dependencia do `signUp` (que aciona o trigger CRM) e criar logica propria com edge function para criar usuario + profile ATS em uma unica operacao
+- **AuthContext**: Ja esta correto, consulta apenas `user_roles`
 
 ## Detalhes Tecnicos
 
-### Alteracoes na tabela `user_profiles`
+### Migracao SQL
 
 ```text
-ADD COLUMN name      TEXT NOT NULL DEFAULT ''
-ADD COLUMN email     TEXT NOT NULL DEFAULT ''
-ADD COLUMN avatar_url TEXT
+-- 1. Expandir enum
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'rh';
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'head';
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'viewer';
+
+-- 2. Inserir modulos de recrutamento
+INSERT INTO public.modules (name, display_name, icon, is_active)
+VALUES
+  ('ats_dashboard',     'Dashboard',                 'LayoutDashboard', true),
+  ('ats_vagas',         'Vagas',                     'Briefcase',       true),
+  ('ats_talentos',      'Banco de Talentos',         'Users',           true),
+  ('ats_perdidos',      'Perdidos',                  'UserX',           true),
+  ('ats_config',        'Config. Recrutamento',      'Settings',        true),
+  ('ats_admin',         'Configuracoes Gerais',      'Cog',             true);
 ```
 
-### Nova tabela `user_area_assignments`
+### Alteracoes no Codigo
 
-```text
-id         UUID PRIMARY KEY
-user_id    UUID NOT NULL (referencia auth.users)
-area_id    UUID NOT NULL (referencia areas)
-created_at TIMESTAMPTZ DEFAULT now()
-UNIQUE(user_id, area_id)
-```
+1. **`src/hooks/useAccessProfiles.ts`**
+   - Filtrar modulos com prefixo `ats_` no fetch ou via WHERE no Supabase
 
-### Politicas de RLS
+2. **`src/components/admin/AccessProfilesTab.tsx`**
+   - Trocar opcoes do Select de base_role para admin/rh/head/viewer
+   - Atualizar labels correspondentes
 
-- `user_profiles`: SELECT/INSERT/UPDATE para usuarios autenticados com role admin (via `user_roles`)
-- `user_area_assignments`: SELECT/INSERT/DELETE para usuarios autenticados com role admin
-- Cada usuario pode ler seu proprio perfil em `user_profiles`
+3. **`src/hooks/useUsers.ts`**
+   - Criar edge function `create-ats-user` que usa service_role para:
+     - Criar usuario no auth
+     - Inserir em `user_profiles` (ATS)
+     - Inserir em `user_roles` (ATS)
+     - NAO aciona `handle_new_user` do CRM
+   - Alterar `createUser` para chamar a edge function em vez de `signUp`
 
-### Coluna `created_at` em `user_roles`
+4. **`src/pages/MeuPerfil.tsx`**
+   - Nenhuma alteracao necessaria (ja usa `user_profiles`)
 
-Adicionar `created_at TIMESTAMPTZ DEFAULT now()` caso nao exista (o tipo `UserRole` no codigo espera esse campo).
+### Edge Function: `create-ats-user`
+
+Recebe `{ email, password, name, role, areaIds }` e:
+- Valida que o chamador e admin (via token JWT)
+- Cria usuario com `supabase.auth.admin.createUser`
+- Insere profile em `user_profiles`
+- Insere role em `user_roles`
+- Insere areas em `user_area_assignments`
+- Retorna o usuario criado
+
+### O que NAO sera alterado
+
+- Tabela `profiles` e suas 27 entradas (CRM intocado)
+- Funcoes do CRM (`get_current_user_role`, etc.)
+- Trigger `handle_new_user` (continua criando profiles CRM para novos signups normais)
+- Modulos existentes do CRM na tabela `modules`
 
