@@ -17,7 +17,9 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Briefcase, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
+
+const supabase = supabaseClient as any;
 import { toast } from "sonner";
 
 interface Job {

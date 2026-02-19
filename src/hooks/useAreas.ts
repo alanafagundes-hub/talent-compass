@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase as supabaseClient } from '@/integrations/supabase/client';
+
+const supabase = supabaseClient as any;
 import type { Area } from '@/types/ats';
 
 // Database type

@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase as supabaseClient } from '@/integrations/supabase/client';
+
+// Cast to any to bypass type errors for tables not yet in types.ts
+const supabase = supabaseClient as any;
 import type { Tag } from '@/types/ats';
 
 interface DbTag {
