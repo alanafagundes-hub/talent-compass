@@ -3237,6 +3237,38 @@ export type Database = {
           },
         ]
       }
+      marketing_pipeline_config: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          pipeline_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          pipeline_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          pipeline_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_pipeline_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_tag_config: {
         Row: {
           created_at: string
