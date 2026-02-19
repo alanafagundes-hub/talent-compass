@@ -32,9 +32,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 const baseRoleLabels: Record<string, string> = {
   admin: 'Administrador',
-  sdr: 'SDR',
-  closer: 'Closer',
-  custom: 'Customizado',
+  rh: 'RH',
+  head: 'Head',
+  viewer: 'Visualizador',
 };
 
 export function AccessProfilesTab() {
@@ -412,9 +412,9 @@ function ProfileForm({ formData, setFormData }: {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="admin">Administrador</SelectItem>
-            <SelectItem value="sdr">SDR</SelectItem>
-            <SelectItem value="closer">Closer</SelectItem>
-            <SelectItem value="custom">Customizado</SelectItem>
+            <SelectItem value="rh">RH</SelectItem>
+            <SelectItem value="head">Head</SelectItem>
+            <SelectItem value="viewer">Visualizador</SelectItem>
           </SelectContent>
         </Select>
       </div>

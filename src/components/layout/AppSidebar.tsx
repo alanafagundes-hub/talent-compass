@@ -71,7 +71,7 @@ export function AppSidebar() {
   const [hcmOpen, setHcmOpen] = useState(location.pathname.startsWith("/hcm"));
   const [gestaoOpen, setGestaoOpen] = useState(location.pathname.startsWith("/hcm/gestao"));
   const [contaOpen, setContaOpen] = useState(
-    location.pathname.startsWith("/meu-perfil") || location.pathname.startsWith("/configuracoes-gerais")
+    location.pathname.startsWith("/configuracoes-gerais")
   );
 
   const isActive = (path: string) => {
@@ -193,8 +193,60 @@ export function AppSidebar() {
               {/* Meu Perfil - for all users */}
               {renderNavItem({ title: "Meu Perfil", url: "/meu-perfil", icon: UserCircle })}
 
-              {/* Configurações Gerais - Admin only */}
-              {isAdmin && renderNavItem({ title: "Configurações Gerais", url: "/configuracoes-gerais", icon: Cog })}
+              {/* Configurações Gerais - Admin only, collapsible submenu */}
+              {isAdmin && (
+                <Collapsible
+                  open={contaOpen}
+                  onOpenChange={setContaOpen}
+                  className="group/collapsible"
+                >
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        tooltip="Configurações Gerais"
+                        isActive={isActive("/configuracoes-gerais")}
+                        className={cn(
+                          "flex items-center justify-between gap-2.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] transition-all w-full",
+                          isActive("/configuracoes-gerais")
+                            ? "bg-sidebar-accent text-primary font-medium"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                        )}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Cog className={cn("h-4 w-4 shrink-0", isActive("/configuracoes-gerais") ? "text-primary" : "")} />
+                          {!isCollapsed && <span>Config. Gerais</span>}
+                        </div>
+                        {!isCollapsed && (
+                          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", contaOpen && "rotate-180")} />
+                        )}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {[
+                          { title: "Usuários", url: "/configuracoes-gerais/usuarios", icon: Users },
+                          { title: "Perfis de Acesso", url: "/configuracoes-gerais/perfis", icon: ShieldCheck },
+                        ].map((subItem) => (
+                          <SidebarMenuSubItem key={subItem.title}>
+                            <SidebarMenuSubButton asChild isActive={isActive(subItem.url)}>
+                              <NavLink
+                                to={subItem.url}
+                                className={cn(
+                                  "flex items-center gap-2.5 rounded-md px-2.5 py-1 text-[0.8125rem] transition-all",
+                                  isActive(subItem.url) ? "text-primary font-medium" : "text-sidebar-muted hover:text-sidebar-foreground"
+                                )}
+                              >
+                                <subItem.icon className={cn("h-3.5 w-3.5 shrink-0", isActive(subItem.url) ? "text-primary" : "")} />
+                                <span>{subItem.title}</span>
+                              </NavLink>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -43,7 +43,7 @@ export function useAccessProfiles() {
     try {
       const [profilesRes, modulesRes, permissionsRes] = await Promise.all([
         supabase.from('custom_roles').select('*').order('display_name'),
-        supabase.from('modules').select('*').eq('is_active', true).order('display_name'),
+        supabase.from('modules').select('*').eq('is_active', true).like('name', 'ats_%').order('display_name'),
         supabase.from('role_module_permissions').select('*'),
       ]);
 
