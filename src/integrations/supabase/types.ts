@@ -3237,6 +3237,44 @@ export type Database = {
           },
         ]
       }
+      marketing_meeting_config: {
+        Row: {
+          config_type: string
+          created_at: string
+          id: string
+          pipeline_id: string
+          stage_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          config_type: string
+          created_at?: string
+          id?: string
+          pipeline_id: string
+          stage_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          config_type?: string
+          created_at?: string
+          id?: string
+          pipeline_id?: string
+          stage_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_meeting_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_pipeline_config: {
         Row: {
           created_at: string
@@ -4873,6 +4911,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ats_has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      ats_is_active_user: { Args: { _user_id?: string }; Returns: boolean }
+      ats_is_admin: { Args: { _user_id?: string }; Returns: boolean }
+      ats_user_has_module_permission: {
+        Args: {
+          _module_name: string
+          _permission_type?: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       calculate_monthly_churn: {
         Args: { target_month: number; target_year: number }
         Returns: {
@@ -4923,6 +4978,7 @@ export type Database = {
           title: string
         }[]
       }
+      get_ats_user_role: { Args: { _user_id?: string }; Returns: string }
       get_current_user_role: { Args: never; Returns: string }
       get_user_workspace_id: { Args: never; Returns: string }
       get_user_workspace_id_safe: { Args: never; Returns: string }
@@ -5034,7 +5090,15 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "sdr" | "closer" | "manager" | "custom"
+      app_role:
+        | "admin"
+        | "sdr"
+        | "closer"
+        | "manager"
+        | "custom"
+        | "rh"
+        | "head"
+        | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5162,7 +5226,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "sdr", "closer", "manager", "custom"],
+      app_role: [
+        "admin",
+        "sdr",
+        "closer",
+        "manager",
+        "custom",
+        "rh",
+        "head",
+        "viewer",
+      ],
     },
   },
 } as const
