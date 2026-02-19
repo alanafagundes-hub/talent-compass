@@ -100,6 +100,164 @@ export type Database = {
           },
         ]
       }
+      application_history: {
+        Row: {
+          action: string
+          application_id: string
+          created_at: string
+          from_stage_id: string | null
+          id: string
+          notes: string | null
+          to_stage_id: string | null
+        }
+        Insert: {
+          action: string
+          application_id: string
+          created_at?: string
+          from_stage_id?: string | null
+          id?: string
+          notes?: string | null
+          to_stage_id?: string | null
+        }
+        Update: {
+          action?: string
+          application_id?: string
+          created_at?: string
+          from_stage_id?: string | null
+          id?: string
+          notes?: string | null
+          to_stage_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_history_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_history_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_history_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      application_tags: {
+        Row: {
+          application_id: string
+          id: string
+          tag_id: string
+        }
+        Insert: {
+          application_id: string
+          id?: string
+          tag_id: string
+        }
+        Update: {
+          application_id?: string
+          id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_tags_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applications: {
+        Row: {
+          applied_at: string
+          candidate_id: string
+          created_at: string
+          current_stage_id: string | null
+          id: string
+          is_archived: boolean
+          job_id: string
+          notes: string | null
+          rating: number | null
+          rejected_at: string | null
+          source: string | null
+          status: string
+          tracking_data: Json | null
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string
+          candidate_id: string
+          created_at?: string
+          current_stage_id?: string | null
+          id?: string
+          is_archived?: boolean
+          job_id: string
+          notes?: string | null
+          rating?: number | null
+          rejected_at?: string | null
+          source?: string | null
+          status?: string
+          tracking_data?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string
+          candidate_id?: string
+          created_at?: string
+          current_stage_id?: string | null
+          id?: string
+          is_archived?: boolean
+          job_id?: string
+          notes?: string | null
+          rating?: number | null
+          rejected_at?: string | null
+          source?: string | null
+          status?: string
+          tracking_data?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_current_stage_id_fkey"
+            columns: ["current_stage_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approval_client_feedback: {
         Row: {
           approval_status: string | null
@@ -658,6 +816,57 @@ export type Database = {
           is_archived?: boolean | null
           name?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      candidates: {
+        Row: {
+          availability: string | null
+          created_at: string
+          email: string
+          id: string
+          is_archived: boolean
+          is_in_talent_pool: boolean
+          linkedin_url: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          portfolio_url: string | null
+          resume_url: string | null
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          availability?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          is_archived?: boolean
+          is_in_talent_pool?: boolean
+          linkedin_url?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          portfolio_url?: string | null
+          resume_url?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          availability?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_archived?: boolean
+          is_in_talent_pool?: boolean
+          linkedin_url?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          portfolio_url?: string | null
+          resume_url?: string | null
+          source?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2752,6 +2961,48 @@ export type Database = {
           },
         ]
       }
+      form_responses: {
+        Row: {
+          application_id: string
+          created_at: string
+          field_id: string
+          file_url: string | null
+          id: string
+          value: string | null
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          field_id: string
+          file_url?: string | null
+          id?: string
+          value?: string | null
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          field_id?: string
+          file_url?: string | null
+          id?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_responses_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_responses_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "form_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_templates: {
         Row: {
           created_at: string | null
@@ -2781,6 +3032,76 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      funnel_stages: {
+        Row: {
+          color: string | null
+          created_at: string
+          funnel_id: string
+          id: string
+          is_archived: boolean
+          name: string
+          order_index: number
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          funnel_id: string
+          id?: string
+          is_archived?: boolean
+          name: string
+          order_index?: number
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          funnel_id?: string
+          id?: string
+          is_archived?: boolean
+          name?: string
+          order_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_stages_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funnels: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          job_id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          job_id: string
+          name?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          job_id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnels_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       incompatibility_reasons: {
         Row: {
@@ -3614,6 +3935,48 @@ export type Database = {
         }
         Relationships: []
       }
+      rejected_applications: {
+        Row: {
+          application_id: string
+          can_reapply: boolean
+          created_at: string
+          id: string
+          observation: string | null
+          reason_id: string | null
+        }
+        Insert: {
+          application_id: string
+          can_reapply?: boolean
+          created_at?: string
+          id?: string
+          observation?: string | null
+          reason_id?: string | null
+        }
+        Update: {
+          application_id?: string
+          can_reapply?: boolean
+          created_at?: string
+          id?: string
+          observation?: string | null
+          reason_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rejected_applications_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rejected_applications_reason_id_fkey"
+            columns: ["reason_id"]
+            isOneToOne: false
+            referencedRelation: "incompatibility_reasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_module_permissions: {
         Row: {
           can_create: boolean
@@ -3715,6 +4078,51 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stage_evaluations: {
+        Row: {
+          application_id: string
+          evaluated_at: string
+          evaluated_by: string | null
+          id: string
+          notes: string | null
+          rating: number | null
+          stage_id: string
+        }
+        Insert: {
+          application_id: string
+          evaluated_at?: string
+          evaluated_by?: string | null
+          id?: string
+          notes?: string | null
+          rating?: number | null
+          stage_id: string
+        }
+        Update: {
+          application_id?: string
+          evaluated_at?: string
+          evaluated_by?: string | null
+          id?: string
+          notes?: string | null
+          rating?: number | null
+          stage_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_evaluations_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_evaluations_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_stages"
             referencedColumns: ["id"]
           },
         ]
@@ -4058,6 +4466,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tags: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_archived: boolean
+          name: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          name?: string
+        }
+        Relationships: []
       }
       team_goals: {
         Row: {
