@@ -244,6 +244,33 @@ export type Database = {
           },
         ]
       }
+      areas: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_archived: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           accessed_at: string
@@ -2367,6 +2394,187 @@ export type Database = {
         }
         Relationships: []
       }
+      form_fields: {
+        Row: {
+          created_at: string | null
+          field_type: string
+          id: string
+          is_required: boolean | null
+          label: string
+          options: string[] | null
+          order_index: number | null
+          placeholder: string | null
+          template_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          field_type: string
+          id?: string
+          is_required?: boolean | null
+          label: string
+          options?: string[] | null
+          order_index?: number | null
+          placeholder?: string | null
+          template_id: string
+        }
+        Update: {
+          created_at?: string | null
+          field_type?: string
+          id?: string
+          is_required?: boolean | null
+          label?: string
+          options?: string[] | null
+          order_index?: number | null
+          placeholder?: string | null
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_fields_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_templates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_archived: boolean | null
+          is_default: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          is_default?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      jobs: {
+        Row: {
+          about_company: string | null
+          about_job: string | null
+          additional_info: string | null
+          area_id: string | null
+          closed_at: string | null
+          contract_type: string
+          created_at: string | null
+          deadline: string | null
+          description: string
+          form_template_id: string | null
+          id: string
+          investment_amount: number | null
+          is_archived: boolean | null
+          is_boosted: boolean | null
+          is_remote: boolean | null
+          level: string
+          location: string
+          nice_to_have: string | null
+          priority: string
+          published_at: string | null
+          requirements: string | null
+          requirements_text: string | null
+          responsibilities: string | null
+          salary_max: number | null
+          salary_min: number | null
+          source_id: string | null
+          status: string
+          title: string
+          updated_at: string | null
+          work_model: string | null
+        }
+        Insert: {
+          about_company?: string | null
+          about_job?: string | null
+          additional_info?: string | null
+          area_id?: string | null
+          closed_at?: string | null
+          contract_type?: string
+          created_at?: string | null
+          deadline?: string | null
+          description?: string
+          form_template_id?: string | null
+          id?: string
+          investment_amount?: number | null
+          is_archived?: boolean | null
+          is_boosted?: boolean | null
+          is_remote?: boolean | null
+          level?: string
+          location?: string
+          nice_to_have?: string | null
+          priority?: string
+          published_at?: string | null
+          requirements?: string | null
+          requirements_text?: string | null
+          responsibilities?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          source_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string | null
+          work_model?: string | null
+        }
+        Update: {
+          about_company?: string | null
+          about_job?: string | null
+          additional_info?: string | null
+          area_id?: string | null
+          closed_at?: string | null
+          contract_type?: string
+          created_at?: string | null
+          deadline?: string | null
+          description?: string
+          form_template_id?: string | null
+          id?: string
+          investment_amount?: number | null
+          is_archived?: boolean | null
+          is_boosted?: boolean | null
+          is_remote?: boolean | null
+          level?: string
+          location?: string
+          nice_to_have?: string | null
+          priority?: string
+          published_at?: string | null
+          requirements?: string | null
+          requirements_text?: string | null
+          responsibilities?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          source_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string | null
+          work_model?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_tag_config: {
         Row: {
           created_at: string
@@ -3649,6 +3857,48 @@ export type Database = {
           },
         ]
       }
+      user_profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       workspace_module_permissions: {
         Row: {
           created_at: string
@@ -3890,6 +4140,13 @@ export type Database = {
           name: string
           user_id: string
         }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
       }
       is_dot_admin: { Args: never; Returns: boolean }
       is_system_admin: { Args: { _user_id?: string }; Returns: boolean }
