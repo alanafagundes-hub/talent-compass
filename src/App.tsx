@@ -50,10 +50,12 @@ const App = () => (
             
             {/* Account Routes */}
             <Route path="/meu-perfil" element={<ProtectedRoute><AppLayout><MeuPerfil /></AppLayout></ProtectedRoute>} />
-            <Route path="/configuracoes-gerais" element={<ProtectedRoute><AppLayout><ConfiguracoesGerais /></AppLayout></ProtectedRoute>} />
+            <Route path="/configuracoes-gerais" element={<Navigate to="/configuracoes-gerais/usuarios" replace />} />
+            <Route path="/configuracoes-gerais/usuarios" element={<ProtectedRoute><AppLayout><ConfiguracoesGerais /></AppLayout></ProtectedRoute>} />
+            <Route path="/configuracoes-gerais/perfis" element={<ProtectedRoute><AppLayout><ConfiguracoesGerais /></AppLayout></ProtectedRoute>} />
             
-            {/* Backwards compat: redirect /usuarios to configuracoes-gerais */}
-            <Route path="/usuarios" element={<Navigate to="/configuracoes-gerais" replace />} />
+            {/* Backwards compat */}
+            <Route path="/usuarios" element={<Navigate to="/configuracoes-gerais/usuarios" replace />} />
             
             {/* HCM Routes - Placeholder */}
             <Route path="/hcm/dashboard" element={<ProtectedRoute><AppLayout><PlaceholderPage title="Dashboard" description="Visão geral de métricas e indicadores de People e Performance." icon={LayoutDashboard} /></AppLayout></ProtectedRoute>} />
