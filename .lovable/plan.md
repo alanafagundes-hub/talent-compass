@@ -2,26 +2,48 @@
 
 ## Problema
 
-O erro "new row violates row-level security policy for table 'applications'" ocorre porque as politicas de INSERT nas tabelas do fluxo de candidatura foram criadas apenas para o papel `anon` (usuario nao logado). Quando voce acessa a pagina publica estando logada no sistema, o Supabase trata voce como `authenticated`, e as politicas `anon` nao se aplicam.
+O modulo ATS ja possui tabelas separadas (`user_profiles` e `user_roles`) da tabela principal `profiles` (que tem os 27 usuarios existentes). Porem, a tabela `user_profiles` esta incompleta -- faltam colunas essenciais que o codigo espera (`name`, `email`, `avatar_url`) -- e a tabela `user_area_assignments` nao existe. Isso impede a criacao e gestao de usuarios dentro do ATS.
 
-Isso afeta 4 tabelas: `candidates`, `applications`, `form_responses` e `application_history`.
+O `AuthContext` ja verifica apenas `user_roles` para determinar se alguem e usuario interno do ATS, entao os 27 usuarios existentes na tabela `profiles` nao aparecem e nao tem acesso ao ATS. A separacao logica ja esta correta; so falta corrigir o esquema do banco.
 
 ## Solucao
 
-Executar uma migracao SQL que adicione politicas de INSERT para o papel `authenticated` nessas 4 tabelas, permitindo que tanto usuarios anonimos quanto logados possam enviar candidaturas pela pagina publica.
+Executar uma migracao SQL para:
+
+1. Adicionar as colunas faltantes na tabela `user_profiles` (`name`, `email`, `avatar_url`)
+2. Criar a tabela `user_area_assignments` com referencia a `areas`
+3. Adicionar as politicas de RLS necessarias para ambas as tabelas
+4. Adicionar um `created_at` na tabela `user_roles` (o codigo espera esse campo)
+
+Nenhuma alteracao de codigo e necessaria, pois o hook `useUsers` e o `AuthContext` ja referenciam estas tabelas com estas colunas.
 
 ## Detalhes Tecnicos
 
-Uma unica migracao SQL com 4 novas politicas:
+### Alteracoes na tabela `user_profiles`
 
 ```text
-candidates       -> INSERT para authenticated (criar candidato)
-applications     -> INSERT para authenticated (criar candidatura)  
-form_responses   -> INSERT para authenticated (salvar respostas)
-application_history -> INSERT para authenticated (registrar historico)
+ADD COLUMN name      TEXT NOT NULL DEFAULT ''
+ADD COLUMN email     TEXT NOT NULL DEFAULT ''
+ADD COLUMN avatar_url TEXT
 ```
 
-Tambem serao adicionadas politicas de SELECT para `authenticated` nas tabelas `funnels` e `funnel_stages` (caso ainda nao existam para esse papel), ja que o fluxo precisa consultar a primeira etapa do funil.
+### Nova tabela `user_area_assignments`
 
-Nenhuma alteracao de codigo e necessaria -- apenas permissoes no banco de dados.
+```text
+id         UUID PRIMARY KEY
+user_id    UUID NOT NULL (referencia auth.users)
+area_id    UUID NOT NULL (referencia areas)
+created_at TIMESTAMPTZ DEFAULT now()
+UNIQUE(user_id, area_id)
+```
+
+### Politicas de RLS
+
+- `user_profiles`: SELECT/INSERT/UPDATE para usuarios autenticados com role admin (via `user_roles`)
+- `user_area_assignments`: SELECT/INSERT/DELETE para usuarios autenticados com role admin
+- Cada usuario pode ler seu proprio perfil em `user_profiles`
+
+### Coluna `created_at` em `user_roles`
+
+Adicionar `created_at TIMESTAMPTZ DEFAULT now()` caso nao exista (o tipo `UserRole` no codigo espera esse campo).
 
