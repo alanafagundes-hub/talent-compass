@@ -2367,6 +2367,89 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_tag_config: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          tag_id: string
+          tag_type: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          tag_id: string
+          tag_type: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          tag_id?: string
+          tag_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_tag_config_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_tag_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_weekly_comments: {
+        Row: {
+          comment: string
+          created_at: string
+          created_by: string
+          id: string
+          updated_at: string
+          week_end: string
+          week_start: string
+          workspace_id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          created_by: string
+          id?: string
+          updated_at?: string
+          week_end: string
+          week_start: string
+          workspace_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          updated_at?: string
+          week_end?: string
+          week_start?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_weekly_comments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       modules: {
         Row: {
           created_at: string
