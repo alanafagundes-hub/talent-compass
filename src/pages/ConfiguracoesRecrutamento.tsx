@@ -9,12 +9,22 @@ import {
   Tags,
   FileText,
   GripVertical,
-  MoreHorizontal,
+  Trash2,
   Mail,
   AlertCircle,
   Link2,
   LayoutTemplate,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import TagsSettings from "@/components/settings/TagsSettings";
 import FormTemplatesSettings from "@/components/settings/FormTemplatesSettings";
 import EmailTemplatesSettings from "@/components/settings/EmailTemplatesSettings";
@@ -35,6 +45,7 @@ const mockFunnelStages = [
 
 export default function ConfiguracoesRecrutamento() {
   const [activeTab, setActiveTab] = useState("etiquetas");
+  const [deleteStageTarget, setDeleteStageTarget] = useState<{ id: string; name: string } | null>(null);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -144,8 +155,8 @@ export default function ConfiguracoesRecrutamento() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteStageTarget({ id: stage.id, name: stage.name })}>
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -160,6 +171,22 @@ export default function ConfiguracoesRecrutamento() {
           <LandingPageSettings />
         </TabsContent>
       </Tabs>
+
+      {/* Delete Stage Confirmation */}
+      <AlertDialog open={!!deleteStageTarget} onOpenChange={(open) => !open && setDeleteStageTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir etapa do funil</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a etapa <strong>"{deleteStageTarget?.name}"</strong>? Ela será arquivada e poderá ser restaurada posteriormente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setDeleteStageTarget(null)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

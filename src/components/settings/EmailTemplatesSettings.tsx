@@ -15,22 +15,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Plus, 
-  Pencil, 
-  Archive, 
-  ArchiveRestore, 
-  Mail,
-  Copy,
-  Eye,
-  Loader2
-} from "lucide-react";
+import { Plus, Pencil, Trash2, ArchiveRestore, Mail, Copy, Eye, Loader2 } from "lucide-react";
 import type { EmailTemplateType } from "@/types/ats";
 import { useEmailTemplates } from "@/hooks/useEmailTemplates";
 
@@ -58,14 +59,9 @@ export default function EmailTemplatesSettings() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<{ subject: string; body: string } | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    type: "custom" as EmailTemplateType,
-    subject: "",
-    body: "",
-    isDefault: false,
-  });
+  const [formData, setFormData] = useState({ name: "", type: "custom" as EmailTemplateType, subject: "", body: "", isDefault: false });
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const displayedTemplates = showArchived ? archivedTemplates : activeTemplates;
 
@@ -77,32 +73,23 @@ export default function EmailTemplatesSettings() {
 
   const openEditDialog = (template: any) => {
     setEditingTemplateId(template.id);
-    setFormData({
-      name: template.name,
-      type: template.type,
-      subject: template.subject,
-      body: template.body,
-      isDefault: template.isDefault,
-    });
+    setFormData({ name: template.name, type: template.type, subject: template.subject, body: template.body, isDefault: template.isDefault });
     setIsDialogOpen(true);
-  };
-
-  const openPreview = (template: any) => {
-    setPreviewTemplate(template);
-    setIsPreviewOpen(true);
   };
 
   const handleSave = async () => {
     if (!formData.name.trim() || !formData.subject.trim() || !formData.body.trim()) return;
-
     setIsSaving(true);
-    if (editingTemplateId) {
-      await updateTemplate(editingTemplateId, formData);
-    } else {
-      await createTemplate(formData);
-    }
+    if (editingTemplateId) await updateTemplate(editingTemplateId, formData);
+    else await createTemplate(formData);
     setIsSaving(false);
     setIsDialogOpen(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    await toggleArchive(deleteTarget.id);
+    setDeleteTarget(null);
   };
 
   const getPreviewContent = (content: string) => {
@@ -136,68 +123,41 @@ export default function EmailTemplatesSettings() {
             <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)}>
               {showArchived ? "Ver Ativos" : "Ver Arquivados"}
             </Button>
-            <Button onClick={openCreateDialog} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Novo Template
-            </Button>
+            <Button onClick={openCreateDialog} className="gap-2"><Plus className="h-4 w-4" />Novo Template</Button>
           </div>
         </CardHeader>
         <CardContent>
           {displayedTemplates.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
               <Mail className="h-12 w-12 text-muted-foreground/50" />
-              <h3 className="mt-4 text-lg font-semibold">
-                {showArchived ? "Nenhum template arquivado" : "Nenhum template criado"}
-              </h3>
-              <p className="text-muted-foreground text-center max-w-sm">
-                Crie templates de e-mail para automatizar comunicações
-              </p>
-              {!showArchived && (
-                <Button onClick={openCreateDialog} className="mt-4 gap-2">
-                  <Plus className="h-4 w-4" />
-                  Criar Primeiro Template
-                </Button>
-              )}
+              <h3 className="mt-4 text-lg font-semibold">{showArchived ? "Nenhum template arquivado" : "Nenhum template criado"}</h3>
+              <p className="text-muted-foreground text-center max-w-sm">Crie templates de e-mail para automatizar comunicações</p>
+              {!showArchived && <Button onClick={openCreateDialog} className="mt-4 gap-2"><Plus className="h-4 w-4" />Criar Primeiro Template</Button>}
             </div>
           ) : (
             <div className="space-y-3">
               {displayedTemplates.map((template) => (
-                <div
-                  key={template.id}
-                  className={`flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50 ${template.isArchived ? 'opacity-60' : ''}`}
-                >
+                <div key={template.id} className={`flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50 ${template.isArchived ? 'opacity-60' : ''}`}>
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${emailTypeConfig[template.type].color}/10`}>
-                      <Mail className="h-5 w-5" />
-                    </div>
+                    <div className={`p-2 rounded-lg ${emailTypeConfig[template.type].color}/10`}><Mail className="h-5 w-5" /></div>
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-medium">{template.name}</p>
-                        <Badge variant="outline" className="text-xs">
-                          {emailTypeConfig[template.type].label}
-                        </Badge>
-                        {template.isDefault && (
-                          <Badge variant="secondary" className="text-xs">Padrão</Badge>
-                        )}
+                        <Badge variant="outline" className="text-xs">{emailTypeConfig[template.type].label}</Badge>
+                        {template.isDefault && <Badge variant="secondary" className="text-xs">Padrão</Badge>}
                       </div>
-                      <p className="text-sm text-muted-foreground truncate max-w-md">
-                        {template.subject}
-                      </p>
+                      <p className="text-sm text-muted-foreground truncate max-w-md">{template.subject}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openPreview(template)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicateTemplate(template.id)}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(template)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleArchive(template.id)}>
-                      {template.isArchived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setPreviewTemplate(template); setIsPreviewOpen(true); }}><Eye className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicateTemplate(template.id)}><Copy className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(template)}><Pencil className="h-4 w-4" /></Button>
+                    {template.isArchived ? (
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleArchive(template.id)}><ArchiveRestore className="h-4 w-4" /></Button>
+                    ) : (
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: template.id, name: template.name })}><Trash2 className="h-4 w-4" /></Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -223,37 +183,28 @@ export default function EmailTemplatesSettings() {
                 <Label htmlFor="type">Tipo</Label>
                 <Select value={formData.type} onValueChange={(value: EmailTemplateType) => setFormData({ ...formData, type: value })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(emailTypeConfig).map(([type, config]) => (
-                      <SelectItem key={type} value={type}>{config.label}</SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectContent>{Object.entries(emailTypeConfig).map(([type, config]) => <SelectItem key={type} value={type}>{config.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
-
             <div className="flex items-center space-x-2">
               <Switch id="isDefault" checked={formData.isDefault} onCheckedChange={(checked) => setFormData({ ...formData, isDefault: checked })} />
               <Label htmlFor="isDefault">Definir como padrão para este tipo</Label>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="subject">Assunto</Label>
               <Input id="subject" value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} placeholder="Ex: Recebemos sua candidatura - {{vaga}}" />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="body">Corpo do E-mail</Label>
               <Textarea id="body" value={formData.body} onChange={(e) => setFormData({ ...formData, body: e.target.value })} placeholder="Escreva o conteúdo do e-mail..." className="min-h-[200px] font-mono text-sm" />
             </div>
-
             <div className="rounded-lg bg-muted p-4">
               <Label className="text-sm font-medium">Variáveis Disponíveis</Label>
               <div className="mt-2 flex flex-wrap gap-2">
                 {variablesList.map((v) => (
                   <Badge key={v.key} variant="outline" className="cursor-pointer hover:bg-primary/10" onClick={() => setFormData({ ...formData, body: formData.body + v.key })}>
-                    {v.key}
-                    <span className="ml-1 text-muted-foreground">- {v.description}</span>
+                    {v.key}<span className="ml-1 text-muted-foreground">- {v.description}</span>
                   </Badge>
                 ))}
               </div>
@@ -282,17 +233,29 @@ export default function EmailTemplatesSettings() {
                   <p className="text-sm text-muted-foreground">Assunto:</p>
                   <p className="font-medium">{getPreviewContent(previewTemplate.subject)}</p>
                 </div>
-                <div className="whitespace-pre-wrap text-sm">
-                  {getPreviewContent(previewTemplate.body)}
-                </div>
+                <div className="whitespace-pre-wrap text-sm">{getPreviewContent(previewTemplate.body)}</div>
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button onClick={() => setIsPreviewOpen(false)}>Fechar</Button>
-          </DialogFooter>
+          <DialogFooter><Button onClick={() => setIsPreviewOpen(false)}>Fechar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir template de e-mail</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o template <strong>"{deleteTarget?.name}"</strong>? Ele será arquivado e poderá ser restaurado posteriormente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

@@ -12,15 +12,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { 
-  Plus, 
-  Pencil, 
-  Archive, 
-  ArchiveRestore, 
-  GripVertical,
-  AlertCircle,
-  Loader2
-} from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Plus, Pencil, Trash2, ArchiveRestore, GripVertical, AlertCircle, Loader2 } from "lucide-react";
 import { useIncompatibilityReasons } from "@/hooks/useIncompatibilityReasons";
 
 export default function IncompatibilityReasonsSettings() {
@@ -31,6 +33,7 @@ export default function IncompatibilityReasonsSettings() {
   const [editingReasonId, setEditingReasonId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: "", description: "" });
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const displayedReasons = showArchived ? archivedReasons : activeReasons;
 
@@ -48,7 +51,6 @@ export default function IncompatibilityReasonsSettings() {
 
   const handleSave = async () => {
     if (!formData.name.trim()) return;
-
     setIsSaving(true);
     if (editingReasonId) {
       await updateReason(editingReasonId, formData.name, formData.description);
@@ -57,6 +59,12 @@ export default function IncompatibilityReasonsSettings() {
     }
     setIsSaving(false);
     setIsDialogOpen(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    await toggleArchive(deleteTarget.id);
+    setDeleteTarget(null);
   };
 
   if (isLoading) {
@@ -75,16 +83,10 @@ export default function IncompatibilityReasonsSettings() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Motivos de Incompatibilidade</CardTitle>
-            <CardDescription>
-              Defina os motivos padrão para reprovar candidatos
-            </CardDescription>
+            <CardDescription>Defina os motivos padrão para reprovar candidatos</CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setShowArchived(!showArchived)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setShowArchived(!showArchived)}>
               {showArchived ? "Ver Ativos" : "Ver Arquivados"}
             </Button>
             <Button onClick={openCreateDialog} className="gap-2">
@@ -127,26 +129,18 @@ export default function IncompatibilityReasonsSettings() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      onClick={() => openEditDialog(reason)}
-                    >
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(reason)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      onClick={() => toggleArchive(reason.id)}
-                    >
-                      {reason.isArchived ? (
+                    {reason.isArchived ? (
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleArchive(reason.id)}>
                         <ArchiveRestore className="h-4 w-4" />
-                      ) : (
-                        <Archive className="h-4 w-4" />
-                      )}
-                    </Button>
+                      </Button>
+                    ) : (
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ id: reason.id, name: reason.name })}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -155,54 +149,47 @@ export default function IncompatibilityReasonsSettings() {
         </CardContent>
       </Card>
 
+      {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {editingReasonId ? "Editar Motivo" : "Novo Motivo de Incompatibilidade"}
-            </DialogTitle>
-            <DialogDescription>
-              Defina um motivo padrão para reprovação de candidatos
-            </DialogDescription>
+            <DialogTitle>{editingReasonId ? "Editar Motivo" : "Novo Motivo de Incompatibilidade"}</DialogTitle>
+            <DialogDescription>Defina um motivo padrão para reprovação de candidatos</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nome do Motivo</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ex: Pretensão salarial acima do orçamento"
-              />
+              <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ex: Pretensão salarial acima do orçamento" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Descrição (opcional)</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Detalhes adicionais sobre este motivo..."
-                rows={3}
-              />
+              <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Detalhes adicionais sobre este motivo..." rows={3} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancelar</Button>
             <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                editingReasonId ? "Salvar" : "Criar"
-              )}
+              {isSaving ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</>) : (editingReasonId ? "Salvar" : "Criar")}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir motivo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o motivo <strong>"{deleteTarget?.name}"</strong>? Ele será arquivado e poderá ser restaurado posteriormente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

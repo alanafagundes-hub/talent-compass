@@ -1582,6 +1582,7 @@ export type Database = {
           endereco_numero: string | null
           endereco_rua: string | null
           existe_comissao: boolean | null
+          fase_projeto: string | null
           faturamento_display: string | null
           flag: string | null
           frequencia_reuniao: string | null
@@ -1661,6 +1662,7 @@ export type Database = {
           endereco_numero?: string | null
           endereco_rua?: string | null
           existe_comissao?: boolean | null
+          fase_projeto?: string | null
           faturamento_display?: string | null
           flag?: string | null
           frequencia_reuniao?: string | null
@@ -1740,6 +1742,7 @@ export type Database = {
           endereco_numero?: string | null
           endereco_rua?: string | null
           existe_comissao?: boolean | null
+          fase_projeto?: string | null
           faturamento_display?: string | null
           flag?: string | null
           frequencia_reuniao?: string | null
