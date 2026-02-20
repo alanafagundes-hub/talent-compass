@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useUsers, UserWithDetails } from '@/hooks/useUsers';
 import { useAreas } from '@/hooks/useAreas';
-import { useAuth } from '@/contexts/AuthContext';
 import { 
   Plus, 
   Search, 
@@ -18,34 +17,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -303,50 +284,26 @@ function AdminUsersView() {
           <DialogHeader>
             <DialogTitle>Novo Usuário</DialogTitle>
             <DialogDescription>
-              Crie um novo usuário no sistema. Um e-mail de confirmação será enviado.
+              Crie um novo usuário no sistema.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nome</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Nome completo"
-              />
+              <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Nome completo" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@empresa.com"
-              />
+              <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="email@empresa.com" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha inicial</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Mínimo 6 caracteres"
-              />
+              <Input id="password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Mínimo 6 caracteres" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">Papel</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value: 'admin' | 'rh' | 'head' | 'viewer') => 
-                  setFormData({ ...formData, role: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+              <Select value={formData.role} onValueChange={(value: 'admin' | 'rh' | 'head' | 'viewer') => setFormData({ ...formData, role: value })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="rh">RH</SelectItem>
@@ -361,17 +318,8 @@ function AdminUsersView() {
                 <div className="border rounded-lg p-3 max-h-40 overflow-y-auto space-y-2">
                   {areas.map((area) => (
                     <div key={area.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`area-${area.id}`}
-                        checked={formData.areaIds.includes(area.id)}
-                        onCheckedChange={() => toggleAreaSelection(area.id)}
-                      />
-                      <label
-                        htmlFor={`area-${area.id}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {area.name}
-                      </label>
+                      <Checkbox id={`area-${area.id}`} checked={formData.areaIds.includes(area.id)} onCheckedChange={() => toggleAreaSelection(area.id)} />
+                      <label htmlFor={`area-${area.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{area.name}</label>
                     </div>
                   ))}
                 </div>
@@ -379,12 +327,8 @@ function AdminUsersView() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleCreateUser} disabled={isSubmitting}>
-              {isSubmitting ? 'Criando...' : 'Criar Usuário'}
-            </Button>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateUser} disabled={isSubmitting}>{isSubmitting ? 'Criando...' : 'Criar Usuário'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -394,40 +338,21 @@ function AdminUsersView() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
-            <DialogDescription>
-              Altere as informações e permissões do usuário.
-            </DialogDescription>
+            <DialogDescription>Altere as informações e permissões do usuário.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="edit-name">Nome</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
+              <Input id="edit-name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-email">E-mail</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={formData.email}
-                disabled
-                className="bg-muted"
-              />
+              <Input id="edit-email" type="email" value={formData.email} disabled className="bg-muted" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-role">Papel</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value: 'admin' | 'rh' | 'head' | 'viewer') => 
-                  setFormData({ ...formData, role: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+              <Select value={formData.role} onValueChange={(value: 'admin' | 'rh' | 'head' | 'viewer') => setFormData({ ...formData, role: value })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="rh">RH</SelectItem>
@@ -442,17 +367,8 @@ function AdminUsersView() {
                 <div className="border rounded-lg p-3 max-h-40 overflow-y-auto space-y-2">
                   {areas.map((area) => (
                     <div key={area.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`edit-area-${area.id}`}
-                        checked={formData.areaIds.includes(area.id)}
-                        onCheckedChange={() => toggleAreaSelection(area.id)}
-                      />
-                      <label
-                        htmlFor={`edit-area-${area.id}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {area.name}
-                      </label>
+                      <Checkbox id={`edit-area-${area.id}`} checked={formData.areaIds.includes(area.id)} onCheckedChange={() => toggleAreaSelection(area.id)} />
+                      <label htmlFor={`edit-area-${area.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{area.name}</label>
                     </div>
                   ))}
                 </div>
@@ -460,12 +376,8 @@ function AdminUsersView() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleUpdateUser} disabled={isSubmitting}>
-              {isSubmitting ? 'Salvando...' : 'Salvar'}
-            </Button>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleUpdateUser} disabled={isSubmitting}>{isSubmitting ? 'Salvando...' : 'Salvar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -473,233 +385,7 @@ function AdminUsersView() {
   );
 }
 
-// Self-service profile view for non-admin users
-function SelfProfileView() {
-  const { user } = useAuth();
-  const { users, isLoading, updateUser } = useUsers();
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({ name: '' });
-
-  // Find current user's profile from the users list
-  const currentUserProfile = users.find(u => u.profile.user_id === user?.id);
-
-  const handleUpdateProfile = async () => {
-    if (!user?.id || !formData.name.trim()) return;
-    
-    setIsSubmitting(true);
-    const result = await updateUser(user.id, {
-      name: formData.name,
-    });
-    setIsSubmitting(false);
-    
-    if (result.success) {
-      setIsEditDialogOpen(false);
-    }
-  };
-
-  const openEditDialog = () => {
-    if (currentUserProfile) {
-      setFormData({ name: currentUserProfile.profile.name });
-    }
-    setIsEditDialogOpen(true);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Meu Perfil</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Visualize e edite suas informações pessoais
-          </p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-6">
-              <Skeleton className="h-24 w-24 rounded-full" />
-              <div className="space-y-2">
-                <Skeleton className="h-6 w-48" />
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-5 w-20" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!currentUserProfile) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Meu Perfil</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Visualize e edite suas informações pessoais
-          </p>
-        </div>
-        <Card>
-          <CardContent className="p-6 text-center text-muted-foreground">
-            Não foi possível carregar seu perfil.
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const profile = currentUserProfile.profile;
-  const role = currentUserProfile.role;
-  const areas = currentUserProfile.areas;
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold">Meu Perfil</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Visualize e edite suas informações pessoais
-        </p>
-      </div>
-
-      {/* Profile Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Informações Pessoais</CardTitle>
-          <CardDescription>
-            Seus dados cadastrais no sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row items-start gap-6">
-            {/* Avatar */}
-            <div className="relative group">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={profile.avatar_url || undefined} alt={profile.name} />
-                <AvatarFallback className="text-2xl">
-                  {profile.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                <Camera className="h-6 w-6 text-white" />
-              </div>
-            </div>
-
-            {/* Info */}
-            <div className="flex-1 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-semibold">{profile.name}</h3>
-                  <p className="text-muted-foreground">{profile.email}</p>
-                </div>
-                <Button variant="outline" size="sm" onClick={openEditDialog}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Editar
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-                {/* Role - Read only */}
-                <div>
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">Papel</Label>
-                  <div className="mt-1">
-                    {role ? (
-                      <Badge variant="secondary" className={roleColors[role.role]}>
-                        <Shield className="mr-1 h-3 w-3" />
-                        {roleLabels[role.role]}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">Não definido</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Status - Read only */}
-                <div>
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">Status</Label>
-                  <div className="mt-1">
-                    <Badge variant={profile.is_active ? 'default' : 'secondary'}>
-                      {profile.is_active ? 'Ativo' : 'Inativo'}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Areas - Read only */}
-                {areas.length > 0 && (
-                  <div className="md:col-span-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Áreas de Acesso</Label>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {areas.map((a) => (
-                        <Badge key={a.id} variant="outline" className="text-xs">
-                          <MapPin className="mr-1 h-3 w-3" />
-                          {a.area?.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Edit Profile Dialog - Limited fields */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Editar Perfil</DialogTitle>
-            <DialogDescription>
-              Atualize suas informações pessoais.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="self-name">Nome</Label>
-              <Input
-                id="self-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Seu nome completo"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="self-email">E-mail</Label>
-              <Input
-                id="self-email"
-                type="email"
-                value={profile.email}
-                disabled
-                className="bg-muted"
-              />
-              <p className="text-xs text-muted-foreground">
-                O e-mail não pode ser alterado.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleUpdateProfile} disabled={isSubmitting || !formData.name.trim()}>
-              {isSubmitting ? 'Salvando...' : 'Salvar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-// Main component - renders different views based on role
+// Main component - always shows admin view now (no auth)
 export default function Usuarios() {
-  const { userRole } = useAuth();
-
-  // Admin sees full user management
-  if (userRole === 'admin') {
-    return <AdminUsersView />;
-  }
-
-  // Non-admin sees only their own profile
-  return <SelfProfileView />;
+  return <AdminUsersView />;
 }
