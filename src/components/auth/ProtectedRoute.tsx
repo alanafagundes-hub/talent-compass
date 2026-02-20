@@ -24,7 +24,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!user) {
     // Redirect to login, but save the attempted location
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/cadastro" state={{ from: location }} replace />;
   }
 
   // Check if user is inactive

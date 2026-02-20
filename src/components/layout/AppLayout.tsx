@@ -67,7 +67,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/login');
+    navigate('/cadastro');
   };
 
   // Get user initials
