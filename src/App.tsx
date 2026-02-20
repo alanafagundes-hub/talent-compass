@@ -7,7 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
-import Login from "./pages/Login";
+
 import Cadastro from "./pages/Cadastro";
 import Vagas from "./pages/Vagas";
 import VagaFunil from "./pages/VagaFunil";
@@ -33,7 +33,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             {/* Public Routes - No Layout, No Auth */}
-            <Route path="/login" element={<Login />} />
+            
             <Route path="/cadastro" element={<Cadastro />} />
             <Route path="/carreiras" element={<VagasPublicas />} />
             <Route path="/carreiras/:id" element={<VagaPublica />} />
