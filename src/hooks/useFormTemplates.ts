@@ -1,18 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/integrations/supabase/db-helper';
 import type { FormTemplate, FormField, FormFieldType } from '@/types/ats';
-import type { Tables } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
-
-interface DbFormTemplate {
-  id: string;
-  name: string;
-  description: string | null;
-  is_default: boolean;
-  is_archived: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 interface DbFormField {
   id: string;
@@ -25,6 +14,16 @@ interface DbFormField {
   options: string[] | null;
 }
 
+interface DbFormTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  is_default: boolean;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export function useFormTemplates() {
   const [templates, setTemplates] = useState<FormTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,21 +34,17 @@ export function useFormTemplates() {
     setError(null);
 
     try {
-      // Fetch templates
-      const { data: templatesData, error: templatesError } = await supabase
-        .from('form_templates')
+      const { data: templatesData, error: templatesError } = await fromTable('form_templates')
         .select('*')
         .order('name');
 
       if (templatesError) throw templatesError;
 
-      // Fetch all fields for these templates
-      const templateIds = (templatesData || []).map(t => t.id);
+      const templateIds = (templatesData || []).map((t: any) => t.id);
       
       let fieldsData: DbFormField[] = [];
       if (templateIds.length > 0) {
-        const { data: fields, error: fieldsError } = await supabase
-          .from('form_fields')
+        const { data: fields, error: fieldsError } = await fromTable('form_fields')
           .select('*')
           .in('template_id', templateIds)
           .order('order_index');
@@ -58,7 +53,6 @@ export function useFormTemplates() {
         fieldsData = (fields || []) as DbFormField[];
       }
 
-      // Group fields by template
       const fieldsByTemplate: Record<string, FormField[]> = {};
       for (const field of fieldsData) {
         if (!fieldsByTemplate[field.template_id]) {
@@ -75,7 +69,6 @@ export function useFormTemplates() {
         });
       }
 
-      // Map to FormTemplate type
       const mappedTemplates: FormTemplate[] = (templatesData || []).map((t: DbFormTemplate) => ({
         id: t.id,
         name: t.name,
@@ -100,17 +93,13 @@ export function useFormTemplates() {
     data: { name: string; description?: string; isDefault: boolean; fields: FormField[] }
   ) => {
     try {
-      // If setting as default, unset other defaults first
       if (data.isDefault) {
-        await supabase
-          .from('form_templates')
+        await fromTable('form_templates')
           .update({ is_default: false })
           .eq('is_default', true);
       }
 
-      // Create template
-      const { data: newTemplate, error: templateError } = await supabase
-        .from('form_templates')
+      const { data: newTemplate, error: templateError } = await fromTable('form_templates')
         .insert({
           name: data.name,
           description: data.description || null,
@@ -120,11 +109,11 @@ export function useFormTemplates() {
         .single();
 
       if (templateError) throw templateError;
+      if (!newTemplate) throw new Error('Template não criado');
 
-      // Create fields
       if (data.fields.length > 0) {
         const fieldsToInsert = data.fields.map((field, index) => ({
-          template_id: newTemplate.id,
+          template_id: (newTemplate as any).id,
           label: field.label,
           field_type: field.type,
           is_required: field.required,
@@ -133,8 +122,7 @@ export function useFormTemplates() {
           options: field.options || null,
         }));
 
-        const { error: fieldsError } = await supabase
-          .from('form_fields')
+        const { error: fieldsError } = await fromTable('form_fields')
           .insert(fieldsToInsert);
 
         if (fieldsError) throw fieldsError;
@@ -155,17 +143,13 @@ export function useFormTemplates() {
     data: { name: string; description?: string; isDefault: boolean; fields: FormField[] }
   ) => {
     try {
-      // If setting as default, unset other defaults first
       if (data.isDefault) {
-        await supabase
-          .from('form_templates')
+        await fromTable('form_templates')
           .update({ is_default: false })
           .neq('id', id);
       }
 
-      // Update template
-      const { error: templateError } = await supabase
-        .from('form_templates')
+      const { error: templateError } = await fromTable('form_templates')
         .update({
           name: data.name,
           description: data.description || null,
@@ -176,8 +160,7 @@ export function useFormTemplates() {
 
       if (templateError) throw templateError;
 
-      // Delete existing fields and recreate
-      await supabase.from('form_fields').delete().eq('template_id', id);
+      await fromTable('form_fields').delete().eq('template_id', id);
 
       if (data.fields.length > 0) {
         const fieldsToInsert = data.fields.map((field, index) => ({
@@ -190,8 +173,7 @@ export function useFormTemplates() {
           options: field.options || null,
         }));
 
-        const { error: fieldsError } = await supabase
-          .from('form_fields')
+        const { error: fieldsError } = await fromTable('form_fields')
           .insert(fieldsToInsert);
 
         if (fieldsError) throw fieldsError;
@@ -212,8 +194,7 @@ export function useFormTemplates() {
       const template = templates.find(t => t.id === id);
       if (!template) return false;
 
-      const { error } = await supabase
-        .from('form_templates')
+      const { error } = await fromTable('form_templates')
         .update({ is_archived: !template.isArchived })
         .eq('id', id);
 

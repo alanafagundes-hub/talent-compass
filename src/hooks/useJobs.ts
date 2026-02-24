@@ -1,27 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/integrations/supabase/db-helper';
 import type { Job, JobStatus, WorkModel } from '@/types/ats';
-import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
-
-type DbJob = Tables<'jobs'>;
 
 // Map database job to application Job type
-const mapDbJobToJob = (dbJob: DbJob): Job => ({
+const mapDbJobToJob = (dbJob: any): Job => ({
   id: dbJob.id,
   title: dbJob.title,
   description: dbJob.description,
   requirements: dbJob.requirements || undefined,
   level: dbJob.level,
   contractType: dbJob.contract_type,
-  workModel: (dbJob as any).work_model || 'presencial',
+  workModel: dbJob.work_model || 'presencial',
   location: dbJob.location,
-  // Editorial fields
-  aboutJob: (dbJob as any).about_job || undefined,
-  aboutCompany: (dbJob as any).about_company || undefined,
-  responsibilities: (dbJob as any).responsibilities || undefined,
-  requirementsText: (dbJob as any).requirements_text || undefined,
-  niceToHave: (dbJob as any).nice_to_have || undefined,
-  additionalInfo: (dbJob as any).additional_info || undefined,
+  aboutJob: dbJob.about_job || undefined,
+  aboutCompany: dbJob.about_company || undefined,
+  responsibilities: dbJob.responsibilities || undefined,
+  requirementsText: dbJob.requirements_text || undefined,
+  niceToHave: dbJob.nice_to_have || undefined,
+  additionalInfo: dbJob.additional_info || undefined,
   salary: dbJob.salary_min || dbJob.salary_max 
     ? { min: Number(dbJob.salary_min) || 0, max: Number(dbJob.salary_max) || 0 }
     : undefined,
@@ -37,43 +34,34 @@ const mapDbJobToJob = (dbJob: DbJob): Job => ({
   investmentAmount: dbJob.investment_amount ? Number(dbJob.investment_amount) : undefined,
 });
 
-// Map application Job to database insert format
-const mapJobToDbInsert = (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>): TablesInsert<'jobs'> => {
-  const base: TablesInsert<'jobs'> = {
-    title: job.title,
-    description: job.description,
-    requirements: job.requirements || null,
-    level: job.level,
-    contract_type: job.contractType,
-    location: job.location,
-    is_remote: job.workModel === 'remoto', // Legacy field
-    salary_min: job.salary?.min || null,
-    salary_max: job.salary?.max || null,
-    status: job.status,
-    priority: job.priority,
-    area_id: job.areaId || null,
-    form_template_id: job.formTemplateId || null,
-    deadline: job.deadline ? job.deadline.toISOString().split('T')[0] : null,
-    is_archived: job.isArchived,
-    is_boosted: job.isBoosted || false,
-    investment_amount: job.investmentAmount || 0,
-  };
-  
-  // Add new fields using spread (since types haven't been regenerated yet)
-  return {
-    ...base,
-    work_model: job.workModel,
-    about_job: job.aboutJob || null,
-    about_company: job.aboutCompany || null,
-    responsibilities: job.responsibilities || null,
-    requirements_text: job.requirementsText || null,
-    nice_to_have: job.niceToHave || null,
-    additional_info: job.additionalInfo || null,
-  } as TablesInsert<'jobs'>;
-};
+const mapJobToDbInsert = (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>): any => ({
+  title: job.title,
+  description: job.description,
+  requirements: job.requirements || null,
+  level: job.level,
+  contract_type: job.contractType,
+  location: job.location,
+  is_remote: job.workModel === 'remoto',
+  work_model: job.workModel,
+  salary_min: job.salary?.min || null,
+  salary_max: job.salary?.max || null,
+  status: job.status,
+  priority: job.priority,
+  area_id: job.areaId || null,
+  form_template_id: job.formTemplateId || null,
+  deadline: job.deadline ? job.deadline.toISOString().split('T')[0] : null,
+  is_archived: job.isArchived,
+  is_boosted: job.isBoosted || false,
+  investment_amount: job.investmentAmount || 0,
+  about_job: job.aboutJob || null,
+  about_company: job.aboutCompany || null,
+  responsibilities: job.responsibilities || null,
+  requirements_text: job.requirementsText || null,
+  nice_to_have: job.niceToHave || null,
+  additional_info: job.additionalInfo || null,
+});
 
-// Map application Job updates to database update format
-const mapJobToDbUpdate = (updates: Partial<Job>): TablesUpdate<'jobs'> => {
+const mapJobToDbUpdate = (updates: Partial<Job>): any => {
   const dbUpdates: Record<string, any> = {};
   
   if (updates.title !== undefined) dbUpdates.title = updates.title;
@@ -86,7 +74,6 @@ const mapJobToDbUpdate = (updates: Partial<Job>): TablesUpdate<'jobs'> => {
     dbUpdates.is_remote = updates.workModel === 'remoto';
   }
   if (updates.location !== undefined) dbUpdates.location = updates.location;
-  // Editorial fields
   if (updates.aboutJob !== undefined) dbUpdates.about_job = updates.aboutJob || null;
   if (updates.aboutCompany !== undefined) dbUpdates.about_company = updates.aboutCompany || null;
   if (updates.responsibilities !== undefined) dbUpdates.responsibilities = updates.responsibilities || null;
@@ -99,12 +86,8 @@ const mapJobToDbUpdate = (updates: Partial<Job>): TablesUpdate<'jobs'> => {
   }
   if (updates.status !== undefined) {
     dbUpdates.status = updates.status;
-    if (updates.status === 'publicada') {
-      dbUpdates.published_at = new Date().toISOString();
-    }
-    if (updates.status === 'encerrada') {
-      dbUpdates.closed_at = new Date().toISOString();
-    }
+    if (updates.status === 'publicada') dbUpdates.published_at = new Date().toISOString();
+    if (updates.status === 'encerrada') dbUpdates.closed_at = new Date().toISOString();
   }
   if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
   if (updates.areaId !== undefined) dbUpdates.area_id = updates.areaId || null;
@@ -114,7 +97,7 @@ const mapJobToDbUpdate = (updates: Partial<Job>): TablesUpdate<'jobs'> => {
   if (updates.isBoosted !== undefined) dbUpdates.is_boosted = updates.isBoosted;
   if (updates.investmentAmount !== undefined) dbUpdates.investment_amount = updates.investmentAmount || 0;
   
-  return dbUpdates as TablesUpdate<'jobs'>;
+  return dbUpdates;
 };
 
 export function useJobs() {
@@ -122,14 +105,12 @@ export function useJobs() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch jobs from Supabase
   const fetchJobs = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: queryError } = await supabase
-        .from('jobs')
+      const { data, error: queryError } = await fromTable('jobs')
         .select('*')
         .eq('is_archived', false)
         .order('created_at', { ascending: false });
@@ -149,50 +130,36 @@ export function useJobs() {
     }
   }, []);
 
-  // Initial fetch
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
 
-  // Subscribe to realtime changes
   useEffect(() => {
     const channel = supabase
       .channel('jobs-changes')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'jobs',
-        },
-        () => {
-          fetchJobs();
-        }
+        { event: '*', schema: 'public', table: 'jobs' },
+        () => { fetchJobs(); }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [fetchJobs]);
 
-  // Get job by ID
   const getJobById = useCallback((id: string): Job | undefined => {
     return jobs.find(job => job.id === id);
   }, [jobs]);
 
-  // Get published jobs (for public pages)
   const getPublishedJobs = useCallback((): Job[] => {
     return jobs.filter(job => job.status === 'publicada' && !job.isArchived);
   }, [jobs]);
 
-  // Create new job
   const createJob = useCallback(async (jobData: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>): Promise<Job | null> => {
     try {
       const dbData = mapJobToDbInsert(jobData);
       
-      const { data, error: insertError } = await supabase
-        .from('jobs')
+      const { data, error: insertError } = await fromTable('jobs')
         .insert(dbData)
         .select()
         .single();
@@ -202,21 +169,18 @@ export function useJobs() {
         return null;
       }
 
-      const newJob = mapDbJobToJob(data);
-      return newJob;
+      return mapDbJobToJob(data);
     } catch (err) {
       console.error('Error creating job:', err);
       return null;
     }
   }, []);
 
-  // Update existing job
   const updateJob = useCallback(async (id: string, updates: Partial<Job>): Promise<Job | null> => {
     try {
       const dbUpdates = mapJobToDbUpdate(updates);
       
-      const { data, error: updateError } = await supabase
-        .from('jobs')
+      const { data, error: updateError } = await fromTable('jobs')
         .update(dbUpdates)
         .eq('id', id)
         .select()
@@ -234,17 +198,14 @@ export function useJobs() {
     }
   }, []);
 
-  // Update job status
   const updateJobStatus = useCallback(async (id: string, status: JobStatus): Promise<Job | null> => {
     return updateJob(id, { status });
   }, [updateJob]);
 
-  // Archive job
   const archiveJob = useCallback(async (id: string): Promise<Job | null> => {
     return updateJob(id, { isArchived: true });
   }, [updateJob]);
 
-  // Save job (create or update)
   const saveJob = useCallback(async (jobData: Omit<Job, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): Promise<Job | null> => {
     if (jobData.id) {
       const { id, ...updates } = jobData;

@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { usePublicJobs, type PublicJob } from "@/hooks/usePublicJobs";
 import { useLandingPageConfig } from "@/hooks/useLandingPageConfig";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import { fromTable } from "@/integrations/supabase/db-helper";
 import { useTrackingParams, resolveSourceName } from "@/hooks/useTrackingParams";
 
 // Job level labels
@@ -56,14 +56,15 @@ const workModelLabels: Record<string, string> = {
   hibrido: "Híbrido",
 };
 
-interface FormField {
+interface DbFormField {
   id: string;
+  template_id: string;
   label: string;
-  type: string;
-  required: boolean;
-  order: number;
-  placeholder?: string;
-  options?: string[];
+  field_type: string;
+  is_required: boolean;
+  order_index: number;
+  placeholder: string | null;
+  options: string[] | null;
 }
 
 interface ApplicationFormData {
@@ -84,7 +85,7 @@ export default function VagaPublica() {
   const trackingData = useTrackingParams();
   
   const [job, setJob] = useState<PublicJob | null>(null);
-  const [formFields, setFormFields] = useState<Tables<'form_fields'>[]>([]);
+  const [formFields, setFormFields] = useState<DbFormField[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -116,13 +117,12 @@ export default function VagaPublica() {
         
         // Load form fields if job has a form template
         if (jobData?.form_template_id) {
-          const { data: fields } = await supabase
-            .from('form_fields')
+          const { data: fields } = await fromTable('form_fields')
             .select('*')
             .eq('template_id', jobData.form_template_id)
             .order('order_index', { ascending: true });
           
-          setFormFields(fields || []);
+          setFormFields((fields || []) as DbFormField[]);
         }
       }
       setIsLoading(false);
@@ -140,7 +140,7 @@ export default function VagaPublica() {
 
     if (!formData.email.trim()) {
       newErrors.email = "E-mail é obrigatório";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    } else if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(formData.email)) {
       newErrors.email = "E-mail inválido";
     }
 
@@ -185,12 +185,10 @@ export default function VagaPublica() {
     setIsSubmitting(true);
 
     try {
-      // Resolve source name using tracking data (UTM → referrer → direct)
       const sourceName = resolveSourceName(trackingData);
 
       // 1. Create or find candidate
-      const { data: existingCandidate } = await supabase
-        .from('candidates')
+      const { data: existingCandidate } = await fromTable('candidates')
         .select('id')
         .eq('email', formData.email.trim().toLowerCase())
         .maybeSingle();
@@ -198,12 +196,11 @@ export default function VagaPublica() {
       let candidateId = existingCandidate?.id;
       let resumeUrl: string | null = null;
 
-      // Upload resume to Supabase Storage if provided
+      // Upload resume
       if (formData.resumeFile) {
         const file = formData.resumeFile;
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        // We'll use a temp folder first, then move after we have candidateId
         const tempPath = `temp/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
@@ -215,9 +212,7 @@ export default function VagaPublica() {
 
         if (uploadError) {
           console.error('Resume upload error:', uploadError);
-          // Continue without resume if upload fails
         } else {
-          // Get the public URL
           const { data: urlData } = supabase.storage
             .from('resumes')
             .getPublicUrl(tempPath);
@@ -226,8 +221,7 @@ export default function VagaPublica() {
       }
 
       if (!candidateId) {
-        const { data: newCandidate, error: candidateError } = await supabase
-          .from('candidates')
+        const { data: newCandidate, error: candidateError } = await fromTable('candidates')
           .insert({
             name: formData.name.trim(),
             email: formData.email.trim().toLowerCase(),
@@ -240,18 +234,15 @@ export default function VagaPublica() {
           .single();
 
         if (candidateError) throw candidateError;
-        candidateId = newCandidate.id;
+        candidateId = newCandidate?.id;
       } else if (resumeUrl) {
-        // Update existing candidate with new resume
-        await supabase
-          .from('candidates')
+        await fromTable('candidates')
           .update({ resume_url: resumeUrl })
           .eq('id', candidateId);
       }
 
       // 2. Get the first stage of the job's funnel
-      const { data: funnel } = await supabase
-        .from('funnels')
+      const { data: funnel } = await fromTable('funnels')
         .select('id')
         .eq('job_id', job.id)
         .eq('is_active', true)
@@ -259,8 +250,7 @@ export default function VagaPublica() {
 
       let firstStageId = null;
       if (funnel) {
-        const { data: firstStage } = await supabase
-          .from('funnel_stages')
+        const { data: firstStage } = await fromTable('funnel_stages')
           .select('id')
           .eq('funnel_id', funnel.id)
           .eq('is_archived', false)
@@ -271,9 +261,8 @@ export default function VagaPublica() {
         firstStageId = firstStage?.id;
       }
 
-      // 3. Create application with tracking data
-      const { data: application, error: appError } = await supabase
-        .from('applications')
+      // 3. Create application
+      const { data: application, error: appError } = await fromTable('applications')
         .insert({
           candidate_id: candidateId,
           job_id: job.id,
@@ -281,7 +270,7 @@ export default function VagaPublica() {
           current_stage_id: firstStageId,
           status: 'ativa',
           tracking_data: trackingData as unknown as Record<string, unknown>,
-        } as any)
+        })
         .select('id')
         .single();
 
@@ -298,13 +287,13 @@ export default function VagaPublica() {
           }));
 
         if (responses.length > 0) {
-          await supabase.from('form_responses').insert(responses);
+          await fromTable('form_responses').insert(responses);
         }
       }
 
       // 5. Record history
       if (application && firstStageId) {
-        await supabase.from('application_history').insert({
+        await fromTable('application_history').insert({
           application_id: application.id,
           action: 'applied',
           to_stage_id: firstStageId,
@@ -343,7 +332,7 @@ export default function VagaPublica() {
     }
   };
 
-  const renderCustomField = (field: Tables<'form_fields'>) => {
+  const renderCustomField = (field: DbFormField) => {
     const value = formData.customFields[field.id] || "";
     const error = errors[`custom_${field.id}`];
 
@@ -486,7 +475,6 @@ export default function VagaPublica() {
     );
   }
 
-  // Block applications for non-published jobs
   if (job.status !== "publicada") {
     const statusMessages: Record<string, string> = {
       rascunho: "Esta vaga ainda está em preparação.",
@@ -501,10 +489,10 @@ export default function VagaPublica() {
             <Briefcase className="h-12 w-12 mx-auto text-muted-foreground/50" />
             <h2 className="mt-4 text-xl font-semibold">Vaga indisponível</h2>
             <p className="mt-2 text-muted-foreground">
-              {statusMessages[job.status] || "Esta vaga não está disponível."}
+              {statusMessages[job.status] || "Esta vaga não está aceitando candidaturas no momento."}
             </p>
             <Button asChild className="mt-4" style={{ backgroundColor: config.secondaryColor }}>
-              <Link to="/carreiras">Ver outras vagas disponíveis</Link>
+              <Link to="/carreiras">Ver outras vagas</Link>
             </Button>
           </CardContent>
         </Card>
@@ -516,173 +504,133 @@ export default function VagaPublica() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background dark p-4">
         <Card className="max-w-md w-full">
-          <CardContent className="pt-6 text-center">
-            <div className="h-16 w-16 mx-auto rounded-full bg-success/10 flex items-center justify-center">
-              <CheckCircle2 className="h-8 w-8 text-success" />
-            </div>
-            <h2 className="mt-4 text-xl font-semibold">Candidatura Enviada!</h2>
+          <CardContent className="pt-8 pb-8 text-center">
+            <CheckCircle2 className="h-16 w-16 mx-auto" style={{ color: config.secondaryColor }} />
+            <h2 className="mt-4 text-2xl font-bold">Candidatura Enviada!</h2>
             <p className="mt-2 text-muted-foreground">
               Obrigado por se candidatar à vaga de <strong>{job.title}</strong>.
               Analisaremos seu perfil e entraremos em contato em breve.
             </p>
-            <Button asChild className="mt-6" style={{ backgroundColor: config.secondaryColor }}>
-              <Link to="/carreiras">Voltar para vagas</Link>
-            </Button>
+            <div className="mt-6 space-y-2">
+              <Button asChild className="w-full" style={{ backgroundColor: config.secondaryColor }}>
+                <Link to="/carreiras">Ver outras vagas</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const area = job.area;
+  const primaryColor = config.primaryColor;
+  const secondaryColor = config.secondaryColor;
 
   return (
     <div className="min-h-screen bg-background dark">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container max-w-4xl mx-auto px-4 py-4">
-          <Link to="/carreiras" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 h-14 flex items-center">
+          <Link to="/carreiras" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
-            Voltar para vagas
+            <span className="text-sm">Voltar para vagas</span>
           </Link>
         </div>
       </header>
 
-      <main className="container max-w-4xl mx-auto px-4 py-8">
-        <div className="grid gap-8 lg:grid-cols-[1fr,380px]">
+      <main className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Job Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-3">{job.title}</h1>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {job.area && (
+              <Badge variant="secondary" className="gap-1">
+                <Building2 className="h-3 w-3" />
+                {job.area.name}
+              </Badge>
+            )}
+            <Badge variant="outline" className="gap-1">
+              <Briefcase className="h-3 w-3" />
+              {jobLevelLabels[job.level] || job.level}
+            </Badge>
+            <Badge variant="outline" className="gap-1">
+              <FileText className="h-3 w-3" />
+              {contractTypeLabels[job.contract_type] || job.contract_type}
+            </Badge>
+            <Badge variant="outline" className="gap-1">
+              <MapPin className="h-3 w-3" />
+              {workModelLabels[job.work_model] || job.work_model}
+            </Badge>
+            {job.location && (
+              <Badge variant="outline" className="gap-1">
+                <MapPin className="h-3 w-3" />
+                {job.location}
+              </Badge>
+            )}
+            {(job.salary_min || job.salary_max) && (
+              <Badge variant="outline" className="gap-1">
+                <DollarSign className="h-3 w-3" />
+                {job.salary_min && job.salary_max
+                  ? `R$ ${Number(job.salary_min).toLocaleString('pt-BR')} - R$ ${Number(job.salary_max).toLocaleString('pt-BR')}`
+                  : job.salary_min
+                    ? `A partir de R$ ${Number(job.salary_min).toLocaleString('pt-BR')}`
+                    : `Até R$ ${Number(job.salary_max).toLocaleString('pt-BR')}`
+                }
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Job Details */}
-          <div className="space-y-8">
-            {/* Header Section - Title, Salary, Location, Meta */}
-            <div className="space-y-4">
-              {/* Area Badge */}
-              {area && (
-                <Badge variant="secondary" className="gap-1.5">
-                  <Building2 className="h-3 w-3" />
-                  {area.name}
-                </Badge>
-              )}
-              
-              {/* Job Title */}
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-                {job.title}
-              </h1>
-              
-              {/* Salary Range - Prominent but secondary to title */}
-              {(job.salary_min || job.salary_max) && (
-                <div className="flex items-center gap-2 text-lg font-medium text-primary">
-                  <DollarSign className="h-5 w-5" />
-                  <span>
-                    {job.salary_min && job.salary_max 
-                      ? `R$ ${job.salary_min.toLocaleString('pt-BR')} – R$ ${job.salary_max.toLocaleString('pt-BR')}`
-                      : job.salary_min 
-                        ? `A partir de R$ ${job.salary_min.toLocaleString('pt-BR')}`
-                        : `Até R$ ${job.salary_max!.toLocaleString('pt-BR')}`
-                    }
-                  </span>
-                </div>
-              )}
-              
-              {/* Location */}
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                <span className="text-base">{job.location}</span>
-              </div>
-              
-              {/* Meta: Level • Contract • Work Model */}
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Briefcase className="h-4 w-4" />
-                  <span>
-                    {jobLevelLabels[job.level] || job.level} • {contractTypeLabels[job.contract_type] || job.contract_type}
-                  </span>
-                </div>
-                <Badge variant="outline" className="font-medium">
-                  {workModelLabels[(job as any).work_model] || 'Presencial'}
-                </Badge>
-              </div>
-            </div>
-
-            <Separator className="my-6" />
-
-            {/* Editorial Sections - Standardized styling */}
-            <div className="space-y-8">
-              {/* About Job */}
-              <JobSection 
-                title="Sobre a Vaga" 
-                content={(job as any).about_job || ''} 
-              />
-
-              {/* About Company */}
-              <JobSection 
-                title="Sobre a DOT" 
-                content={(job as any).about_company || ''} 
-              />
-
-              {/* Responsibilities */}
-              <JobSection 
-                title="Responsabilidades" 
-                content={(job as any).responsibilities || ''} 
-              />
-
-              {/* Requirements */}
-              <JobSection 
-                title="Requisitos" 
-                content={(job as any).requirements_text || ''} 
-              />
-
-              {/* Nice to Have */}
-              <JobSection 
-                title="Diferenciais" 
-                content={(job as any).nice_to_have || ''} 
-              />
-
-              {/* Additional Info */}
-              <JobSection 
-                title="Informações Adicionais" 
-                content={(job as any).additional_info || ''} 
-              />
-
-              {/* Legacy description fallback - only show if no new editorial fields */}
-              {!(job as any).about_job && job.description && (
-                <JobSection 
-                  title="Sobre a Vaga" 
-                  content={job.description} 
-                />
-              )}
-
-              {/* Legacy requirements fallback */}
-              {!(job as any).requirements_text && job.requirements && (
-                <JobSection 
-                  title="Requisitos" 
-                  content={job.requirements} 
-                />
-              )}
-            </div>
+          <div className="lg:col-span-2 space-y-6">
+            {job.about_job && (
+              <JobSection title="Sobre a Vaga" content={job.about_job} />
+            )}
+            {job.responsibilities && (
+              <JobSection title="Responsabilidades" content={job.responsibilities} />
+            )}
+            {job.requirements_text && (
+              <JobSection title="Requisitos" content={job.requirements_text} />
+            )}
+            {job.nice_to_have && (
+              <JobSection title="Diferenciais" content={job.nice_to_have} />
+            )}
+            {job.about_company && (
+              <JobSection title="Sobre a Empresa" content={job.about_company} />
+            )}
+            {job.additional_info && (
+              <JobSection title="Informações Adicionais" content={job.additional_info} />
+            )}
+            {/* Fallback to legacy fields */}
+            {!job.about_job && job.description && (
+              <JobSection title="Descrição" content={job.description} />
+            )}
+            {!job.requirements_text && job.requirements && (
+              <JobSection title="Requisitos" content={job.requirements} />
+            )}
           </div>
 
           {/* Application Form */}
-          <div className="lg:sticky lg:top-8 h-fit">
-            <Card>
+          <div className="lg:col-span-1">
+            <Card className="sticky top-20">
               <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-6">
-                  <FileText className="h-5 w-5 text-primary" />
-                  <h2 className="text-lg font-semibold">Candidatar-se</h2>
-                </div>
-
+                <h3 className="text-lg font-semibold mb-4">Candidatar-se</h3>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nome completo *</Label>
+                    <Label htmlFor="name">Nome completo <span className="text-destructive">*</span></Label>
                     <Input
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Seu nome"
+                      placeholder="Seu nome completo"
                     />
                     {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                   </div>
 
+                  {/* Email */}
                   <div className="space-y-2">
-                    <Label htmlFor="email">E-mail *</Label>
+                    <Label htmlFor="email">E-mail <span className="text-destructive">*</span></Label>
                     <Input
                       id="email"
                       type="email"
@@ -693,8 +641,9 @@ export default function VagaPublica() {
                     {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
                   </div>
 
+                  {/* Phone */}
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone *</Label>
+                    <Label htmlFor="phone">Telefone <span className="text-destructive">*</span></Label>
                     <Input
                       id="phone"
                       value={formData.phone}
@@ -704,19 +653,21 @@ export default function VagaPublica() {
                     {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
                   </div>
 
+                  {/* LinkedIn */}
                   <div className="space-y-2">
-                    <Label htmlFor="linkedin">LinkedIn *</Label>
+                    <Label htmlFor="linkedin">LinkedIn <span className="text-destructive">*</span></Label>
                     <Input
                       id="linkedin"
                       value={formData.linkedin}
                       onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
-                      placeholder="linkedin.com/in/seuperfil"
+                      placeholder="linkedin.com/in/seu-perfil"
                     />
                     {errors.linkedin && <p className="text-sm text-destructive">{errors.linkedin}</p>}
                   </div>
 
+                  {/* Resume Upload */}
                   <div className="space-y-2">
-                    <Label htmlFor="resume">Currículo (PDF ou Word) *</Label>
+                    <Label htmlFor="resume">Currículo (PDF ou Word) <span className="text-destructive">*</span></Label>
                     <Input
                       id="resume"
                       type="file"
@@ -725,43 +676,52 @@ export default function VagaPublica() {
                       className="cursor-pointer"
                     />
                     {formData.resumeFile && (
-                      <p className="text-sm text-muted-foreground">{formData.resumeFile.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Arquivo: {formData.resumeFile.name}
+                      </p>
                     )}
                     {errors.resumeFile && <p className="text-sm text-destructive">{errors.resumeFile}</p>}
                   </div>
 
-                  {formFields.map(renderCustomField)}
+                  {/* Custom Form Fields */}
+                  {formFields.length > 0 && (
+                    <>
+                      <Separator />
+                      {formFields.map(renderCustomField)}
+                    </>
+                  )}
 
-                  <Separator className="my-4" />
+                  <Separator />
 
+                  {/* LGPD Consent */}
                   <div className="flex items-start space-x-2">
                     <Checkbox
                       id="lgpd"
                       checked={formData.lgpdConsent}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         setFormData({ ...formData, lgpdConsent: checked as boolean })
                       }
                     />
-                    <Label htmlFor="lgpd" className="text-sm leading-relaxed">
-                      Concordo com o tratamento dos meus dados pessoais para fins de
-                      processo seletivo, conforme a LGPD. *
+                    <Label htmlFor="lgpd" className="text-xs leading-relaxed">
+                      Concordo com o tratamento dos meus dados pessoais conforme a Lei Geral de Proteção de Dados (LGPD) para fins de processo seletivo. <span className="text-destructive">*</span>
                     </Label>
                   </div>
                   {errors.lgpdConsent && <p className="text-sm text-destructive">{errors.lgpdConsent}</p>}
 
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
+                  {/* Submit */}
+                  <Button
+                    type="submit"
+                    className="w-full"
                     disabled={isSubmitting}
-                    style={{ backgroundColor: config.secondaryColor }}
+                    style={{ backgroundColor: secondaryColor }}
                   >
                     {isSubmitting ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         Enviando...
                       </>
                     ) : (
-                      "Enviar candidatura"
+                      "Enviar Candidatura"
                     )}
                   </Button>
                 </form>

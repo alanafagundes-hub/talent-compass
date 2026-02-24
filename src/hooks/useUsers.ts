@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/integrations/supabase/db-helper';
 import { toast } from 'sonner';
 
 export interface UserProfile {
@@ -44,24 +45,18 @@ export function useUsers() {
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Fetch profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('user_profiles')
+      const { data: profiles, error: profilesError } = await fromTable('user_profiles')
         .select('*')
         .order('name');
 
       if (profilesError) throw profilesError;
 
-      // Fetch roles
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
+      const { data: roles, error: rolesError } = await fromTable('user_roles')
         .select('*');
 
       if (rolesError) throw rolesError;
 
-      // Fetch area assignments with area names
-      const { data: areaAssignments, error: areasError } = await supabase
-        .from('user_area_assignments')
+      const { data: areaAssignments, error: areasError } = await fromTable('user_area_assignments')
         .select(`
           *,
           area:areas(id, name)
@@ -69,13 +64,12 @@ export function useUsers() {
 
       if (areasError) throw areasError;
 
-      // Combine data
-      const usersWithDetails: UserWithDetails[] = (profiles || []).map(profile => ({
+      const usersWithDetails: UserWithDetails[] = (profiles || []).map((profile: any) => ({
         profile,
-        role: roles?.find(r => r.user_id === profile.user_id) || null,
+        role: roles?.find((r: any) => r.user_id === profile.user_id) || null,
         areas: (areaAssignments || [])
-          .filter(a => a.user_id === profile.user_id)
-          .map(a => ({
+          .filter((a: any) => a.user_id === profile.user_id)
+          .map((a: any) => ({
             ...a,
             area: a.area as { id: string; name: string } | undefined
           })),
@@ -102,16 +96,12 @@ export function useUsers() {
     areaIds?: string[];
   }) => {
     try {
-      // Create auth user via Supabase Admin API (requires admin access)
-      // For now, we'll use the signUp method which the user can then confirm
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
           emailRedirectTo: window.location.origin,
-          data: {
-            name: data.name,
-          },
+          data: { name: data.name },
         },
       });
 
@@ -120,9 +110,7 @@ export function useUsers() {
 
       const userId = authData.user.id;
 
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('user_profiles')
+      const { error: profileError } = await fromTable('user_profiles')
         .insert({
           user_id: userId,
           name: data.name,
@@ -132,9 +120,7 @@ export function useUsers() {
 
       if (profileError) throw profileError;
 
-      // Create role
-      const { error: roleError } = await supabase
-        .from('user_roles')
+      const { error: roleError } = await fromTable('user_roles')
         .insert({
           user_id: userId,
           role: data.role,
@@ -142,15 +128,13 @@ export function useUsers() {
 
       if (roleError) throw roleError;
 
-      // Create area assignments if provided
       if (data.areaIds && data.areaIds.length > 0) {
         const areaAssignments = data.areaIds.map(areaId => ({
           user_id: userId,
           area_id: areaId,
         }));
 
-        const { error: areasError } = await supabase
-          .from('user_area_assignments')
+        const { error: areasError } = await fromTable('user_area_assignments')
           .insert(areaAssignments);
 
         if (areasError) throw areasError;
@@ -173,66 +157,49 @@ export function useUsers() {
     areaIds?: string[];
   }) => {
     try {
-      // Update profile
       if (data.name !== undefined || data.is_active !== undefined) {
-        const updates: Partial<UserProfile> = {};
+        const updates: any = {};
         if (data.name !== undefined) updates.name = data.name;
         if (data.is_active !== undefined) updates.is_active = data.is_active;
 
-        const { error: profileError } = await supabase
-          .from('user_profiles')
+        const { error: profileError } = await fromTable('user_profiles')
           .update(updates)
           .eq('user_id', userId);
 
         if (profileError) throw profileError;
       }
 
-      // Update role
       if (data.role !== undefined) {
-        // Check if role exists
-        const { data: existingRole } = await supabase
-          .from('user_roles')
+        const { data: existingRole } = await fromTable('user_roles')
           .select('id')
           .eq('user_id', userId)
           .maybeSingle();
 
         if (existingRole) {
-          const { error: roleError } = await supabase
-            .from('user_roles')
+          const { error: roleError } = await fromTable('user_roles')
             .update({ role: data.role })
             .eq('user_id', userId);
-
           if (roleError) throw roleError;
         } else {
-          const { error: roleError } = await supabase
-            .from('user_roles')
+          const { error: roleError } = await fromTable('user_roles')
             .insert({ user_id: userId, role: data.role });
-
           if (roleError) throw roleError;
         }
       }
 
-      // Update area assignments
       if (data.areaIds !== undefined) {
-        // Delete existing assignments
-        const { error: deleteError } = await supabase
-          .from('user_area_assignments')
+        const { error: deleteError } = await fromTable('user_area_assignments')
           .delete()
           .eq('user_id', userId);
-
         if (deleteError) throw deleteError;
 
-        // Insert new assignments
         if (data.areaIds.length > 0) {
           const areaAssignments = data.areaIds.map(areaId => ({
             user_id: userId,
             area_id: areaId,
           }));
-
-          const { error: areasError } = await supabase
-            .from('user_area_assignments')
+          const { error: areasError } = await fromTable('user_area_assignments')
             .insert(areaAssignments);
-
           if (areasError) throw areasError;
         }
       }
