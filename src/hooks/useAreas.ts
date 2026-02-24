@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/integrations/supabase/db-helper';
 import type { Area } from '@/types/ats';
 
 // Database type
@@ -26,12 +27,10 @@ export function useAreas() {
   const [areas, setAreas] = useState<Area[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch areas from Supabase
   const fetchAreas = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('areas')
+      const { data, error } = await fromTable('areas')
         .select('*')
         .order('name');
 
@@ -44,7 +43,6 @@ export function useAreas() {
     }
   }, []);
 
-  // Initial fetch and realtime subscription
   useEffect(() => {
     fetchAreas();
 
@@ -53,32 +51,24 @@ export function useAreas() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'areas' },
-        () => {
-          fetchAreas();
-        }
+        () => { fetchAreas(); }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [fetchAreas]);
 
-  // Get areas (non-archived by default)
   const getAreas = useCallback((includeArchived = false) => {
     return includeArchived ? areas : areas.filter(a => !a.isArchived);
   }, [areas]);
 
-  // Get area by ID
   const getAreaById = useCallback((id: string): Area | undefined => {
     return areas.find(area => area.id === id);
   }, [areas]);
 
-  // Create new area
   const createArea = useCallback(async (areaData: Omit<Area, 'id' | 'createdAt' | 'updatedAt'>): Promise<Area | undefined> => {
     try {
-      const { data, error } = await supabase
-        .from('areas')
+      const { data, error } = await fromTable('areas')
         .insert({
           name: areaData.name,
           description: areaData.description || null,
@@ -95,7 +85,6 @@ export function useAreas() {
     }
   }, []);
 
-  // Update area
   const updateArea = useCallback(async (id: string, updates: Partial<Area>): Promise<Area | undefined> => {
     try {
       const updateData: Record<string, unknown> = {};
@@ -103,8 +92,7 @@ export function useAreas() {
       if (updates.description !== undefined) updateData.description = updates.description;
       if (updates.isArchived !== undefined) updateData.is_archived = updates.isArchived;
 
-      const { data, error } = await supabase
-        .from('areas')
+      const { data, error } = await fromTable('areas')
         .update(updateData)
         .eq('id', id)
         .select()
@@ -118,7 +106,6 @@ export function useAreas() {
     }
   }, []);
 
-  // Toggle archive status
   const toggleArchive = useCallback(async (id: string): Promise<Area | undefined> => {
     const area = areas.find(a => a.id === id);
     if (area) {
@@ -139,11 +126,9 @@ export function useAreas() {
   };
 }
 
-// Export helper for direct usage (fetches fresh from DB)
 export const getAreaByIdFromStorage = async (id: string): Promise<Area | undefined> => {
   try {
-    const { data, error } = await supabase
-      .from('areas')
+    const { data, error } = await fromTable('areas')
       .select('*')
       .eq('id', id)
       .maybeSingle();

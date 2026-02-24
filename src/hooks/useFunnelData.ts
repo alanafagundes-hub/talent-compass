@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/integrations/supabase/db-helper';
 import type { FunnelStep, Tag, Candidate } from '@/types/ats';
 
 // Database row types
@@ -138,7 +139,6 @@ export function useFunnelData(jobId: string | undefined) {
   const [error, setError] = useState<string | null>(null);
   const [funnelId, setFunnelId] = useState<string | null>(null);
 
-  // Fetch funnel and stages
   const fetchFunnelData = useCallback(async () => {
     if (!jobId) return;
 
@@ -147,8 +147,7 @@ export function useFunnelData(jobId: string | undefined) {
 
     try {
       // 1. Get funnel for this job
-      const { data: funnelData, error: funnelError } = await supabase
-        .from('funnels')
+      const { data: funnelData, error: funnelError } = await fromTable('funnels')
         .select('*')
         .eq('job_id', jobId)
         .eq('is_active', true)
@@ -166,8 +165,7 @@ export function useFunnelData(jobId: string | undefined) {
       setFunnelId(funnelData.id);
 
       // 2. Get stages for this funnel
-      const { data: stagesData, error: stagesError } = await supabase
-        .from('funnel_stages')
+      const { data: stagesData, error: stagesError } = await fromTable('funnel_stages')
         .select('*')
         .eq('funnel_id', funnelData.id)
         .eq('is_archived', false)
@@ -189,8 +187,7 @@ export function useFunnelData(jobId: string | undefined) {
       setSteps(mappedSteps);
 
       // 3. Get applications for this job with form responses
-      const { data: applicationsData, error: applicationsError } = await supabase
-        .from('applications')
+      const { data: applicationsData, error: applicationsError } = await fromTable('applications')
         .select(`
           *,
           candidates (*),
@@ -266,7 +263,6 @@ export function useFunnelData(jobId: string | undefined) {
           };
         });
 
-        // Map form responses
         const formResponses: FormResponse[] = (app.form_responses || [])
           .filter((fr: any) => fr.form_fields)
           .map((fr: any) => ({
@@ -278,7 +274,6 @@ export function useFunnelData(jobId: string | undefined) {
             fileUrl: fr.file_url,
           }));
 
-        // Build stage history from application_history
         const stageHistory: StageHistoryEntry[] = [];
         const historyEvents = (app.application_history || [])
           .filter((h: any) => h.action === 'moved' || h.action === 'applied')
@@ -288,7 +283,6 @@ export function useFunnelData(jobId: string | undefined) {
           if (event.to_stage_id) {
             const step = mappedSteps.find(s => s.id === event.to_stage_id);
             if (step) {
-              // Close previous entry
               if (stageHistory.length > 0 && !stageHistory[stageHistory.length - 1].exitedAt) {
                 stageHistory[stageHistory.length - 1].exitedAt = new Date(event.created_at);
               }
@@ -301,7 +295,6 @@ export function useFunnelData(jobId: string | undefined) {
           }
         }
 
-        // Find the first stage if current_stage_id is null
         const defaultStepId = mappedSteps.length > 0 ? mappedSteps[0].id : '';
         
         return {
@@ -325,8 +318,7 @@ export function useFunnelData(jobId: string | undefined) {
       setCards(mappedCards);
 
       // 5. Get all tags for filtering
-      const { data: tagsData } = await supabase
-        .from('tags')
+      const { data: tagsData } = await fromTable('tags')
         .select('*')
         .eq('is_archived', false);
 
@@ -348,12 +340,9 @@ export function useFunnelData(jobId: string | undefined) {
     }
   }, [jobId]);
 
-  // Move card to new stage
   const moveCard = useCallback(async (cardId: string, fromStepId: string, toStepId: string) => {
     try {
-      // Update application's current_stage_id
-      const { error: updateError } = await supabase
-        .from('applications')
+      const { error: updateError } = await fromTable('applications')
         .update({ 
           current_stage_id: toStepId,
           updated_at: new Date().toISOString()
@@ -362,8 +351,7 @@ export function useFunnelData(jobId: string | undefined) {
 
       if (updateError) throw updateError;
 
-      // Add to history
-      await supabase.from('application_history').insert({
+      await fromTable('application_history').insert({
         application_id: cardId,
         from_stage_id: fromStepId,
         to_stage_id: toStepId,
@@ -371,7 +359,6 @@ export function useFunnelData(jobId: string | undefined) {
         notes: `Movido de etapa`,
       });
 
-      // Update local state
       setCards(prev => prev.map(c => 
         c.id === cardId 
           ? { ...c, stepId: toStepId, enteredAt: new Date() }
@@ -385,7 +372,6 @@ export function useFunnelData(jobId: string | undefined) {
     }
   }, []);
 
-  // Save stage rating
   const saveRating = useCallback(async (
     cardId: string, 
     stepId: string, 
@@ -393,23 +379,18 @@ export function useFunnelData(jobId: string | undefined) {
     notes?: string
   ) => {
     try {
-      // Check if rating exists
-      const { data: existing } = await supabase
-        .from('stage_evaluations')
+      const { data: existing } = await fromTable('stage_evaluations')
         .select('id')
         .eq('application_id', cardId)
         .eq('stage_id', stepId)
         .maybeSingle();
 
       if (existing) {
-        // Update existing
-        await supabase
-          .from('stage_evaluations')
+        await fromTable('stage_evaluations')
           .update({ rating, notes, evaluated_at: new Date().toISOString() })
           .eq('id', existing.id);
       } else {
-        // Insert new
-        await supabase.from('stage_evaluations').insert({
+        await fromTable('stage_evaluations').insert({
           application_id: cardId,
           stage_id: stepId,
           rating,
@@ -417,13 +398,10 @@ export function useFunnelData(jobId: string | undefined) {
         });
       }
 
-      // Also update the application's general rating
-      await supabase
-        .from('applications')
+      await fromTable('applications')
         .update({ rating, updated_at: new Date().toISOString() })
         .eq('id', cardId);
 
-      // Refetch to update local state
       await fetchFunnelData();
       return true;
     } catch (err: any) {
@@ -432,16 +410,13 @@ export function useFunnelData(jobId: string | undefined) {
     }
   }, [fetchFunnelData]);
 
-  // Mark as lost/incompatible
   const markAsLost = useCallback(async (
     cardId: string,
     reasonId: string,
     observation?: string
   ) => {
     try {
-      // Update application status
-      await supabase
-        .from('applications')
+      await fromTable('applications')
         .update({ 
           status: 'incompativel',
           rejected_at: new Date().toISOString(),
@@ -449,15 +424,13 @@ export function useFunnelData(jobId: string | undefined) {
         })
         .eq('id', cardId);
 
-      // Add to rejected_applications
-      await supabase.from('rejected_applications').insert({
+      await fromTable('rejected_applications').insert({
         application_id: cardId,
         reason_id: reasonId,
         observation,
         can_reapply: true,
       });
 
-      // Update local state - remove from cards
       setCards(prev => prev.filter(c => c.id !== cardId));
 
       return true;
@@ -467,43 +440,34 @@ export function useFunnelData(jobId: string | undefined) {
     }
   }, []);
 
-  // Save funnel steps
   const saveSteps = useCallback(async (newSteps: FunnelStep[]) => {
     if (!funnelId) return false;
 
     try {
-      // Get current steps from DB
-      const { data: currentSteps } = await supabase
-        .from('funnel_stages')
+      const { data: currentSteps } = await fromTable('funnel_stages')
         .select('id')
         .eq('funnel_id', funnelId);
 
-      const currentIds = (currentSteps || []).map(s => s.id);
+      const currentIds = (currentSteps || []).map((s: any) => s.id);
       const newIds = newSteps.filter(s => !s.id.startsWith('new-')).map(s => s.id);
 
-      // Delete removed steps (archive them)
-      const toArchive = currentIds.filter(id => !newIds.includes(id));
+      const toArchive = currentIds.filter((id: string) => !newIds.includes(id));
       if (toArchive.length > 0) {
-        await supabase
-          .from('funnel_stages')
+        await fromTable('funnel_stages')
           .update({ is_archived: true })
           .in('id', toArchive);
       }
 
-      // Update existing and insert new
       for (const step of newSteps) {
         if (step.id.startsWith('new-')) {
-          // Insert new step
-          await supabase.from('funnel_stages').insert({
+          await fromTable('funnel_stages').insert({
             funnel_id: funnelId,
             name: step.name,
             order_index: step.order,
             color: step.color,
           });
         } else {
-          // Update existing
-          await supabase
-            .from('funnel_stages')
+          await fromTable('funnel_stages')
             .update({
               name: step.name,
               order_index: step.order,
@@ -521,12 +485,10 @@ export function useFunnelData(jobId: string | undefined) {
     }
   }, [funnelId, fetchFunnelData]);
 
-  // Initial fetch
   useEffect(() => {
     fetchFunnelData();
   }, [fetchFunnelData]);
 
-  // Real-time subscription
   useEffect(() => {
     if (!jobId) return;
 
@@ -544,15 +506,11 @@ export function useFunnelData(jobId: string | undefined) {
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [jobId, fetchFunnelData]);
 
-  // Add tag to application
   const addTag = useCallback(async (cardId: string, tagId: string) => {
     try {
-      // Optimistic update
       const tagToAdd = tags.find(t => t.id === tagId);
       if (tagToAdd) {
         setCards(prev => prev.map(c => 
@@ -562,9 +520,7 @@ export function useFunnelData(jobId: string | undefined) {
         ));
       }
 
-      // Insert into database
-      const { error } = await supabase
-        .from('application_tags')
+      const { error } = await fromTable('application_tags')
         .insert({
           application_id: cardId,
           tag_id: tagId,
@@ -574,7 +530,6 @@ export function useFunnelData(jobId: string | undefined) {
       return true;
     } catch (err: any) {
       console.error('Error adding tag:', err);
-      // Revert optimistic update
       setCards(prev => prev.map(c => 
         c.id === cardId 
           ? { ...c, tags: (c.tags || []).filter(t => t.id !== tagId) }
@@ -584,23 +539,18 @@ export function useFunnelData(jobId: string | undefined) {
     }
   }, [tags]);
 
-  // Remove tag from application
   const removeTag = useCallback(async (cardId: string, tagId: string) => {
     try {
-      // Store original tags for potential rollback
       const card = cards.find(c => c.id === cardId);
       const originalTags = card?.tags || [];
 
-      // Optimistic update
       setCards(prev => prev.map(c => 
         c.id === cardId 
           ? { ...c, tags: (c.tags || []).filter(t => t.id !== tagId) }
           : c
       ));
 
-      // Delete from database
-      const { error } = await supabase
-        .from('application_tags')
+      const { error } = await fromTable('application_tags')
         .delete()
         .eq('application_id', cardId)
         .eq('tag_id', tagId);
@@ -609,7 +559,6 @@ export function useFunnelData(jobId: string | undefined) {
       return true;
     } catch (err: any) {
       console.error('Error removing tag:', err);
-      // Revert on error
       await fetchFunnelData();
       return false;
     }
@@ -629,6 +578,6 @@ export function useFunnelData(jobId: string | undefined) {
     addTag,
     removeTag,
     refetch: fetchFunnelData,
-    setCards, // For local optimistic updates
+    setCards,
   };
 }

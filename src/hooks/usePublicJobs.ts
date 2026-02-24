@@ -1,14 +1,50 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
+import { fromTable } from '@/integrations/supabase/db-helper';
 
-export type PublicJob = Tables<'jobs'> & {
-  area?: Tables<'areas'> | null;
-};
+export interface PublicJob {
+  id: string;
+  title: string;
+  description: string;
+  requirements: string | null;
+  level: string;
+  contract_type: string;
+  work_model: string;
+  location: string;
+  about_job: string | null;
+  about_company: string | null;
+  responsibilities: string | null;
+  requirements_text: string | null;
+  nice_to_have: string | null;
+  additional_info: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  status: string;
+  priority: string;
+  area_id: string | null;
+  form_template_id: string | null;
+  deadline: string | null;
+  is_archived: boolean;
+  is_boosted: boolean;
+  investment_amount: number | null;
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
+  closed_at: string | null;
+  is_remote: boolean;
+  area?: {
+    id: string;
+    name: string;
+    description: string | null;
+    is_archived: boolean;
+    created_at: string;
+    updated_at: string;
+  } | null;
+  [key: string]: any;
+}
 
 /**
- * Hook for public pages to fetch published jobs directly from Supabase.
- * This is the single source of truth for the careers page.
+ * Hook for public pages to fetch published jobs directly.
  * Only returns jobs with status='publicada' and is_archived=false.
  */
 export function usePublicJobs() {
@@ -21,8 +57,7 @@ export function usePublicJobs() {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: queryError } = await supabase
-        .from('jobs')
+      const { data, error: queryError } = await fromTable('jobs')
         .select(`
           *,
           area:areas(*)
@@ -46,44 +81,30 @@ export function usePublicJobs() {
     }
   }, []);
 
-  // Initial fetch
   useEffect(() => {
     fetchPublishedJobs();
   }, [fetchPublishedJobs]);
 
-  // Subscribe to realtime changes for automatic sync
   useEffect(() => {
     const channel = supabase
       .channel('public-jobs-changes')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'jobs',
-        },
-        () => {
-          // Refetch when any job changes
-          fetchPublishedJobs();
-        }
+        { event: '*', schema: 'public', table: 'jobs' },
+        () => { fetchPublishedJobs(); }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [fetchPublishedJobs]);
 
-  // Get job by ID
   const getJobById = useCallback((id: string): PublicJob | undefined => {
     return jobs.find(job => job.id === id);
   }, [jobs]);
 
-  // Fetch a single job by ID (for job detail page)
   const fetchJobById = useCallback(async (id: string): Promise<PublicJob | null> => {
     try {
-      const { data, error: queryError } = await supabase
-        .from('jobs')
+      const { data, error: queryError } = await fromTable('jobs')
         .select(`
           *,
           area:areas(*)
@@ -114,17 +135,16 @@ export function usePublicJobs() {
 }
 
 /**
- * Hook for public pages to fetch areas from Supabase
+ * Hook for public pages to fetch areas
  */
 export function usePublicAreas() {
-  const [areas, setAreas] = useState<Tables<'areas'>[]>([]);
+  const [areas, setAreas] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchAreas = async () => {
       try {
-        const { data, error } = await supabase
-          .from('areas')
+        const { data, error } = await fromTable('areas')
           .select('*')
           .eq('is_archived', false)
           .order('name', { ascending: true });
@@ -145,7 +165,7 @@ export function usePublicAreas() {
     fetchAreas();
   }, []);
 
-  const getAreaById = useCallback((id: string | null): Tables<'areas'> | undefined => {
+  const getAreaById = useCallback((id: string | null): any | undefined => {
     if (!id) return undefined;
     return areas.find(area => area.id === id);
   }, [areas]);
